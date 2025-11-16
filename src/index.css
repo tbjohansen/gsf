@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --font-poppins: Poppins, sans-serif;
+  --font-sans: InterVariable, sans-serif;
+  --font-sans--font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+
+
+  --color-midnight: #121063;
+  --color-tahiti: #3ab7bf;
+  --color-bermuda: #78dcca;
+  --color-tint: #dbeafe;
+  --color-oceanic1: #16284f;
+  --color-oceanic: #1F4389;
+  
+
+  --color-blue-zodiac-50:   oklch(97.51% 0.062 223.4);  
+  --color-blue-zodiac-100:  oklch(91.19% 0.104 213.9);  
+  --color-blue-zodiac-200:  oklch(83.52% 0.157 214.1);  
+  --color-blue-zodiac-300:  oklch(73.48% 0.217 217.3);  
+  --color-blue-zodiac-400:  oklch(59.60% 0.278 219.2);  
+  --color-blue-zodiac-500:  oklch(49.37% 0.319 220.2);  
+  --color-blue-zodiac-600:  oklch(40.52% 0.318 223.1);  
+  --color-blue-zodiac-700:  oklch(33.50% 0.292 223.3);  
+  --color-blue-zodiac-800:  oklch(29.54% 0.225 223.4);  
+  --color-blue-zodiac-900:  oklch(27.35% 0.169 224.3);  
+  --color-blue-zodiac-950:  oklch(16.18% 0.098 228.6);  
+
+}
+
+/* width */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #999;
+    border-radius: 5px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
