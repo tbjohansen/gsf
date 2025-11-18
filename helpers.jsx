@@ -1,7 +1,5 @@
 import moment from "moment/moment";
 
-
-
 /**
  * Formats a date object or string to the format of year-month-date.
  * @param date
@@ -116,3 +114,10 @@ export const capitalize = (text) => {
   }
   return "";
 };
+
+export const formatter = new Intl.NumberFormat("en-US");
+
+export const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "TZS",
+});

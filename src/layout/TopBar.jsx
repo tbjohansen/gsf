@@ -11,6 +11,7 @@ import {
 } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../api/Client";
+import { capitalize } from "../../helpers";
 
 // TopBar Component
 const TopBar = ({
@@ -134,7 +135,7 @@ const TopBar = ({
 
   const getUserDisplayName = () => {
     if (!userInfo) return "User";
-    return userInfo.name || userInfo.email || "User";
+    return capitalize(userInfo?.name) || userInfo.email || "User";
   };
 
   // Show loading or nothing if user info is not loaded yet
@@ -161,7 +162,7 @@ const TopBar = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {renderIcons()}
+            {/* {renderIcons()} */}
             <span className="hidden sm:block text-sm font-bold text-blue-900">
               {greeting}, {getUserDisplayName()}
             </span>

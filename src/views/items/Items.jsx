@@ -8,20 +8,15 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import Button from "@mui/material/Button";
-import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
 import Badge from "../../components/Badge";
 import { capitalize, formatDateTimeForDb } from "../../../helpers";
-import AddHostel from "./AddHostel";
-import EditHostel from "./EditHostel";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
-import Box from "@mui/material/Box";
-import { useNavigate, useParams } from "react-router-dom";
-import EditBlock from "./EditBlock";
-import AddBlock from "./AddBlock";
+import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
+import EditItem from "./EditItem";
+import AddItem from "./AddItem";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -33,16 +28,15 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
+export default function Items() {
 
-export default function Blocks() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [blocks, setBlocks] = React.useState([]);
+  const [hostels, setHostels] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
-  const {hostelID} = useParams();
 
   // Fetch hostels from API
   React.useEffect(() => {
@@ -52,33 +46,33 @@ export default function Blocks() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get(`/settings/block`, {Hostel_ID: hostelID});
+      const response = await apiClient.get("/settings/item");
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch blocks");
+        toast.error(response.data?.error || "Failed to fetch hostels");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch blocks");
+        toast.error(response.data.error || "Failed to fetch hostels");
         return;
       }
 
       // Adjust based on your API response structure
-      const blockData = response?.data?.data;
-      const newData = blockData?.map((block, index) => ({
-        ...block,
+      const hostelData = response?.data?.data;
+      const newData = hostelData?.map((hostel, index) => ({
+        ...hostel,
         key: index + 1,
       }));
       console.log(newData);
-      setBlocks(Array.isArray(newData) ? newData : []);
+      setHostels(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch blocks error:", error);
+      console.error("Fetch hostels error:", error);
       setLoading(false);
-      toast.error("Failed to load blocks");
+      toast.error("Failed to load hostels");
     }
   };
 
@@ -96,48 +90,47 @@ export default function Blocks() {
     console.log("Row clicked:", row);
     // You can add your custom row click logic here
     // For example: navigate to details page, open modal, etc.
-    navigate(`/hostels/${row?.Hostel_ID}/blocks/${row?.Block_ID}`);
+    navigate(`/items/${row?.Item_ID}/mapped-items`);
   };
 
-    // Inside the Hostels component, replace the columns definition with:
-  const columns = React.useMemo(() => [
-    { id: "key", label: "S/N", },
-    { id: "Block_Name", label: "Name",},
-    {
-      id: "Block_Status",
-      label: "Status",
-      format: (value) => (
-        <Badge
-          name={capitalize(value)}
-          color={value === "active" ? "green" : "red"}
-        />
-      ),
-    },
-    {
-      id: "created_at",
-      label: "Created At",
-      align: "left",
-      format: (value) => <span>{formatDateTimeForDb(value)}</span>,
-    },
-    {
-      id: "actions",
-      label: "Actions",
-      align: "center",
-      format: (value, row) => (
-        <div className="flex gap-4 justify-center">
-          <EditBlock block={row} loadData={loadData} />
-        </div>
-      ),
-    },
-  ], [loadData]); // Add loadData as dependency
+  // Inside the Hostels component, replace the columns definition with:
+const columns = React.useMemo(() => [
+  { id: "key", label: "S/N",},
+  { id: "Item_Name", label: "Item Name", },
+  {
+    id: "Item_Status",
+    label: "Status",
+    format: (value) => (
+      <Badge
+        name={capitalize(value)}
+        color={value === "active" ? "green" : "red"}
+      />
+    ),
+  },
+  {
+    id: "created_at",
+    label: "Created At",
+    format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+  },
+  {
+    id: "actions",
+    label: "Actions",
+    align: "center",
+    format: (value, row) => (
+      <div className="flex gap-4 justify-center">
+        <EditItem item={row} loadData={loadData} />
+      </div>
+    ),
+  },
+], [loadData]); // Add loadData as dependency
 
   return (
     <>
     <Breadcrumb/>
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
-          <h4>Hostel Blocks List</h4>
-          <AddBlock loadData={loadData} />
+          <h4>Items List</h4>
+          <AddItem loadData={loadData} />
         </div>
       </div>
 
@@ -165,7 +158,7 @@ export default function Blocks() {
                   </TableCell>
                 </TableRow>
               )}
-              {blocks
+              {hostels
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -210,7 +203,7 @@ export default function Blocks() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={blocks?.length}
+          count={hostels?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

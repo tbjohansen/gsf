@@ -16,7 +16,6 @@ import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
-import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Breadcrumb from "../../components/Breadcrumb";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -96,30 +95,27 @@ export default function Hostels() {
 
   // Inside the Hostels component, replace the columns definition with:
 const columns = React.useMemo(() => [
-  { id: "key", label: "S/N", minWidth: 170 },
-  { id: "Hostel_Name", label: "Name", minWidth: 170 },
+  { id: "key", label: "S/N"},
+  { id: "Hostel_Name", label: "Name" },
   {
     id: "Hostel_Status",
     label: "Status",
-    minWidth: 170,
     format: (value) => (
       <Badge
         name={capitalize(value)}
-        color={value === "active" ? "green" : "orange"}
+        color={value === "active" ? "green" : "red"}
       />
     ),
   },
   {
     id: "created_at",
     label: "Created At",
-    minWidth: 170,
     align: "left",
     format: (value) => <span>{formatDateTimeForDb(value)}</span>,
   },
   {
     id: "actions",
     label: "Actions",
-    minWidth: 170,
     align: "center",
     format: (value, row) => (
       <div className="flex gap-4 justify-center">

@@ -1,8 +1,12 @@
 import React, { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { useNavigate, useLocation } from "react-router-dom";
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import { primaryTheme } from "./assets/utils/themes";
 import AppRoutes from "../routes/App.routes";
 import apiClient from "./api/Client";
+import Backdrop from "@mui/material/Backdrop";
+import CircularProgress from "@mui/material/CircularProgress";
 
 const App = () => {
   const navigate = useNavigate();
@@ -15,7 +19,7 @@ const App = () => {
 
     if (token && tokenType) {
       // Set authorization header for all API requests using apisauce method
-      apiClient.setHeader('Authorization', `${tokenType} ${token}`);
+      apiClient.setHeader("Authorization", `${tokenType} ${token}`);
 
       // Check if token is expired or expiring soon
       const tokenExpiration = localStorage.getItem("tokenExpiration");
@@ -35,9 +39,9 @@ const App = () => {
       }
     } else {
       // No token found, redirect to login if not already there
-      const publicRoutes = ['/login', '/forgot-password', '/register'];
+      const publicRoutes = ["/login", "/forgot-password", "/register"];
       if (!publicRoutes.includes(location.pathname)) {
-        navigate('/login');
+        navigate("/login");
       }
     }
 
@@ -53,12 +57,14 @@ const App = () => {
 
           // Try to refresh the token
           const refreshed = await refreshToken();
-          
+
           if (refreshed) {
             // Retry the original request with new token
             const newToken = localStorage.getItem("authToken");
             const newTokenType = localStorage.getItem("tokenType");
-            originalRequest.headers['Authorization'] = `${newTokenType} ${newToken}`;
+            originalRequest.headers[
+              "Authorization"
+            ] = `${newTokenType} ${newToken}`;
             return apiClient.axiosInstance(originalRequest);
           } else {
             // Refresh failed, logout user
@@ -98,7 +104,7 @@ const App = () => {
 
       // Call your refresh token API endpoint
       // Adjust the endpoint based on your backend API
-      const response = await apiClient.post('/refresh-token');
+      const response = await apiClient.post("/refresh");
 
       // Apisauce returns { ok, data, problem, ... }
       if (!response.ok) {
@@ -120,13 +126,16 @@ const App = () => {
         localStorage.setItem("authToken", authorization.access_token);
         localStorage.setItem("tokenType", authorization.token_type);
         localStorage.setItem("expiresIn", authorization.expires_in.toString());
-        
+
         // Calculate and store new expiration timestamp
-        const expirationTime = Date.now() + (authorization.expires_in * 1000);
+        const expirationTime = Date.now() + authorization.expires_in * 1000;
         localStorage.setItem("tokenExpiration", expirationTime.toString());
 
         // Update authorization header using apisauce method
-        apiClient.setHeader('Authorization', `${authorization.token_type} ${authorization.access_token}`);
+        apiClient.setHeader(
+          "Authorization",
+          `${authorization.token_type} ${authorization.access_token}`
+        );
 
         console.log("Token refreshed successfully");
         return true;
@@ -154,36 +163,43 @@ const App = () => {
     apiClient.deleteHeader("Authorization");
 
     // Redirect to login
-    navigate('/login');
+    navigate("/login");
   };
+
+  // <Backdrop sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+  //   <CircularProgress color="inherit" />
+  // </Backdrop>;
 
   return (
     <React.Fragment>
-      <Toaster 
+      <Toaster
         position="top-right"
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#fff',
-            color: '#363636',
+            background: "#fff",
+            color: "#363636",
           },
           success: {
             duration: 3000,
             iconTheme: {
-              primary: '#4ade80',
-              secondary: '#fff',
+              primary: "#4ade80",
+              secondary: "#fff",
             },
           },
           error: {
             duration: 4000,
             iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
+              primary: "#ef4444",
+              secondary: "#fff",
             },
           },
         }}
       />
-      <AppRoutes />
+      <ThemeProvider theme={primaryTheme}>
+        <CssBaseline />
+        <AppRoutes />
+      </ThemeProvider>
     </React.Fragment>
   );
 };

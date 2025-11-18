@@ -106,7 +106,7 @@ export default function Rooms() {
         format: (value) => (
           <Badge
             name={capitalize(value)}
-            color={value === "active" ? "green" : "orange"}
+            color={value === "active" ? "green" : "red"}
           />
         ),
       },

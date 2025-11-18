@@ -6,8 +6,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { MdAdd } from "react-icons/md";
 import apiClient from "../../api/Client";
-import Autocomplete from "@mui/material/Autocomplete";
-import { useParams } from "react-router-dom";
 
 const style = {
   position: "absolute",
@@ -20,61 +18,44 @@ const style = {
   p: 4,
 };
 
-const AddRoom = ({ loadData }) => {
+const AddUser = ({ loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
     setName("");
-    setBeds("");
-    setRoomType("");
+    setEmail("");
+    setPhone("");
   };
-
-  const dispatch = useDispatch();
-  const { hostelID, blockID, floorID } = useParams();
 
   const [name, setName] = useState("");
-  const [beds, setBeds] = useState("");
-  const [roomType, setRoomType] = useState("");
-  const [block, setBlock] = useState("");
-  const [blocks, setBlocks] = useState([]);
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const sortedRoomTypes = [
-    {
-      id: "single",
-      label: "Single",
-    },
-    {
-      id: "shared",
-      label: "Shared",
-    },
-  ];
-
-  const roomTypeOnChange = (e, value) => {
-    setRoomType(value);
-  };
+  const dispatch = useDispatch();
 
   const submit = async (e) => {
     e.preventDefault();
 
     if (!name || name.trim() === "") {
-      toast.error("Please enter room name");
+      toast.error("Please enter employee name");
       return;
     }
 
-    if (!beds || beds < 1) {
-      toast.error("Please enter valid number of beds");
+    if (!email || email.trim() === "") {
+      toast.error("Please enter employee email");
       return;
     }
 
-    if (!roomType) {
-      toast.error("Please select room type");
+    if (!phone || phone.trim() === "") {
+      toast.error("Please enter employee phone number");
       return;
     }
 
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
+    const userName = localStorage.getItem("userName");
 
     if (!employeeId) {
       toast.error("User information not found. Please login again.");
@@ -84,21 +65,18 @@ const AddRoom = ({ loadData }) => {
     setLoading(true);
 
     try {
-      // Prepare the data to send
+      // Prepare the data to send (match your API field names)
       const data = {
-        Room_Name: name.trim(),
-        Hostel_ID: hostelID,
-        Room_Type: roomType?.id,
-        No_Bed: beds,
-        Block_ID: blockID,
-        Flow_ID: floorID,
+        name: name.trim(),
+        email,
+        phone,
         Employee_ID: employeeId,
       };
 
-      console.log("Submitting room data:", data);
+      console.log("Submitting employee data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.post("/settings/room", data);
+      const response = await apiClient.post("/register", data);
 
       console.log("Response:", response);
 
@@ -112,17 +90,7 @@ const AddRoom = ({ loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          if (typeof response?.data?.error === "string") {
-            // error is a string
-            console.log("Error message:", response.data?.error);
-            const errorMessage = response.data?.error;
-            toast.error(errorMessage);
-          } else {
-            // it's not a string
-            console.log("Error is not a string:", response.data?.error);
-            const errorMessage = "Failed to create room";
-            toast.error(errorMessage);
-          }
+          toast.error(response.data?.error || "Failed to create employee");
         }
         return;
       }
@@ -130,37 +98,38 @@ const AddRoom = ({ loadData }) => {
       // Check if response contains an error (your API pattern)
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        if (typeof response?.data?.error === "string") {
-          // error is a string
-          console.log("Error message:", resp.error);
-          const errorMessage = response.data?.error;
-          toast.error(errorMessage);
+
+        // Handle validation errors (nested error object)
+        if (response.data?.error && typeof response.data.error === "object") {
+          // Extract first validation error message
+          const firstErrorKey = Object.keys(response.data.error)[0];
+          const firstErrorMessage = response.data.error[firstErrorKey][0];
+          toast.error("Failed to create employee");
         } else {
-          // it's not a string
-          console.log("Error is not a string:", resp.error);
-          const errorMessage = "Failed to create room";
+          // Handle simple error string
+          const errorMessage =
+            response.data.error || "Failed to create employee";
           toast.error(errorMessage);
         }
-
         return;
       }
 
       // Success
       setLoading(false);
-      toast.success("Room created successfully");
+      toast.success("Employee created successfully");
 
       // Close modal and reset form
       handleClose();
-
-      // TODO: Dispatch action to update Redux store if needed
-      // dispatch(addHostelToStore(response.data.data));
 
       // Trigger parent component refresh
       if (loadData && typeof loadData === "function") {
         loadData();
       }
+
+      // TODO: Dispatch action to update Redux store if needed
+      // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
-      console.error("Create room error:", error);
+      console.error("Employee item error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
@@ -172,7 +141,7 @@ const AddRoom = ({ loadData }) => {
         onClick={handleOpen}
         className="h-10 w-52 bg-oceanic cursor-pointer rounded-xl flex flex-row gap-1 justify-center text-white"
       >
-        <MdAdd className="my-3" /> <p className="py-2">Create New Room</p>
+        <MdAdd className="my-3" /> <p className="py-2">Create New Employee</p>
       </div>
 
       <Modal
@@ -183,13 +152,13 @@ const AddRoom = ({ loadData }) => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Add New Room</h3>
+            <h3 className="text-center text-xl py-4">Add New Employee</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
                   id="outlined-basic"
-                  label="Room Name"
+                  label="Employee Name"
                   variant="outlined"
                   className="w-[92%]"
                   value={name}
@@ -199,29 +168,29 @@ const AddRoom = ({ loadData }) => {
                 />
               </div>
               <div className="w-full py-2 flex justify-center">
-                <Autocomplete
-                  id="combo-box-demo"
-                  options={sortedRoomTypes}
+                <TextField
                   size="small"
-                  freeSolo
+                  id="outlined-basic"
+                  label="Email"
+                  variant="outlined"
+                  type="email"
                   className="w-[92%]"
-                  value={roomType}
-                  onChange={roomTypeOnChange}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Select Room Type" />
-                  )}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  autoFocus
                 />
               </div>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
                   id="outlined-basic"
-                  label="Number Of Beds"
+                  label="Phone Number"
                   variant="outlined"
-                  className="w-[92%]"
                   type="number"
-                  value={beds}
-                  onChange={(e) => setBeds(e.target.value)}
+                  className="w-[92%]"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   disabled={loading}
                   autoFocus
                 />
@@ -232,7 +201,7 @@ const AddRoom = ({ loadData }) => {
                   disabled={loading}
                   className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Creating..." : "Save Room"}
+                  {loading ? "Creating..." : "Save Employee"}
                 </button>
               </div>
             </div>
@@ -243,4 +212,4 @@ const AddRoom = ({ loadData }) => {
   );
 };
 
-export default AddRoom;
+export default AddUser;

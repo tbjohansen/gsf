@@ -4,10 +4,10 @@ import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
-import { MdAdd } from "react-icons/md";
+import { MdEdit } from "react-icons/md";
 import apiClient from "../../api/Client";
 import Autocomplete from "@mui/material/Autocomplete";
-import { useParams } from "react-router-dom";
+import { capitalize } from "../../../helpers";
 
 const style = {
   position: "absolute",
@@ -20,56 +20,47 @@ const style = {
   p: 4,
 };
 
-const AddRoom = ({ loadData }) => {
+const EditItem = ({ item, loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
-    setName("");
-    setBeds("");
-    setRoomType("");
   };
 
-  const dispatch = useDispatch();
-  const { hostelID, blockID, floorID } = useParams();
-
-  const [name, setName] = useState("");
-  const [beds, setBeds] = useState("");
-  const [roomType, setRoomType] = useState("");
-  const [block, setBlock] = useState("");
-  const [blocks, setBlocks] = useState([]);
+  const [name, setName] = useState(item?.Item_Name);
+  const [status, setStatus] = useState({
+    id: item?.Item_Status,
+    label: capitalize(item?.Item_Status),
+  });
   const [loading, setLoading] = useState(false);
 
-  const sortedRoomTypes = [
+  const sortedStatus = [
     {
-      id: "single",
-      label: "Single",
+      id: "active",
+      label: "Active",
     },
     {
-      id: "shared",
-      label: "Shared",
+      id: "inactive",
+      label: "Inactive",
     },
   ];
 
-  const roomTypeOnChange = (e, value) => {
-    setRoomType(value);
+  const statusOnChange = (e, value) => {
+    setStatus(value);
   };
+
+  const dispatch = useDispatch();
 
   const submit = async (e) => {
     e.preventDefault();
 
     if (!name || name.trim() === "") {
-      toast.error("Please enter room name");
+      toast.error("Please enter item name");
       return;
     }
 
-    if (!beds || beds < 1) {
-      toast.error("Please enter valid number of beds");
-      return;
-    }
-
-    if (!roomType) {
-      toast.error("Please select room type");
+    if (!status) {
+      toast.error("Please select status");
       return;
     }
 
@@ -86,19 +77,16 @@ const AddRoom = ({ loadData }) => {
     try {
       // Prepare the data to send
       const data = {
-        Room_Name: name.trim(),
-        Hostel_ID: hostelID,
-        Room_Type: roomType?.id,
-        No_Bed: beds,
-        Block_ID: blockID,
-        Flow_ID: floorID,
+        Item_Name: name.trim(),
+        Item_Status: status?.id,
+        Item_ID: item?.Item_ID,
         Employee_ID: employeeId,
       };
 
-      console.log("Submitting room data:", data);
+      console.log("Submitting item data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.post("/settings/room", data);
+      const response = await apiClient.put(`/settings/item`, data);
 
       console.log("Response:", response);
 
@@ -112,17 +100,7 @@ const AddRoom = ({ loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          if (typeof response?.data?.error === "string") {
-            // error is a string
-            console.log("Error message:", response.data?.error);
-            const errorMessage = response.data?.error;
-            toast.error(errorMessage);
-          } else {
-            // it's not a string
-            console.log("Error is not a string:", response.data?.error);
-            const errorMessage = "Failed to create room";
-            toast.error(errorMessage);
-          }
+          toast.error(response.data?.error || "Failed to update item");
         }
         return;
       }
@@ -130,37 +108,26 @@ const AddRoom = ({ loadData }) => {
       // Check if response contains an error (your API pattern)
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        if (typeof response?.data?.error === "string") {
-          // error is a string
-          console.log("Error message:", resp.error);
-          const errorMessage = response.data?.error;
-          toast.error(errorMessage);
-        } else {
-          // it's not a string
-          console.log("Error is not a string:", resp.error);
-          const errorMessage = "Failed to create room";
-          toast.error(errorMessage);
-        }
-
+        const errorMessage = response.data.error || "Failed to update item";
+        toast.error(errorMessage);
         return;
       }
 
       // Success
       setLoading(false);
-      toast.success("Room created successfully");
-
+      toast.success("Item updated successfully");
       // Close modal and reset form
       handleClose();
-
-      // TODO: Dispatch action to update Redux store if needed
-      // dispatch(addHostelToStore(response.data.data));
 
       // Trigger parent component refresh
       if (loadData && typeof loadData === "function") {
         loadData();
       }
+
+      // TODO: Dispatch action to update Redux store if needed
+      // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
-      console.error("Create room error:", error);
+      console.error("Update item error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
@@ -168,12 +135,12 @@ const AddRoom = ({ loadData }) => {
 
   return (
     <div>
-      <div
+      <button
         onClick={handleOpen}
-        className="h-10 w-52 bg-oceanic cursor-pointer rounded-xl flex flex-row gap-1 justify-center text-white"
+        className="w-10 h-10 bg-white cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group"
       >
-        <MdAdd className="my-3" /> <p className="py-2">Create New Room</p>
-      </div>
+        <MdEdit className="w-6 h-6 text-gray-800 group-hover:text-blue-600 transition-colors" />
+      </button>
 
       <Modal
         open={open}
@@ -183,13 +150,13 @@ const AddRoom = ({ loadData }) => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Add New Room</h3>
+            <h3 className="text-center text-xl py-4">Edit Item Details</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
                   id="outlined-basic"
-                  label="Room Name"
+                  label="Item Name"
                   variant="outlined"
                   className="w-[92%]"
                   value={name}
@@ -201,29 +168,15 @@ const AddRoom = ({ loadData }) => {
               <div className="w-full py-2 flex justify-center">
                 <Autocomplete
                   id="combo-box-demo"
-                  options={sortedRoomTypes}
+                  options={sortedStatus}
                   size="small"
                   freeSolo
                   className="w-[92%]"
-                  value={roomType}
-                  onChange={roomTypeOnChange}
+                  value={status}
+                  onChange={statusOnChange}
                   renderInput={(params) => (
-                    <TextField {...params} label="Select Room Type" />
+                    <TextField {...params} label="Select Status" />
                   )}
-                />
-              </div>
-              <div className="w-full py-2 flex justify-center">
-                <TextField
-                  size="small"
-                  id="outlined-basic"
-                  label="Number Of Beds"
-                  variant="outlined"
-                  className="w-[92%]"
-                  type="number"
-                  value={beds}
-                  onChange={(e) => setBeds(e.target.value)}
-                  disabled={loading}
-                  autoFocus
                 />
               </div>
               <div className="w-full py-2 mt-5 flex justify-center">
@@ -232,7 +185,7 @@ const AddRoom = ({ loadData }) => {
                   disabled={loading}
                   className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Creating..." : "Save Room"}
+                  {loading ? "Updating..." : "Edit Item"}
                 </button>
               </div>
             </div>
@@ -243,4 +196,4 @@ const AddRoom = ({ loadData }) => {
   );
 };
 
-export default AddRoom;
+export default EditItem;

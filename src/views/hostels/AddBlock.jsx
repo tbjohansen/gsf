@@ -152,7 +152,7 @@ const AddBlock = ({loadData}) => {
     <div>
       <div
         onClick={handleOpen}
-        className="h-10 w-52 bg-oceanic cursor-pointer rounded-xl flex flex-row gap-1 justify-around text-white"
+        className="h-10 w-52 bg-oceanic cursor-pointer rounded-xl flex flex-row gap-1 justify-center text-white"
       >
         <MdAdd className="my-3" /> <p className="py-2">Create New Block</p>
       </div>

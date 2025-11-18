@@ -7,10 +7,12 @@ import {
   LuChevronUp,
   LuChevronDown,
   LuArrowLeft,
+  LuFileUser,
+  LuFileUp,
 } from "react-icons/lu";
-import { GiFamilyHouse } from "react-icons/gi";
-import { MdOutlineHouse, MdOutlineBedroomParent } from "react-icons/md";
+import { MdOutlineListAlt } from "react-icons/md";
 import { useNavigate, useLocation } from "react-router-dom";
+import { BiBuildingHouse } from "react-icons/bi";
 
 // SideBar Component
 const SideBar = ({
@@ -31,7 +33,7 @@ const SideBar = ({
     {
       id: 2,
       name: "Hostels",
-      icon: GiFamilyHouse,
+      icon: BiBuildingHouse,
       url: "/hostels",
       // hasSubmenu: true,
       // submenu: [
@@ -49,8 +51,10 @@ const SideBar = ({
       //   },
       // ],
     },
-    { id: 8, name: "Users", icon: LuUsers, url: "/profile", hasUserMenu: true },
-    { id: 9, name: "Settings", icon: LuSettings, url: "/settings" },
+    { id: 3, name: "Items", icon: MdOutlineListAlt, url: "/items" },
+    { id: 4, name: "Customers", icon: LuFileUser, url: "/customers" },
+    { id: 8, name: "Users", icon: LuUsers, url: "/users" },
+    // { id: 9, name: "Settings", icon: LuSettings, url: "/settings" },
   ];
 
   const userLinks = [
@@ -69,8 +73,6 @@ const SideBar = ({
       url: "/profile/activity",
     },
   ];
-
-  
 
   const links = showUserLinks ? userLinks : mainLinks;
 

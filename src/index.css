@@ -48,3 +48,24 @@
 ::-webkit-scrollbar-thumb:hover {
     background: #888;
 }
+
+/* Horizontal scrollbar width */
+::-webkit-scrollbar:horizontal {
+    height: 6px;
+}
+
+/* Horizontal scrollbar track */
+::-webkit-scrollbar-track:horizontal {
+    background: #f1f1f1;
+}
+
+/* Horizontal scrollbar handle */
+::-webkit-scrollbar-thumb:horizontal {
+    background: #999;
+    border-radius: 5px;
+}
+
+/* Horizontal scrollbar handle on hover */
+::-webkit-scrollbar-thumb:horizontal:hover {
+    background: #888;
+}

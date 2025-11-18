@@ -8,20 +8,14 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import Button from "@mui/material/Button";
-import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
-import Badge from "../../components/Badge";
-import { capitalize, formatDateTimeForDb } from "../../../helpers";
-import AddHostel from "./AddHostel";
-import EditHostel from "./EditHostel";
+import { formatDateTimeForDb } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
-import Box from "@mui/material/Box";
-import { useNavigate, useParams } from "react-router-dom";
-import EditBlock from "./EditBlock";
-import AddBlock from "./AddBlock";
-import Breadcrumb from "../../components/Breadcrumb";
+import { useNavigate } from "react-router-dom";
+import { capitalize } from "lodash";
+import Badge from "../../components/Badge";
+import UploadCustomers from "./UploadCustomers";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -33,16 +27,14 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-
-export default function Blocks() {
+export default function Customers() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [blocks, setBlocks] = React.useState([]);
+  const [users, setUsers] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
-  const {hostelID} = useParams();
 
   // Fetch hostels from API
   React.useEffect(() => {
@@ -52,33 +44,33 @@ export default function Blocks() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get(`/settings/block`, {Hostel_ID: hostelID});
+      const response = await apiClient.get("/customer/customer");
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch blocks");
+        toast.error(response.data?.error || "Failed to fetch customers");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch blocks");
+        toast.error(response.data.error || "Failed to fetch customers");
         return;
       }
 
       // Adjust based on your API response structure
-      const blockData = response?.data?.data;
-      const newData = blockData?.map((block, index) => ({
-        ...block,
+      const userData = response?.data?.data;
+      const newData = userData?.map((user, index) => ({
+        ...user,
         key: index + 1,
       }));
       console.log(newData);
-      setBlocks(Array.isArray(newData) ? newData : []);
+      setUsers(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch blocks error:", error);
+      console.error("Fetch customers error:", error);
       setLoading(false);
-      toast.error("Failed to load blocks");
+      toast.error("Failed to load customers");
     }
   };
 
@@ -91,54 +83,54 @@ export default function Blocks() {
     setPage(0);
   };
 
-  const handleRowClick = (row) => {
-    setSelectedRow(row);
-    console.log("Row clicked:", row);
-    // You can add your custom row click logic here
-    // For example: navigate to details page, open modal, etc.
-    navigate(`/hostels/${row?.Hostel_ID}/blocks/${row?.Block_ID}`);
-  };
-
-    // Inside the Hostels component, replace the columns definition with:
-  const columns = React.useMemo(() => [
-    { id: "key", label: "S/N", },
-    { id: "Block_Name", label: "Name",},
-    {
-      id: "Block_Status",
-      label: "Status",
-      format: (value) => (
-        <Badge
-          name={capitalize(value)}
-          color={value === "active" ? "green" : "red"}
-        />
-      ),
-    },
-    {
-      id: "created_at",
-      label: "Created At",
-      align: "left",
-      format: (value) => <span>{formatDateTimeForDb(value)}</span>,
-    },
-    {
-      id: "actions",
-      label: "Actions",
-      align: "center",
-      format: (value, row) => (
-        <div className="flex gap-4 justify-center">
-          <EditBlock block={row} loadData={loadData} />
-        </div>
-      ),
-    },
-  ], [loadData]); // Add loadData as dependency
+  // Inside the users component, replace the columns definition with:
+  const columns = React.useMemo(
+    () => [
+      { id: "key", label: "S/N" },
+      {
+        id: "Customer_Name",
+        label: "Name",
+        format: (value) => <span>{capitalize(value)}</span>,
+      },
+      {
+        id: "Gender",
+        label: "Gender",
+        format: (value) => <span>{capitalize(value)}</span>,
+      },
+      {
+        id: "Nationality",
+        label: "Nationality",
+        format: (value) => <span>{capitalize(value)}</span>,
+      },
+      { id: "Phone_Number", label: "Phone" },
+      { id: "Email", label: "Email" },
+      { id: "Student_ID", label: "Customer ID" },
+      { id: "Program_Study", label: "Program" },
+      { id: "Year_Study", label: "Year" },
+      {
+        id: "Customer_Status",
+        label: "Status",
+        format: (value) => (
+          <Badge
+            name={capitalize(value)}
+            color={value === "active" ? "green" : "error"}
+          />
+        ),
+      },
+      {
+        id: "created_at",
+        label: "Created At",
+        minWidth: 170,
+        format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+      },
+    ],
+    [loadData]
+  ); // Add loadData as dependency
 
   return (
     <>
-    <Breadcrumb/>
-      <div className="w-full h-12">
-        <div className="w-full my-2 flex justify-between">
-          <h4>Hostel Blocks List</h4>
-          <AddBlock loadData={loadData} />
-        </div>
+      <div className="w-full flex my-2 justify-center">
+        <UploadCustomers />
       </div>
 
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -165,7 +157,7 @@ export default function Blocks() {
                   </TableCell>
                 </TableRow>
               )}
-              {blocks
+              {users
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -174,20 +166,21 @@ export default function Blocks() {
                       role="checkbox"
                       tabIndex={-1}
                       key={row.key || row.id}
-                      onClick={() => handleRowClick(row)}
                       sx={{
-                        cursor: "pointer",
-                        backgroundColor: selectedRow?.key === row.key ? 'rgba(0, 0, 0, 0.04)' : 'inherit',
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                        }
+                        backgroundColor:
+                          selectedRow?.key === row.key
+                            ? "rgba(0, 0, 0, 0.04)"
+                            : "inherit",
+                        "&:hover": {
+                          backgroundColor: "rgba(0, 0, 0, 0.08)",
+                        },
                       }}
                     >
                       {columns.map((column) => {
                         const value = row[column.id];
                         return (
-                          <TableCell 
-                            key={column.id} 
+                          <TableCell
+                            key={column.id}
                             align={column.align}
                             onClick={(e) => {
                               // Prevent click event from bubbling up to the row
@@ -197,7 +190,7 @@ export default function Blocks() {
                               }
                             }}
                           >
-                            {column.format ? column.format(value, row, handleRowClick) : value}
+                            {column.format ? column.format(value, row) : value}
                           </TableCell>
                         );
                       })}
@@ -210,7 +203,7 @@ export default function Blocks() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={blocks?.length}
+          count={users?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
