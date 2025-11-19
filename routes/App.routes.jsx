@@ -12,6 +12,7 @@ import MappedItems from "../src/views/items/MappedItems";
 import Users from "../src/views/users/Users";
 import Customers from "../src/views/customers/Customers";
 import PaymentCategories from "../src/views/setups/payment-category/PaymentCategories";
+import StudentRoutes from "../src/views/student/StudentRoutes";
 
 const LoginElement = () => <Login />;
 
@@ -79,6 +80,8 @@ const AppRoutes = () => {
   return (
     <React.Fragment>
       <Routes>
+        <Route path="/students" element={<StudentRoutes />} />
+
         <Route path="/login" element={<LoginElement />} />
         <Route path="/" element={<Navigate to="/home" />} />
 
