@@ -87,7 +87,7 @@ export default function UploadCustomers() {
     e.preventDefault();
 
     if (!excelData) {
-      toast.error("Please upload customers excel");
+      toast.error("Please upload students excel");
       return;
     }
 
@@ -108,7 +108,7 @@ export default function UploadCustomers() {
     };
 
     try {
-      console.log("Submitting customers data:", data);
+      console.log("Submitting students data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/customer/import-customer", data);
@@ -125,7 +125,7 @@ export default function UploadCustomers() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to upload customers");
+          toast.error("Failed to upload students");
         }
         return;
       }
@@ -139,10 +139,10 @@ export default function UploadCustomers() {
           // Extract first validation error message
           const firstErrorKey = Object.keys(response.data.error)[0];
           const firstErrorMessage = response.data.error[firstErrorKey][0];
-          toast.error("Failed to upload customers");
+          toast.error("Failed to upload students");
         } else {
           // Handle simple error string
-          const errorMessage = "Failed to upload customers";
+          const errorMessage = "Failed to upload students";
           toast.error(errorMessage);
         }
         return;
@@ -150,7 +150,7 @@ export default function UploadCustomers() {
 
       // Success
       setLoading(false);
-      toast.success("Customers uploded successfully");
+      toast.success("Students uploded successfully");
 
       // Trigger parent component refresh
       if (loadData && typeof loadData === "function") {
@@ -160,7 +160,7 @@ export default function UploadCustomers() {
       // TODO: Dispatch action to update Redux store if needed
       // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
-      console.error("upload customer error:", error);
+      console.error("upload students error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
@@ -197,7 +197,7 @@ export default function UploadCustomers() {
               <h3 className="text-lg font-bold text-black mb-2">
                 {isDragging
                   ? "Drop it here!"
-                  : "Upload Customers Excel File Here"}
+                  : "Upload Students Excel File Here"}
               </h3>
               <p className="text-gray-400 text-sm mb-6">
                 Drag and drop or click to browse
@@ -255,7 +255,7 @@ export default function UploadCustomers() {
                   ) : (
                     <>
                       <FaUpload className="w-4 h-4" />
-                      Upload Customers
+                      Upload Students
                     </>
                   )}
                 </button>

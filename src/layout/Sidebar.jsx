@@ -13,6 +13,7 @@ import {
 import { MdOutlineListAlt } from "react-icons/md";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BiBuildingHouse } from "react-icons/bi";
+import { RiListSettingsLine } from "react-icons/ri";
 
 // SideBar Component
 const SideBar = ({
@@ -35,25 +36,11 @@ const SideBar = ({
       name: "Hostels",
       icon: BiBuildingHouse,
       url: "/hostels",
-      // hasSubmenu: true,
-      // submenu: [
-      //   {
-      //     id: 21,
-      //     icon: MdOutlineBedroomParent,
-      //     name: "New",
-      //     url: "/hostels/available",
-      //   },
-      //   {
-      //     id: 22,
-      //     icon: MdOutlineBedroomParent,
-      //     name: "Setups",
-      //     url: "/hostels/unavailable",
-      //   },
-      // ],
     },
     { id: 3, name: "Items", icon: MdOutlineListAlt, url: "/items" },
-    { id: 4, name: "Customers", icon: LuFileUser, url: "/customers" },
-    { id: 8, name: "Users", icon: LuUsers, url: "/users" },
+    { id: 4, name: "Students", icon: LuFileUser, url: "/customers" },
+    { id: 5, name: "Users", icon: LuUsers, url: "/users" },
+    { id: 6, name: "Setups", icon: RiListSettingsLine, url: "/setups" },
     // { id: 9, name: "Settings", icon: LuSettings, url: "/settings" },
   ];
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Toaster } from "react-hot-toast";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CssBaseline, ThemeProvider } from "@mui/material";
@@ -11,6 +11,8 @@ import CircularProgress from "@mui/material/CircularProgress";
 const App = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isRefreshing = useRef(false);
+  const refreshPromise = useRef(null);
 
   useEffect(() => {
     // Set up authentication token in API client on app load
@@ -69,6 +71,7 @@ const App = () => {
           } else {
             // Refresh failed, logout user
             handleTokenExpiration();
+            return Promise.reject(error);
           }
         }
         return Promise.reject(error);
@@ -98,54 +101,103 @@ const App = () => {
   }, [navigate, location.pathname]);
 
   const refreshToken = async () => {
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) return false;
-
-      // Call your refresh token API endpoint
-      // Adjust the endpoint based on your backend API
-      const response = await apiClient.post("/refresh");
-
-      // Apisauce returns { ok, data, problem, ... }
-      if (!response.ok) {
-        console.log("Token refresh failed:", response.problem);
-        return false;
-      }
-
-      // Check if response contains error
-      if (response.data?.error || response.data?.code >= 400) {
-        console.log("Token refresh failed:", response.data.error);
-        return false;
-      }
-
-      // Extract new token from response
-      const { authorization } = response.data.data;
-
-      if (authorization?.access_token) {
-        // Update token in localStorage
-        localStorage.setItem("authToken", authorization.access_token);
-        localStorage.setItem("tokenType", authorization.token_type);
-        localStorage.setItem("expiresIn", authorization.expires_in.toString());
-
-        // Calculate and store new expiration timestamp
-        const expirationTime = Date.now() + authorization.expires_in * 1000;
-        localStorage.setItem("tokenExpiration", expirationTime.toString());
-
-        // Update authorization header using apisauce method
-        apiClient.setHeader(
-          "Authorization",
-          `${authorization.token_type} ${authorization.access_token}`
-        );
-
-        console.log("Token refreshed successfully");
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error("Token refresh error:", error);
-      return false;
+    // If already refreshing, return the existing promise
+    if (isRefreshing.current) {
+      return refreshPromise.current;
     }
+
+    isRefreshing.current = true;
+    
+    refreshPromise.current = (async () => {
+      try {
+        const refreshToken = localStorage.getItem("refreshToken");
+        const currentToken = localStorage.getItem("authToken");
+        
+        if (!currentToken && !refreshToken) {
+          console.log("No tokens available for refresh");
+          return false;
+        }
+
+        // Temporarily remove auth header to avoid using expired token
+        apiClient.deleteHeader("Authorization");
+
+        // Call your refresh token API endpoint
+        // Use the refresh token if available, otherwise try with current token
+        const response = await apiClient.post("/refresh", {
+          refresh_token: refreshToken,
+          token: currentToken
+        });
+
+        // Apisauce returns { ok, data, problem, ... }
+        if (!response.ok) {
+          console.log("Token refresh failed:", response.problem, response.data);
+          return false;
+        }
+
+        // Check if response contains error
+        if (response.data?.error || response.data?.code >= 400) {
+          console.log("Token refresh failed with error:", response.data.error);
+          return false;
+        }
+
+        // Handle different response structures
+        let newToken, tokenType, expiresIn;
+        
+        if (response.data.data?.authorization) {
+          // Your current structure
+          const { authorization } = response.data.data;
+          newToken = authorization.access_token;
+          tokenType = authorization.token_type;
+          expiresIn = authorization.expires_in;
+        } else if (response.data.data?.access_token) {
+          // Alternative structure
+          newToken = response.data.data.access_token;
+          tokenType = response.data.data.token_type || "Bearer";
+          expiresIn = response.data.data.expires_in;
+        } else if (response.data?.access_token) {
+          // Direct response structure
+          newToken = response.data.access_token;
+          tokenType = response.data.token_type || "Bearer";
+          expiresIn = response.data.expires_in;
+        }
+
+        if (newToken) {
+          // Update token in localStorage
+          localStorage.setItem("authToken", newToken);
+          localStorage.setItem("tokenType", tokenType);
+          
+          // Calculate and store new expiration timestamp
+          const expirationTime = Date.now() + (expiresIn * 1000);
+          localStorage.setItem("tokenExpiration", expirationTime.toString());
+
+          // Store refresh token if provided
+          if (response.data.data?.refresh_token || response.data?.refresh_token) {
+            localStorage.setItem(
+              "refreshToken", 
+              response.data.data?.refresh_token || response.data?.refresh_token
+            );
+          }
+
+          // Update authorization header using apisauce method
+          apiClient.setHeader("Authorization", `${tokenType} ${newToken}`);
+
+          console.log("Token refreshed successfully");
+          return true;
+        } else {
+          console.log("No new token received in refresh response");
+          return false;
+        }
+
+      } catch (error) {
+        console.error("Token refresh error:", error);
+        return false;
+      } finally {
+        isRefreshing.current = false;
+        refreshPromise.current = null;
+      }
+    })();
+
+    return refreshPromise.current;
   };
 
   const handleTokenExpiration = () => {
@@ -154,6 +206,7 @@ const App = () => {
     localStorage.removeItem("tokenType");
     localStorage.removeItem("expiresIn");
     localStorage.removeItem("tokenExpiration");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("userInfo");
     localStorage.removeItem("employeeId");
     localStorage.removeItem("userName");
@@ -165,10 +218,6 @@ const App = () => {
     // Redirect to login
     navigate("/login");
   };
-
-  // <Backdrop sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-  //   <CircularProgress color="inherit" />
-  // </Backdrop>;
 
   return (
     <React.Fragment>

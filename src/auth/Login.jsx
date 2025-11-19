@@ -37,13 +37,13 @@ export default function Login() {
         // Check if apisauce request was successful
         if (!response.ok) {
           setLoading(false);
-          
+
           // Handle apisauce problem types
-          if (response.problem === 'NETWORK_ERROR') {
+          if (response.problem === "NETWORK_ERROR") {
             toast.error("Network error. Please check your connection");
-          } else if (response.problem === 'TIMEOUT_ERROR') {
+          } else if (response.problem === "TIMEOUT_ERROR") {
             toast.error("Request timeout. Please try again");
-          } else if (response.problem === 'CONNECTION_ERROR') {
+          } else if (response.problem === "CONNECTION_ERROR") {
             toast.error("Connection error. Please check your internet");
           } else {
             toast.error("An error occurred. Please try again");
@@ -76,10 +76,13 @@ export default function Login() {
         if (authorization?.access_token) {
           localStorage.setItem("authToken", authorization.access_token);
           localStorage.setItem("tokenType", authorization.token_type);
-          localStorage.setItem("expiresIn", authorization.expires_in.toString());
-          
+          localStorage.setItem(
+            "expiresIn",
+            authorization.expires_in.toString()
+          );
+
           // Calculate and store expiration timestamp
-          const expirationTime = Date.now() + (authorization.expires_in * 1000);
+          const expirationTime = Date.now() + authorization.expires_in * 1000;
           localStorage.setItem("tokenExpiration", expirationTime.toString());
         }
 
@@ -93,16 +96,18 @@ export default function Login() {
 
         // Set token in API client headers for future requests using apisauce method
         if (authorization?.access_token) {
-          apiClient.setHeader('Authorization', `${authorization.token_type} ${authorization.access_token}`);
+          apiClient.setHeader(
+            "Authorization",
+            `${authorization.token_type} ${authorization.access_token}`
+          );
         }
 
         toast.success("You logged in successfully. Redirecting...");
         setLoading(false);
-        
+
         setTimeout(() => {
           navigate(`/`);
         }, 1500);
-
       } catch (error) {
         console.log(error);
         setLoading(false);
@@ -115,55 +120,57 @@ export default function Login() {
 
   return (
     <>
-      <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <img
-            alt="GPITG"
-            src="../../logos/logo.png"
-            className="mx-auto h-10 w-auto"
-          />
-          <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900">
-            Sign in to your account
-          </h2>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+              <img
+                alt="GPITG"
+                src="../../logos/logo.png"
+                className="mx-auto h-10 w-auto"
+              />
+              <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900">
+                Sign in to your account
+              </h2>
+            </div>
+          </div>
 
-        <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-          <div className="space-y-6">
-            <div>
-              <div className="mt-2">
-                <Input
+          {/* Form Card */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            <div className="space-y-6">
+              {/* Email Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address
+                </label>
+                <input
                   id="email"
                   name="email"
                   type="email"
-                  label={"Email address"}
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="email"
-                  className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-zodiac-950 sm:text-sm/6"
+                  placeholder="you@example.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-            </div>
 
-            <div>
-              <div className="flex items-center justify-between">
-                <label
-                  htmlFor="password"
-                  className="block text-sm/6 font-medium text-gray-900"
-                >
-                  Password
-                </label>
-                <div className="text-sm">
+              {/* Password Input */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Password
+                  </label>
                   <a
                     href="#"
-                    className="font-semibold text-oceanic hover:text-blue-zodiac-900"
+                    className="text-sm font-medium text-blue-600 hover:text-blue-500"
                   >
                     Forgot password?
                   </a>
                 </div>
-              </div>
-              <div className="mt-2">
-                <Input
+                <input
                   id="password"
                   name="password"
                   type="password"
@@ -171,33 +178,34 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       submit();
                     }
                   }}
                   autoComplete="current-password"
-                  className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-zodiac-950 sm:text-sm/6"
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-            </div>
 
-            <div>
+            
               <button
                 onClick={() => submit()}
                 disabled={loading}
-                className="flex w-full justify-center cursor-pointer rounded-md bg-oceanic px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 bg-gradient-to-r from-blue-900 to-blue-700 text-white font-medium rounded-md cursor-pointer transition-all duration-300 shadow-lg hover:shadow-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? "Signing in..." : "Sign in"}
               </button>
             </div>
-          </div>
 
-          <p className="mt-10 text-center text-sm/6 text-gray-500">
-            Not registered ?{" "}
-            <span className="text-gray-700">
-              Please contact an administrator
-            </span>
-          </p>
+          
+            <p className="mt-6 text-center text-sm text-gray-600">
+              Not registered?{" "}
+              <span className="text-gray-900 font-medium">
+                Please contact an administrator
+              </span>
+            </p>
+          </div>
         </div>
       </div>
     </>

@@ -11,6 +11,7 @@ import Items from "../src/views/items/Items";
 import MappedItems from "../src/views/items/MappedItems";
 import Users from "../src/views/users/Users";
 import Customers from "../src/views/customers/Customers";
+import PaymentCategories from "../src/views/setups/payment-category/PaymentCategories";
 
 const LoginElement = () => <Login />;
 
@@ -68,6 +69,12 @@ const CustomersElement = () => (
   </AppLayout>
 );
 
+const PaymentCategoriesElement = () => (
+  <AppLayout>
+    <PaymentCategories />
+  </AppLayout>
+);
+
 const AppRoutes = () => {
   return (
     <React.Fragment>
@@ -80,6 +87,7 @@ const AppRoutes = () => {
         <Route path="/users" element={<UsersElement />} />
         <Route path="/hostels" element={<HostelsElement />} />
         <Route path="/items" element={<ItemsElement />} />
+        <Route path="/setups" element={<PaymentCategoriesElement />} />
 
         <Route
           path="/items/:itemID/mapped-items"
