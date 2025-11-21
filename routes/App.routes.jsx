@@ -12,6 +12,13 @@ import MappedItems from "../src/views/items/MappedItems";
 import Users from "../src/views/users/Users";
 import Customers from "../src/views/customers/Customers";
 import PaymentCategories from "../src/views/setups/payment-category/PaymentCategories";
+import Payments from "../src/views/payments/Payments";
+import Profile from "../src/views/users/Profile";
+import Units from "../src/views/real-estate/Units";
+import Features from "../src/views/real-estate/Features";
+import RealEsatesRequests from "../src/views/real-estate/RealEstatesRequests";
+import RealEstateEmployees from "../src/views/real-estate/RealEstateEmployees";
+import RealEstateCustomers from "../src/views/real-estate/RealEstateCustomers";
 
 const LoginElement = () => <Login />;
 
@@ -75,6 +82,48 @@ const PaymentCategoriesElement = () => (
   </AppLayout>
 );
 
+const PaymentsElement = () => (
+  <AppLayout>
+    <Payments />
+  </AppLayout>
+);
+
+const ProfileElement = () => (
+  <AppLayout>
+    <Profile />
+  </AppLayout>
+);
+
+const UnitsElement = () => (
+  <AppLayout>
+    <Units />
+  </AppLayout>
+);
+
+const FeaturesElement = () => (
+  <AppLayout>
+    <Features />
+  </AppLayout>
+);
+
+const RequestsListElement = () => (
+  <AppLayout>
+    <RealEsatesRequests />
+  </AppLayout>
+);
+
+const EstateEmployeesElement = () => (
+  <AppLayout>
+    <RealEstateEmployees />
+  </AppLayout>
+);
+
+const EstateCustomersElement = () => (
+  <AppLayout>
+    <RealEstateCustomers />
+  </AppLayout>
+);
+
 const AppRoutes = () => {
   return (
     <React.Fragment>
@@ -86,8 +135,16 @@ const AppRoutes = () => {
         <Route path="/customers" element={<CustomersElement />} />
         <Route path="/users" element={<UsersElement />} />
         <Route path="/hostels" element={<HostelsElement />} />
+        <Route path="/payments" element={<PaymentsElement />} />
         <Route path="/items" element={<ItemsElement />} />
         <Route path="/setups" element={<PaymentCategoriesElement />} />
+        <Route path="/profile" element={<ProfileElement />} />
+
+        <Route path="/real-estates/units" element={<UnitsElement />} />
+        <Route path="/real-estates/features" element={<FeaturesElement />} />
+        <Route path="/real-estates/requests" element={<RequestsListElement />} />
+         <Route path="/real-estates/customers" element={<EstateCustomersElement />} />
+        <Route path="/real-estates/employees" element={<EstateEmployeesElement />} />
 
         <Route
           path="/items/:itemID/mapped-items"

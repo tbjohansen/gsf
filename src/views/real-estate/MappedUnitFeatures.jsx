@@ -8,14 +8,14 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import { formatDateTimeForDb } from "../../../helpers";
+import { capitalize, formatDateTimeForDb, formatter } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
-import { useNavigate } from "react-router-dom";
-import { capitalize } from "lodash";
-import Badge from "../../components/Badge";
-import UploadCustomers from "./UploadCustomers";
+import { useNavigate, useParams } from "react-router-dom";
+import Breadcrumb from "../../components/Breadcrumb";
+import MapItem from "./MapItem";
+import RemoveItem from "./RemoveItem";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -27,14 +27,15 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function Customers() {
+export default function MappedUnitFeatures() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [users, setUsers] = React.useState([]);
+  const [mappedFeatures, setMappedFeatures] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
+  const { itemID } = useParams();
 
   // Fetch hostels from API
   React.useEffect(() => {
@@ -44,33 +45,37 @@ export default function Customers() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/customer/customer");
+      const response = await apiClient.get("/settings/real-estate-assigned-feature", {
+        Item_ID: itemID,
+      });
 
-      if (!response.ok) {
+      console.log(response);
+
+      if (!response.ok) { 
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch customers");
+        toast.error(response.data?.error || "Failed to fetch assigned feature");
         return;
       }
 
-      if (response.data?.error || response.data?.code >= 400) {
+      if (response?.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch customers");
+        toast.error(response.data.error || "Failed to fetch assigned feature");
         return;
       }
 
       // Adjust based on your API response structure
-      const userData = response?.data?.data?.data;
-      const newData = userData?.map((user, index) => ({
-        ...user,
+      const hostelData = response?.data?.data?.data;
+      const newData = hostelData?.map((hostel, index) => ({
+        ...hostel,
         key: index + 1,
       }));
       console.log(newData);
-      setUsers(Array.isArray(newData) ? newData : []);
+      setMappedFeatures(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch customers error:", error);
+      console.error("Fetch hostels error:", error);
       setLoading(false);
-      toast.error("Failed to load customers");
+      toast.error("Failed to load assigned feature");
     }
   };
 
@@ -83,45 +88,73 @@ export default function Customers() {
     setPage(0);
   };
 
-  // Inside the users component, replace the columns definition with:
+  const handleRowClick = (row) => {
+    setSelectedRow(row);
+    console.log("Row clicked:", row);
+    // You can add your custom row click logic here
+    // For example: navigate to details page, open modal, etc.
+    // navigate(`/hostels/${row?.Hostel_ID}`);
+  };
+
+  // Inside the Hostels component, replace the columns definition with:
   const columns = React.useMemo(
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "Customer_Name",
-        label: "Name",
-        format: (value) => <span>{capitalize(value)}</span>,
+        id: "Price",
+        label: "Price",
+        format: (value) => <span>{formatter.format(value)}</span>,
       },
       {
-        id: "Gender",
-        label: "Gender",
-        format: (value) => <span>{capitalize(value)}</span>,
-      },
-      {
-        id: "Nationality",
+        id: "Natinality",
         label: "Nationality",
         format: (value) => <span>{capitalize(value)}</span>,
       },
-      { id: "Phone_Number", label: "Phone" },
-      { id: "Email", label: "Email" },
-      { id: "Student_ID", label: "Customer ID" },
-      { id: "Program_Study", label: "Program" },
-      { id: "Year_Study", label: "Year" },
       {
-        id: "Customer_Status",
-        label: "Status",
-        format: (value) => (
-          <Badge
-            name={capitalize(value)}
-            color={value === "active" ? "green" : "error"}
-          />
+        id: "Room_Type",
+        label: "Room Type",
+        format: (value) => <span>{capitalize(value)}</span>,
+      },
+      {
+        id: "hostel",
+        label: "Hostel",
+        format: (row, value) => (
+          <span>{capitalize(value?.room?.hostel?.Hostel_Name)}</span>
         ),
+      },
+      {
+        id: "block",
+        label: "Block",
+        format: (row, value) => (
+          <span>{capitalize(value?.room?.block?.Block_Name)}</span>
+        ),
+      },
+      {
+        id: "floor",
+        label: "Floor",
+        format: (row, value) => (
+          <span>{capitalize(value?.room?.flow?.Flow_Name)}</span>
+        ),
+      },
+      {
+        id: "room",
+        label: "Room",
+        format: (value) => <span>{capitalize(value?.Room_Name)}</span>,
       },
       {
         id: "created_at",
         label: "Created At",
-        minWidth: 170,
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        align: "center",
+        format: (value, row) => (
+          <div className="flex gap-2 justify-center">
+            <RemoveItem item={row} loadData={loadData}/>
+          </div>
+        ),
       },
     ],
     [loadData]
@@ -129,8 +162,12 @@ export default function Customers() {
 
   return (
     <>
-      <div className="w-full flex my-2 justify-center">
-        <UploadCustomers />
+      <Breadcrumb />
+      <div className="w-full h-12">
+        <div className="w-full my-2 flex justify-between">
+          <h4>Assigned Unit Features List</h4>
+          <MapItem loadData={loadData} />
+        </div>
       </div>
 
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -157,7 +194,7 @@ export default function Customers() {
                   </TableCell>
                 </TableRow>
               )}
-              {users
+              {mappedFeatures
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -166,7 +203,9 @@ export default function Customers() {
                       role="checkbox"
                       tabIndex={-1}
                       key={row.key || row.id}
+                      //   onClick={() => handleRowClick(row)}
                       sx={{
+                        // cursor: "pointer",
                         backgroundColor:
                           selectedRow?.key === row.key
                             ? "rgba(0, 0, 0, 0.04)"
@@ -190,7 +229,9 @@ export default function Customers() {
                               }
                             }}
                           >
-                            {column.format ? column.format(value, row) : value}
+                            {column.format
+                              ? column.format(value, row, handleRowClick)
+                              : value}
                           </TableCell>
                         );
                       })}
@@ -203,7 +244,7 @@ export default function Customers() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={users?.length}
+          count={mappedFeatures?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

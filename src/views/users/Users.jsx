@@ -38,7 +38,7 @@ export default function Users() {
 
   const navigate = useNavigate();
 
-  // Fetch hostels from API
+  // Fetch users from API
   React.useEffect(() => {
     loadData();
   }, []);
@@ -50,13 +50,13 @@ export default function Users() {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch employees");
+        toast.error(response.data?.error || "Failed to fetch users");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch employees");
+        toast.error(response.data.error || "Failed to fetch users");
         return;
       }
 
@@ -66,13 +66,13 @@ export default function Users() {
         ...user,
         key: index + 1,
       }));
-      console.log(newData);
+      // console.log(newData);
       setUsers(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch employees error:", error);
+      console.error("Fetch users error:", error);
       setLoading(false);
-      toast.error("Failed to load employees");
+      toast.error("Failed to load users");
     }
   };
 
@@ -91,7 +91,7 @@ export default function Users() {
       { id: "key", label: "S/N" },
       {
         id: "name",
-        label: "Employee Name",
+        label: "Full Name",
         format: (value) => <span>{capitalize(value)}</span>,
       },
       { id: "email", label: "Email" },
@@ -130,7 +130,7 @@ export default function Users() {
     <>
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
-          <h4>Employees List</h4>
+          <h4>Users List</h4>
           <AddUser loadData={loadData} />
         </div>
       </div>

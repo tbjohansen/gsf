@@ -1,8 +1,8 @@
 import toast from "react-hot-toast";
-import { Input } from "../components/Input";
 import { useState } from "react";
 import apiClient from "../api/Client";
 import { useNavigate } from "react-router-dom";
+import logo from "../assets/logos/logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -31,8 +31,6 @@ export default function Login() {
 
       try {
         const response = await apiClient.post(`/login`, data);
-
-        console.log(response);
 
         // Check if apisauce request was successful
         if (!response.ok) {
@@ -122,12 +120,11 @@ export default function Login() {
     <>
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Logo */}
           <div className="text-center mb-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-sm">
               <img
                 alt="GPITG"
-                src="../../logos/logo.png"
+                src={logo}
                 className="mx-auto h-10 w-auto"
               />
               <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900">
@@ -136,10 +133,8 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Form Card */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
             <div className="space-y-6">
-              {/* Email Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address
@@ -157,7 +152,6 @@ export default function Login() {
                 />
               </div>
 
-              {/* Password Input */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-gray-700">
@@ -188,7 +182,6 @@ export default function Login() {
                 />
               </div>
 
-            
               <button
                 onClick={() => submit()}
                 disabled={loading}
@@ -197,7 +190,6 @@ export default function Login() {
                 {loading ? "Signing in..." : "Sign in"}
               </button>
             </div>
-
           
             <p className="mt-6 text-center text-sm text-gray-600">
               Not registered?{" "}

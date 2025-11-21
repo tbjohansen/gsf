@@ -123,14 +123,20 @@ const TopBar = ({
     }
   };
 
+  const setOpenProfile = () => {
+    navigate("/profile");
+  };
+
   const getInitials = (name) => {
     if (!name) return "U";
-    
+
     const nameParts = name.trim().split(" ");
     if (nameParts.length === 1) {
       return nameParts[0].charAt(0).toUpperCase();
     }
-    return `${nameParts[0].charAt(0)}${nameParts[nameParts.length - 1].charAt(0)}`.toUpperCase();
+    return `${nameParts[0].charAt(0)}${nameParts[nameParts.length - 1].charAt(
+      0
+    )}`.toUpperCase();
   };
 
   const getUserDisplayName = () => {
@@ -162,7 +168,6 @@ const TopBar = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* {renderIcons()} */}
             <span className="hidden sm:block text-sm font-bold text-blue-900">
               {greeting}, {getUserDisplayName()}
             </span>
@@ -187,19 +192,22 @@ const TopBar = ({
                     onClick={() => setMenuOpen(false)}
                     className="fixed inset-0 z-40"
                   />
-                  <div className="absolute right-0 mt-3 w-48 bg-white rounded-lg shadow-lg z-50 overflow-hidden">
+                  <div className="absolute right-0 mt-3 w-60 bg-white rounded-lg shadow-lg z-50 overflow-hidden">
                     <div className="absolute -top-2 right-3 w-4 h-4 bg-white transform rotate-45" />
                     <div className="relative bg-white">
                       <button
                         onClick={() => setMenuOpen(false)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                        className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
                       >
                         <div className="w-8 h-8 rounded-full bg-blue-900 text-white flex items-center justify-center text-sm">
-                          {getInitials(userInfo.name)}
+                          {getInitials(userInfo?.name)}
                         </div>
-                        <div className="flex flex-col">
+                        <div
+                          onClick={() => setOpenProfile()}
+                          className="cursor-pointer flex flex-col"
+                        >
                           <span className="text-sm font-medium text-gray-900">
-                            {userInfo.name}
+                            {capitalize(userInfo?.name)}
                           </span>
                           <span className="text-xs text-gray-500">
                             {userInfo.email}
@@ -210,7 +218,7 @@ const TopBar = ({
                       <button
                         onClick={handleLogout}
                         disabled={isLoggingOut}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left disabled:opacity-50"
+                        className="w-full cursor-pointer flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left disabled:opacity-50"
                       >
                         {isLoggingOut ? (
                           <>
@@ -222,9 +230,7 @@ const TopBar = ({
                         ) : (
                           <>
                             <LuLogOut className="w-4 h-4 text-red-600" />
-                            <span className="text-sm text-red-600">
-                              Logout
-                            </span>
+                            <span className="text-sm text-red-600">Logout</span>
                           </>
                         )}
                       </button>

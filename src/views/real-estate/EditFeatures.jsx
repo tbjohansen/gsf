@@ -5,7 +5,7 @@ import TextField from "@mui/material/TextField";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { MdEdit } from "react-icons/md";
-import apiClient from "../../../api/Client";
+import apiClient from "../../api/Client";
 
 const style = {
   position: "absolute",
@@ -18,23 +18,42 @@ const style = {
   p: 4,
 };
 
-const EditPaymentCategory = ({ category, loadData }) => {
+const EditFeature = ({ feature, loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
   };
 
-  const [quantity, setQuantity] = useState(category?.Category_Quantity);
+  //   const [status, setStatus] = useState({
+  //     id: unit?.status,
+  //     label: capitalize(unit?.status),
+  //   });
+  const [description, setDescription] = useState(feature?.description);
   const [loading, setLoading] = useState(false);
+
+  const sortedStatus = [
+    {
+      id: "active",
+      label: "Active",
+    },
+    {
+      id: "inactive",
+      label: "Inactive",
+    },
+  ];
+
+  const statusOnChange = (e, value) => {
+    setStatus(value);
+  };
 
   const dispatch = useDispatch();
 
   const submit = async (e) => {
     e.preventDefault();
 
-    if (!quantity || quantity < 1) {
-      toast.error("Please enter valid category quantity");
+    if (!description || description.trim() === "") {
+      toast.error("Please enter feature description");
       return;
     }
 
@@ -51,17 +70,19 @@ const EditPaymentCategory = ({ category, loadData }) => {
     try {
       // Prepare the data to send
       const data = {
-        Category_Quantity: quantity,
-        Category_ID: category?.Category_ID,
+        description: description.trim(),
         Employee_ID: employeeId,
       };
 
-      console.log("Submitting payment category data:", data);
+    //   console.log("Submitting feature data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.put(`/settings/payment-category`, data);
+      const response = await apiClient.put(
+        `/settings/real-estate-feature/${feature?.id}`,
+        data
+      );
 
-      console.log("Response:", response);
+    //   console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {
@@ -73,9 +94,7 @@ const EditPaymentCategory = ({ category, loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(
-            response.data?.error || "Failed to update payment category"
-          );
+          toast.error(response.data?.error || "Failed to update feature");
         }
         return;
       }
@@ -83,14 +102,14 @@ const EditPaymentCategory = ({ category, loadData }) => {
       // Check if response contains an error (your API pattern)
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to update payment category";
+        const errorMessage = response.data.error || "Failed to update feature";
         toast.error(errorMessage);
         return;
       }
 
       // Success
       setLoading(false);
-      toast.success("Payment category updated successfully");
+      toast.success("Feature updated successfully");
       // Close modal and reset form
       handleClose();
 
@@ -102,7 +121,7 @@ const EditPaymentCategory = ({ category, loadData }) => {
       // TODO: Dispatch action to update Redux store if needed
       // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
-      console.error("Update payment category error:", error);
+      console.error("Update feature error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
@@ -125,18 +144,19 @@ const EditPaymentCategory = ({ category, loadData }) => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Edit Payment Category</h3>
+            <h3 className="text-center text-xl py-4">Edit Feature Details</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
-                  id="outlined-basic"
-                  label="Category Quantity"
+                  id="outlined-multiline-static"
+                  multiline
+                  rows={2}
                   variant="outlined"
-                  type="number"
+                  label="Description"
                   className="w-[92%]"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   disabled={loading}
                   autoFocus
                 />
@@ -147,7 +167,7 @@ const EditPaymentCategory = ({ category, loadData }) => {
                   disabled={loading}
                   className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Updating..." : "Edit Payment category"}
+                  {loading ? "Updating..." : "Edit Feature"}
                 </button>
               </div>
             </div>
@@ -158,4 +178,4 @@ const EditPaymentCategory = ({ category, loadData }) => {
   );
 };
 
-export default EditPaymentCategory;
+export default EditFeature;

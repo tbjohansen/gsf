@@ -6,10 +6,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { MdAdd } from "react-icons/md";
 import apiClient from "../../api/Client";
+import Autocomplete from "@mui/material/Autocomplete";
 
 const style = {
   position: "absolute",
-  top: "40%",
+  top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 500,
@@ -18,38 +19,59 @@ const style = {
   p: 4,
 };
 
-const AddUser = ({ loadData }) => {
+const AddUnit = ({ loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
     setName("");
-    setEmail("");
-    setPhone("");
+    setPrice("");
+    setUnitType("");
+    setDescription("");
   };
 
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [unitType, setUnitType] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
+
+  const sortedTypes = [
+    {
+      id: "farm",
+      label: "Farm",
+    },
+    {
+      id: "house",
+      label: "House",
+    },
+    {
+      id: "business",
+      label: "Business ",
+    },
+  ];
+
+  const typesOnChange = (e, value) => {
+    setUnitType(value);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
 
     if (!name || name.trim() === "") {
-      toast.error("Please enter full name");
+      toast.error("Please enter unit name");
       return;
     }
 
-    if (!email || email.trim() === "") {
-      toast.error("Please enter user email");
+    if (!price || price < 0) {
+      toast.error("Please enter valid price");
       return;
     }
 
-    if (!phone || phone.trim() === "") {
-      toast.error("Please enter phone number");
+    if (!unitType) {
+      toast.error("Please select unit type");
       return;
     }
 
@@ -68,17 +90,18 @@ const AddUser = ({ loadData }) => {
       // Prepare the data to send (match your API field names)
       const data = {
         name: name.trim(),
-        email,
-        phone,
+        real_estate_type: unitType?.id,
+        price,
+        description,
         Employee_ID: employeeId,
       };
 
-      // console.log("Submitting user data:", data);
+      console.log("Submitting unit data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.post("/register", data);
+      const response = await apiClient.post("/settings/real-estate", data);
 
-      // console.log("Response:", response);
+      console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {
@@ -90,7 +113,7 @@ const AddUser = ({ loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to create user");
+          toast.error(response.data?.error || "Failed to create unit");
         }
         return;
       }
@@ -104,11 +127,10 @@ const AddUser = ({ loadData }) => {
           // Extract first validation error message
           const firstErrorKey = Object.keys(response.data.error)[0];
           const firstErrorMessage = response.data.error[firstErrorKey][0];
-          toast.error("Failed to create user");
+          toast.error("Failed to create unit");
         } else {
           // Handle simple error string
-          const errorMessage =
-            response.data.error || "Failed to create user";
+          const errorMessage = response.data.error || "Failed to create unit";
           toast.error(errorMessage);
         }
         return;
@@ -116,7 +138,7 @@ const AddUser = ({ loadData }) => {
 
       // Success
       setLoading(false);
-      toast.success("User created successfully");
+      toast.success("Unit created successfully");
 
       // Close modal and reset form
       handleClose();
@@ -129,7 +151,7 @@ const AddUser = ({ loadData }) => {
       // TODO: Dispatch action to update Redux store if needed
       // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
-      console.error("User item error:", error);
+      console.error("Create unit error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
@@ -141,7 +163,7 @@ const AddUser = ({ loadData }) => {
         onClick={handleOpen}
         className="h-10 w-52 bg-oceanic cursor-pointer rounded-xl flex flex-row gap-1 justify-center text-white"
       >
-        <MdAdd className="my-3" /> <p className="py-2">Create New User</p>
+        <MdAdd className="my-3" /> <p className="py-2">Create New Unit</p>
       </div>
 
       <Modal
@@ -152,13 +174,13 @@ const AddUser = ({ loadData }) => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Add New User</h3>
+            <h3 className="text-center text-xl py-4">Add New Unit</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
                   id="outlined-basic"
-                  label="Full Name"
+                  label="Unit Name"
                   variant="outlined"
                   className="w-[92%]"
                   value={name}
@@ -171,26 +193,40 @@ const AddUser = ({ loadData }) => {
                 <TextField
                   size="small"
                   id="outlined-basic"
-                  label="Email"
+                  label="Unit Price"
                   variant="outlined"
-                  type="email"
                   className="w-[92%]"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
                   disabled={loading}
                   autoFocus
                 />
               </div>
               <div className="w-full py-2 flex justify-center">
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedTypes}
+                  size="small"
+                  freeSolo
+                  className="w-[92%]"
+                  value={unitType}
+                  onChange={typesOnChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Unit Type" />
+                  )}
+                />
+              </div>
+              <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
-                  id="outlined-basic"
-                  label="Phone Number"
+                  id="outlined-multiline-static"
+                  multiline
+                  rows={2}
                   variant="outlined"
-                  type="number"
+                  label="Description"
                   className="w-[92%]"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   disabled={loading}
                   autoFocus
                 />
@@ -201,7 +237,7 @@ const AddUser = ({ loadData }) => {
                   disabled={loading}
                   className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Creating..." : "Save User"}
+                  {loading ? "Creating..." : "Save Unit"}
                 </button>
               </div>
             </div>
@@ -212,4 +248,4 @@ const AddUser = ({ loadData }) => {
   );
 };
 
-export default AddUser;
+export default AddUnit;

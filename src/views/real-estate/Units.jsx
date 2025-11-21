@@ -8,14 +8,16 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import { formatDateTimeForDb } from "../../../helpers";
+import { formatDateTimeForDb, formatter } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
+import Breadcrumb from "../../components/Breadcrumb";
 import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
-import UploadCustomers from "./UploadCustomers";
+import AddUnit from "./AddUnit";
+import EditUnit from "./EditUnit";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -27,16 +29,16 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function Customers() {
+export default function Units() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [users, setUsers] = React.useState([]);
+  const [units, setUnits] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
 
-  // Fetch hostels from API
+  // Fetch users from API
   React.useEffect(() => {
     loadData();
   }, []);
@@ -44,17 +46,17 @@ export default function Customers() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/customer/customer");
+      const response = await apiClient.get("/settings/real-estate");
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch customers");
+        toast.error(response.data?.error || "Failed to fetch units");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch customers");
+        toast.error(response.data.error || "Failed to fetch units");
         return;
       }
 
@@ -65,12 +67,12 @@ export default function Customers() {
         key: index + 1,
       }));
       console.log(newData);
-      setUsers(Array.isArray(newData) ? newData : []);
+      setUnits(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch customers error:", error);
+      console.error("Fetch units error:", error);
       setLoading(false);
-      toast.error("Failed to load customers");
+      toast.error("Failed to load units");
     }
   };
 
@@ -88,27 +90,14 @@ export default function Customers() {
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "Customer_Name",
-        label: "Name",
+        id: "name",
+        label: "Unit Name",
         format: (value) => <span>{capitalize(value)}</span>,
       },
+      { id: "real_estate_type", label: "Unit Type", format: (value) => <span>{capitalize(value)}</span>, },
+      { id: "price", label: "Price", format: (value) => <span>TZS {formatter.format(value || 0)}</span>, },
       {
-        id: "Gender",
-        label: "Gender",
-        format: (value) => <span>{capitalize(value)}</span>,
-      },
-      {
-        id: "Nationality",
-        label: "Nationality",
-        format: (value) => <span>{capitalize(value)}</span>,
-      },
-      { id: "Phone_Number", label: "Phone" },
-      { id: "Email", label: "Email" },
-      { id: "Student_ID", label: "Customer ID" },
-      { id: "Program_Study", label: "Program" },
-      { id: "Year_Study", label: "Year" },
-      {
-        id: "Customer_Status",
+        id: "employee_status",
         label: "Status",
         format: (value) => (
           <Badge
@@ -120,8 +109,17 @@ export default function Customers() {
       {
         id: "created_at",
         label: "Created At",
-        minWidth: 170,
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        align: "center",
+        format: (value, row) => (
+          <div className="flex gap-2 justify-center">
+            <EditUnit unit={row} loadData={loadData} />
+          </div>
+        ),
       },
     ],
     [loadData]
@@ -129,8 +127,12 @@ export default function Customers() {
 
   return (
     <>
-      <div className="w-full flex my-2 justify-center">
-        <UploadCustomers />
+    <Breadcrumb/>
+      <div className="w-full h-12">
+        <div className="w-full my-2 flex justify-between">
+          <h4>Real Estate Units</h4>
+          <AddUnit loadData={loadData} />
+        </div>
       </div>
 
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -157,7 +159,7 @@ export default function Customers() {
                   </TableCell>
                 </TableRow>
               )}
-              {users
+              {units
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -203,7 +205,7 @@ export default function Customers() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={users?.length}
+          count={units?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

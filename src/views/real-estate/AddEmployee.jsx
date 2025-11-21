@@ -4,8 +4,8 @@ import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
-import { MdEdit } from "react-icons/md";
-import apiClient from "../../../api/Client";
+import { MdAdd } from "react-icons/md";
+import apiClient from "../../api/Client";
 
 const style = {
   position: "absolute",
@@ -18,14 +18,19 @@ const style = {
   p: 4,
 };
 
-const EditPaymentCategory = ({ category, loadData }) => {
+const AddEmployee = ({ loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
+    setName("");
+    setEmail("");
+    setPhone("");
   };
 
-  const [quantity, setQuantity] = useState(category?.Category_Quantity);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -33,13 +38,24 @@ const EditPaymentCategory = ({ category, loadData }) => {
   const submit = async (e) => {
     e.preventDefault();
 
-    if (!quantity || quantity < 1) {
-      toast.error("Please enter valid category quantity");
+    if (!name || name.trim() === "") {
+      toast.error("Please enter employee name");
+      return;
+    }
+
+    if (!email || email.trim() === "") {
+      toast.error("Please enter employee email");
+      return;
+    }
+
+    if (!phone || phone.trim() === "") {
+      toast.error("Please enter phone number");
       return;
     }
 
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
+    const userName = localStorage.getItem("userName");
 
     if (!employeeId) {
       toast.error("User information not found. Please login again.");
@@ -49,19 +65,20 @@ const EditPaymentCategory = ({ category, loadData }) => {
     setLoading(true);
 
     try {
-      // Prepare the data to send
+      // Prepare the data to send (match your API field names)
       const data = {
-        Category_Quantity: quantity,
-        Category_ID: category?.Category_ID,
+        name: name.trim(),
+        email,
+        phone,
         Employee_ID: employeeId,
       };
 
-      console.log("Submitting payment category data:", data);
+      // console.log("Submitting user data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.put(`/settings/payment-category`, data);
+      const response = await apiClient.post("/register", data);
 
-      console.log("Response:", response);
+      // console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {
@@ -73,9 +90,7 @@ const EditPaymentCategory = ({ category, loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(
-            response.data?.error || "Failed to update payment category"
-          );
+          toast.error(response.data?.error || "Failed to create employee");
         }
         return;
       }
@@ -83,14 +98,26 @@ const EditPaymentCategory = ({ category, loadData }) => {
       // Check if response contains an error (your API pattern)
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to update payment category";
-        toast.error(errorMessage);
+
+        // Handle validation errors (nested error object)
+        if (response.data?.error && typeof response.data.error === "object") {
+          // Extract first validation error message
+          const firstErrorKey = Object.keys(response.data.error)[0];
+          const firstErrorMessage = response.data.error[firstErrorKey][0];
+          toast.error("Failed to create employee");
+        } else {
+          // Handle simple error string
+          const errorMessage =
+            response.data.error || "Failed to create employee";
+          toast.error(errorMessage);
+        }
         return;
       }
 
       // Success
       setLoading(false);
-      toast.success("Payment category updated successfully");
+      toast.success("Employee created successfully");
+
       // Close modal and reset form
       handleClose();
 
@@ -102,7 +129,7 @@ const EditPaymentCategory = ({ category, loadData }) => {
       // TODO: Dispatch action to update Redux store if needed
       // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
-      console.error("Update payment category error:", error);
+      console.error("User item error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
@@ -110,12 +137,12 @@ const EditPaymentCategory = ({ category, loadData }) => {
 
   return (
     <div>
-      <button
+      <div
         onClick={handleOpen}
-        className="w-10 h-10 bg-white cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group"
+        className="h-10 w-52 bg-oceanic cursor-pointer rounded-xl flex flex-row gap-1 justify-center text-white"
       >
-        <MdEdit className="w-6 h-6 text-gray-800 group-hover:text-blue-600 transition-colors" />
-      </button>
+        <MdAdd className="my-3" /> <p className="py-2">New Employee</p>
+      </div>
 
       <Modal
         open={open}
@@ -125,18 +152,45 @@ const EditPaymentCategory = ({ category, loadData }) => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Edit Payment Category</h3>
+            <h3 className="text-center text-xl py-4">Add New Employee</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
                   id="outlined-basic"
-                  label="Category Quantity"
+                  label="Employee Name"
+                  variant="outlined"
+                  className="w-[92%]"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+              <div className="w-full py-2 flex justify-center">
+                <TextField
+                  size="small"
+                  id="outlined-basic"
+                  label="Email"
+                  variant="outlined"
+                  type="email"
+                  className="w-[92%]"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+              <div className="w-full py-2 flex justify-center">
+                <TextField
+                  size="small"
+                  id="outlined-basic"
+                  label="Phone Number"
                   variant="outlined"
                   type="number"
                   className="w-[92%]"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   disabled={loading}
                   autoFocus
                 />
@@ -147,7 +201,7 @@ const EditPaymentCategory = ({ category, loadData }) => {
                   disabled={loading}
                   className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Updating..." : "Edit Payment category"}
+                  {loading ? "Creating..." : "Save User"}
                 </button>
               </div>
             </div>
@@ -158,4 +212,4 @@ const EditPaymentCategory = ({ category, loadData }) => {
   );
 };
 
-export default EditPaymentCategory;
+export default AddEmployee;

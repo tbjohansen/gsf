@@ -8,12 +8,16 @@ import {
   LuChevronDown,
   LuArrowLeft,
   LuFileUser,
-  LuFileUp,
+  LuLandPlot,
 } from "react-icons/lu";
-import { MdOutlineListAlt } from "react-icons/md";
+import { MdOutlineListAlt, MdOutlineRealEstateAgent } from "react-icons/md";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BiBuildingHouse } from "react-icons/bi";
 import { RiListSettingsLine } from "react-icons/ri";
+import { FcMoneyTransfer } from "react-icons/fc";
+import { BsBoxes, BsClipboardPlus, BsPeople } from "react-icons/bs";
+import { HiOutlineInboxArrowDown } from "react-icons/hi2";
+import { FaPeopleRoof } from "react-icons/fa6";
 
 // SideBar Component
 const SideBar = ({
@@ -39,29 +43,48 @@ const SideBar = ({
     },
     { id: 3, name: "Items", icon: MdOutlineListAlt, url: "/items" },
     { id: 4, name: "Students", icon: LuFileUser, url: "/customers" },
-    { id: 5, name: "Users", icon: LuUsers, url: "/users" },
-    { id: 6, name: "Setups", icon: RiListSettingsLine, url: "/setups" },
+    { id: 5, name: "Payments", icon: FcMoneyTransfer, url: "/payments" },
+    { id: 6, name: "Users", icon: LuUsers, url: "/users" },
+    { id: 7, name: "Setups", icon: RiListSettingsLine, url: "/setups" },
+    {
+      id: 8,
+      name: "Real Estates",
+      icon: MdOutlineRealEstateAgent,
+      url: "/real-estates",
+      hasMenus: true,
+    },
     // { id: 9, name: "Settings", icon: LuSettings, url: "/settings" },
   ];
 
-  const userLinks = [
-    { id: 81, name: "Profile", icon: LuUser, url: "/profile/view" },
-    { id: 82, name: "Manage Users", icon: LuUsers, url: "/profile/manage" },
+  const estateLinks = [
+    { id: 80, name: "Units", icon: BsBoxes, url: "/real-estates/units" },
+    {
+      id: 81,
+      name: "Features",
+      icon: BsClipboardPlus,
+      url: "/real-estates/features",
+    },
+    {
+      id: 82,
+      name: "Requests",
+      icon: HiOutlineInboxArrowDown,
+      url: "/real-estates/requests",
+    },
     {
       id: 83,
-      name: "Permissions",
-      icon: LuSettings,
-      url: "/profile/permissions",
+      name: "Customers",
+      icon: FaPeopleRoof,
+      url: "/real-estates/customers",
     },
     {
       id: 84,
-      name: "User Activity",
-      icon: LuLayoutDashboard,
-      url: "/profile/activity",
+      name: "Employees",
+      icon: BsPeople,
+      url: "/real-estates/employees",
     },
   ];
 
-  const links = showUserLinks ? userLinks : mainLinks;
+  const links = showUserLinks ? estateLinks : mainLinks;
 
   // const handleLinkClick = (url, hasUserMenu) => {
   //   if (hasUserMenu) {
@@ -73,8 +96,8 @@ const SideBar = ({
   //   }
   // };
 
-  const handleLinkClick = (url, hasUserMenu) => {
-    if (hasUserMenu) {
+  const handleLinkClick = (url, hasMenus) => {
+    if (hasMenus) {
       setShowUserLinks(true);
       setIsExpanded(false);
     } else {
@@ -108,7 +131,7 @@ const SideBar = ({
               }
             } else {
               setIsExpanded(false);
-              handleLinkClick(link.url, link.hasUserMenu);
+              handleLinkClick(link.url, link.hasMenus);
             }
           }}
           onMouseEnter={() => setHoveredLink(link.id)}

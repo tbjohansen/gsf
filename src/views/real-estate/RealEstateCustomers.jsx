@@ -15,7 +15,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
-import UploadCustomers from "./UploadCustomers";
+import UploadEstatesCustomers from "./UploadEstatesCustomers";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -27,7 +27,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function Customers() {
+export default function RealEstateCustomers() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [users, setUsers] = React.useState([]);
@@ -130,7 +130,7 @@ export default function Customers() {
   return (
     <>
       <div className="w-full flex my-2 justify-center">
-        <UploadCustomers />
+        <UploadEstatesCustomers />
       </div>
 
       <Paper sx={{ width: "100%", overflow: "hidden" }}>

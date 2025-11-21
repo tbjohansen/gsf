@@ -29,16 +29,15 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function Items() {
-
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [hostels, setHostels] = React.useState([]);
+  const [itemsList, setItemsList] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
 
-  // Fetch hostels from API
+  // Fetch itemsList from API
   React.useEffect(() => {
     loadData();
   }, []);
@@ -50,13 +49,13 @@ export default function Items() {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch hostels");
+        toast.error(response.data?.error || "Failed to fetch items");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch hostels");
+        toast.error(response.data.error || "Failed to fetch items");
         return;
       }
 
@@ -67,12 +66,12 @@ export default function Items() {
         key: index + 1,
       }));
       console.log(newData);
-      setHostels(Array.isArray(newData) ? newData : []);
+      setItemsList(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch hostels error:", error);
+      console.error("Fetch items error:", error);
       setLoading(false);
-      toast.error("Failed to load hostels");
+      toast.error("Failed to load items");
     }
   };
 
@@ -88,45 +87,48 @@ export default function Items() {
   const handleRowClick = (row) => {
     setSelectedRow(row);
     console.log("Row clicked:", row);
-    // You can add your custom row click logic here
+    // You can add your item row click logic here
     // For example: navigate to details page, open modal, etc.
     navigate(`/items/${row?.Item_ID}/mapped-items`);
   };
 
   // Inside the Hostels component, replace the columns definition with:
-const columns = React.useMemo(() => [
-  { id: "key", label: "S/N",},
-  { id: "Item_Name", label: "Item Name", },
-  {
-    id: "Item_Status",
-    label: "Status",
-    format: (value) => (
-      <Badge
-        name={capitalize(value)}
-        color={value === "active" ? "green" : "red"}
-      />
-    ),
-  },
-  {
-    id: "created_at",
-    label: "Created At",
-    format: (value) => <span>{formatDateTimeForDb(value)}</span>,
-  },
-  {
-    id: "actions",
-    label: "Actions",
-    align: "center",
-    format: (value, row) => (
-      <div className="flex gap-4 justify-center">
-        <EditItem item={row} loadData={loadData} />
-      </div>
-    ),
-  },
-], [loadData]); // Add loadData as dependency
+  const columns = React.useMemo(
+    () => [
+      { id: "key", label: "S/N" },
+      { id: "Item_Name", label: "Item Name" },
+      {
+        id: "Item_Status",
+        label: "Status",
+        format: (value) => (
+          <Badge
+            name={capitalize(value)}
+            color={value === "active" ? "green" : "red"}
+          />
+        ),
+      },
+      {
+        id: "created_at",
+        label: "Created At",
+        format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        align: "center",
+        format: (value, row) => (
+          <div className="flex gap-4 justify-center">
+            <EditItem item={row} loadData={loadData} />
+          </div>
+        ),
+      },
+    ],
+    [loadData]
+  ); // Add loadData as dependency
 
   return (
     <>
-    <Breadcrumb/>
+      <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <h4>Items List</h4>
@@ -158,7 +160,7 @@ const columns = React.useMemo(() => [
                   </TableCell>
                 </TableRow>
               )}
-              {hostels
+              {itemsList
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -170,17 +172,20 @@ const columns = React.useMemo(() => [
                       onClick={() => handleRowClick(row)}
                       sx={{
                         cursor: "pointer",
-                        backgroundColor: selectedRow?.key === row.key ? 'rgba(0, 0, 0, 0.04)' : 'inherit',
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                        }
+                        backgroundColor:
+                          selectedRow?.key === row.key
+                            ? "rgba(0, 0, 0, 0.04)"
+                            : "inherit",
+                        "&:hover": {
+                          backgroundColor: "rgba(0, 0, 0, 0.08)",
+                        },
                       }}
                     >
                       {columns.map((column) => {
                         const value = row[column.id];
                         return (
-                          <TableCell 
-                            key={column.id} 
+                          <TableCell
+                            key={column.id}
                             align={column.align}
                             onClick={(e) => {
                               // Prevent click event from bubbling up to the row
@@ -190,7 +195,9 @@ const columns = React.useMemo(() => [
                               }
                             }}
                           >
-                            {column.format ? column.format(value, row, handleRowClick) : value}
+                            {column.format
+                              ? column.format(value, row, handleRowClick)
+                              : value}
                           </TableCell>
                         );
                       })}
@@ -203,7 +210,7 @@ const columns = React.useMemo(() => [
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={hostels?.length}
+          count={itemsList?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

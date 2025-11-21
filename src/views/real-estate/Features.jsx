@@ -8,14 +8,16 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import { formatDateTimeForDb } from "../../../helpers";
+import { formatDateTimeForDb, formatter } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
+import Breadcrumb from "../../components/Breadcrumb";
 import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
-import UploadCustomers from "./UploadCustomers";
+import AddFeature from "./AddFeatures";
+import EditFeature from "./EditFeatures";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -27,16 +29,16 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function Customers() {
+export default function Features() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [users, setUsers] = React.useState([]);
+  const [features, setFeatures] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
 
-  // Fetch hostels from API
+  // Fetch users from API
   React.useEffect(() => {
     loadData();
   }, []);
@@ -44,33 +46,33 @@ export default function Customers() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/customer/customer");
+      const response = await apiClient.get("/settings/real-estate-feature");
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch customers");
+        toast.error(response.data?.error || "Failed to fetch features");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch customers");
+        toast.error(response.data.error || "Failed to fetch features");
         return;
       }
 
       // Adjust based on your API response structure
-      const userData = response?.data?.data?.data;
-      const newData = userData?.map((user, index) => ({
-        ...user,
+      const featuresData = response?.data?.data;
+      const newData = featuresData?.map((feature, index) => ({
+        ...feature,
         key: index + 1,
       }));
       console.log(newData);
-      setUsers(Array.isArray(newData) ? newData : []);
+      setFeatures(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch customers error:", error);
+      console.error("Fetch features error:", error);
       setLoading(false);
-      toast.error("Failed to load customers");
+      toast.error("Failed to load features");
     }
   };
 
@@ -88,27 +90,12 @@ export default function Customers() {
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "Customer_Name",
-        label: "Name",
+        id: "description",
+        label: "Feature Descrption",
         format: (value) => <span>{capitalize(value)}</span>,
       },
       {
-        id: "Gender",
-        label: "Gender",
-        format: (value) => <span>{capitalize(value)}</span>,
-      },
-      {
-        id: "Nationality",
-        label: "Nationality",
-        format: (value) => <span>{capitalize(value)}</span>,
-      },
-      { id: "Phone_Number", label: "Phone" },
-      { id: "Email", label: "Email" },
-      { id: "Student_ID", label: "Customer ID" },
-      { id: "Program_Study", label: "Program" },
-      { id: "Year_Study", label: "Year" },
-      {
-        id: "Customer_Status",
+        id: "employee_status",
         label: "Status",
         format: (value) => (
           <Badge
@@ -120,8 +107,17 @@ export default function Customers() {
       {
         id: "created_at",
         label: "Created At",
-        minWidth: 170,
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        align: "center",
+        format: (value, row) => (
+          <div className="flex gap-2 justify-center">
+            <EditFeature feature={row} loadData={loadData} />
+          </div>
+        ),
       },
     ],
     [loadData]
@@ -129,8 +125,12 @@ export default function Customers() {
 
   return (
     <>
-      <div className="w-full flex my-2 justify-center">
-        <UploadCustomers />
+    <Breadcrumb/>
+      <div className="w-full h-12">
+        <div className="w-full my-2 flex justify-between">
+          <h4>Real Estate Unit Features</h4>
+          <AddFeature loadData={loadData} />
+        </div>
       </div>
 
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -157,7 +157,7 @@ export default function Customers() {
                   </TableCell>
                 </TableRow>
               )}
-              {users
+              {features
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -203,7 +203,7 @@ export default function Customers() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={users?.length}
+          count={features?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

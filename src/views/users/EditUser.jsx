@@ -55,7 +55,7 @@ const EditUser = ({ employee, loadData }) => {
     e.preventDefault();
 
     if (!name || name.trim() === "") {
-      toast.error("Please enter employee name");
+      toast.error("Please enter full name");
       return;
     }
 
@@ -83,12 +83,12 @@ const EditUser = ({ employee, loadData }) => {
         edited_by: employeeId,
       };
 
-      console.log("Submitting employee data:", data);
+      // console.log("Submitting user data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.put(`/employee`, data);
 
-      console.log("Response:", response);
+      // console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {
@@ -100,7 +100,7 @@ const EditUser = ({ employee, loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to update employee");
+          toast.error(response.data?.error || "Failed to update user");
         }
         return;
       }
@@ -108,14 +108,14 @@ const EditUser = ({ employee, loadData }) => {
       // Check if response contains an error (your API pattern)
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = response.data.error || "Failed to update employee";
+        const errorMessage = response.data.error || "Failed to update user";
         toast.error(errorMessage);
         return;
       }
 
       // Success
       setLoading(false);
-      toast.success("Employee is updated successfully");
+      toast.success("User is updated successfully");
       // Close modal and reset form
       handleClose();
 
@@ -127,7 +127,7 @@ const EditUser = ({ employee, loadData }) => {
       // TODO: Dispatch action to update Redux store if needed
       // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
-      console.error("Update employee error:", error);
+      console.error("Update user error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
@@ -150,13 +150,13 @@ const EditUser = ({ employee, loadData }) => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Edit Employee Details</h3>
+            <h3 className="text-center text-xl py-4">Edit User Details</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
                   id="outlined-basic"
-                  label="Employee Name"
+                  label="Full Name"
                   variant="outlined"
                   className="w-[92%]"
                   value={name}
@@ -185,7 +185,7 @@ const EditUser = ({ employee, loadData }) => {
                   disabled={loading}
                   className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Updating..." : "Edit Employee"}
+                  {loading ? "Updating..." : "Edit User"}
                 </button>
               </div>
             </div>

@@ -30,7 +30,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 export default function MappedItems() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [hostels, setHostels] = React.useState([]);
+  const [mappedItems, setMappedItems] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
@@ -49,7 +49,7 @@ export default function MappedItems() {
         Item_ID: itemID,
       });
 
-      console.log(response);
+      // console.log(response);
 
       if (!response.ok) {
         setLoading(false);
@@ -69,8 +69,8 @@ export default function MappedItems() {
         ...hostel,
         key: index + 1,
       }));
-      console.log(newData);
-      setHostels(Array.isArray(newData) ? newData : []);
+      // console.log(newData);
+      setMappedItems(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
       console.error("Fetch hostels error:", error);
@@ -194,7 +194,7 @@ export default function MappedItems() {
                   </TableCell>
                 </TableRow>
               )}
-              {hostels
+              {mappedItems
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -244,7 +244,7 @@ export default function MappedItems() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={hostels?.length}
+          count={mappedItems?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
