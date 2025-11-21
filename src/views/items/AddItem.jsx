@@ -18,7 +18,7 @@ const style = {
   p: 4,
 };
 
-const AddItem = ({ loadData }) => {
+const AddItem = ({ Item_Type, loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -27,6 +27,8 @@ const AddItem = ({ loadData }) => {
   };
 
   const [name, setName] = useState("");
+  const [price, setPrice] = useState(0);
+
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -36,6 +38,10 @@ const AddItem = ({ loadData }) => {
 
     if (!name || name.trim() === "") {
       toast.error("Please enter item name");
+      return;
+    }
+    if (Item_Type === "oxygen" && !price) {
+      toast.error("Please enter item price");
       return;
     }
 
@@ -55,6 +61,8 @@ const AddItem = ({ loadData }) => {
       const data = {
         Item_Name: name.trim(),
         Employee_ID: employeeId,
+        Item_Type: Item_Type,
+        Item_Price: Item_Type === "oxygen" ? price : null,
       };
 
       console.log("Submitting item data:", data);
@@ -122,8 +130,7 @@ const AddItem = ({ loadData }) => {
     <div>
       <div
         onClick={handleOpen}
-        className="h-10 w-52 bg-oceanic cursor-pointer rounded-xl flex flex-row gap-1 justify-center text-white"
-      >
+        className="h-10 w-52 bg-oceanic cursor-pointer rounded-xl flex flex-row gap-1 justify-center text-white">
         <MdAdd className="my-3" /> <p className="py-2">Create New Item</p>
       </div>
 
@@ -131,8 +138,7 @@ const AddItem = ({ loadData }) => {
         open={open}
         onClose={handleClose}
         aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
-      >
+        aria-describedby="modal-modal-description">
         <Box sx={style} className="rounded-md">
           <div>
             <h3 className="text-center text-xl py-4">Add New Item</h3>
@@ -150,12 +156,28 @@ const AddItem = ({ loadData }) => {
                   autoFocus
                 />
               </div>
+              {Item_Type === "oxygen" && (
+                <div className="w-full py-2 flex justify-center">
+                  <TextField
+                    type="number"
+                    label="Price (TZS)"
+                    value={price}
+                    onChange={(event) => {
+                      const parsed = parseFloat(event.target.value, 10);
+                      setPrice(Number.isNaN(parsed) ? 0 : Math.max(0, parsed));
+                    }}
+                    variant="outlined"
+                    size="small"
+                    className="w-[92%]"
+                    disabled={loading}
+                  />
+                </div>
+              )}
               <div className="w-full py-2 mt-5 flex justify-center">
                 <button
                   onClick={(e) => submit(e)}
                   disabled={loading}
-                  className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                  className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading ? "Creating..." : "Save Item"}
                 </button>
               </div>

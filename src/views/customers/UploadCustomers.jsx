@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { LuLoader } from "react-icons/lu";
 import apiClient from "../../api/Client";
 
-export default function UploadCustomers() {
+export default function UploadCustomers({ loadData }) {
   const [excelData, setExcelData] = useState([]);
   const [fileName, setFileName] = useState("");
   const [headers, setHeaders] = useState([]);
@@ -175,8 +175,7 @@ export default function UploadCustomers() {
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
+          onDrop={handleDrop}>
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 opacity-50"></div>
           <div className="relative p-5">
             <div className="flex flex-col items-center justify-center">
@@ -185,8 +184,7 @@ export default function UploadCustomers() {
                   isDragging
                     ? "bg-gradient-to-r from-blue-500 to-sky-500 scale-110"
                     : "bg-gray-500/50"
-                }`}
-              >
+                }`}>
                 <HiUpload
                   className={`w-10 h-10 ${
                     isDragging ? "text-white" : "text-black-200"
@@ -212,8 +210,7 @@ export default function UploadCustomers() {
               />
               <label
                 htmlFor="file-input"
-                className="group px-8 py-3 bg-gradient-to-r from-blue-900 to-sky-600 text-white font-semibold rounded-xl cursor-pointer hover:from-blue-500 hover:to-sky-500 transition-all duration-300 shadow-lg hover:shadow-sky-500/50 hover:scale-105"
-              >
+                className="group px-8 py-3 bg-gradient-to-r from-blue-900 to-sky-600 text-white font-semibold rounded-xl cursor-pointer hover:from-blue-500 hover:to-sky-500 transition-all duration-300 shadow-lg hover:shadow-sky-500/50 hover:scale-105">
                 <span className="flex items-center text-white gap-2">
                   <FaFileExcel className="w-4 h-4" />
                   Browse Files
@@ -245,8 +242,7 @@ export default function UploadCustomers() {
               <div className="flex gap-3">
                 <button
                   onClick={(e) => submit(e)}
-                  className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-500 hover:to-green-500 transition-all duration-300 shadow-lg hover:shadow-emerald-500/50 flex items-center gap-2 hover:scale-105"
-                >
+                  className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-500 hover:to-green-500 transition-all duration-300 shadow-lg hover:shadow-emerald-500/50 flex items-center gap-2 hover:scale-105">
                   {loading ? (
                     <>
                       <LuLoader className="w-4 h-4 animate-spin" /> Uploading
@@ -261,8 +257,7 @@ export default function UploadCustomers() {
                 </button>
                 <button
                   onClick={clearData}
-                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white font-semibold rounded-xl hover:from-red-500 hover:to-pink-500 transition-all duration-300 shadow-lg hover:shadow-red-500/50 flex items-center gap-2 hover:scale-105"
-                >
+                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white font-semibold rounded-xl hover:from-red-500 hover:to-pink-500 transition-all duration-300 shadow-lg hover:shadow-red-500/50 flex items-center gap-2 hover:scale-105">
                   <FaTrash className="w-4 h-4" />
                   Clear
                 </button>

@@ -39,6 +39,7 @@ const SideBar = ({
     },
     { id: 3, name: "Items", icon: MdOutlineListAlt, url: "/items" },
     { id: 4, name: "Students", icon: LuFileUser, url: "/customers" },
+    { id: 4, name: "Oxygen", icon: LuFileUser, url: "/oxygen" },
     { id: 5, name: "Users", icon: LuUsers, url: "/users" },
     { id: 6, name: "Setups", icon: RiListSettingsLine, url: "/setups" },
     // { id: 9, name: "Settings", icon: LuSettings, url: "/settings" },
@@ -121,8 +122,7 @@ const SideBar = ({
             before:w-1 before:h-0 before:bg-blue-900 before:transition-all before:duration-300
             ${!isActive && "hover:before:h-full"}
             ${!isOpen && "justify-center"}
-          `}
-        >
+          `}>
           <Icon
             className={`w-6 h-6 transition-colors duration-300 flex-shrink-0 ${
               isActive ? "text-oceanic" : "text-gray-200 opacity-90"
@@ -131,14 +131,12 @@ const SideBar = ({
           <span
             className={`text-sm font-medium transition-all duration-300 whitespace-nowrap ${
               isActive ? "text-oceanic" : "text-gray-200"
-            } ${isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}`}
-          >
+            } ${isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}`}>
             {link.name}
           </span>
           {isSubmenu && isOpen && (
             <div
-              className={`transition-transform duration-300 w-full flex justify-end`}
-            >
+              className={`transition-transform duration-300 w-full flex justify-end`}>
               {isExpanded ? (
                 <LuChevronUp
                   className={`w-4 h-4 ${
@@ -173,8 +171,7 @@ const SideBar = ({
                       ? "bg-tint"
                       : "hover:bg-amber-500/10"
                   }
-                `}
-                >
+                `}>
                   <SubIcon
                     className={`w-4 h-4 transition-colors duration-300 flex-shrink-0 ${
                       activeLink === subItem.url
@@ -187,8 +184,7 @@ const SideBar = ({
                       activeLink === subItem.url
                         ? "text-oceanic font-medium"
                         : "text-gray-200"
-                    }`}
-                  >
+                    }`}>
                     {subItem.name}
                   </span>
                 </div>
@@ -214,14 +210,12 @@ const SideBar = ({
             transition-all duration-300 ease-in-out
             hover:bg-orange-500/10 rounded-lg
             ${!isOpen && "justify-center"}
-          `}
-        >
+          `}>
           <LuArrowLeft className="w-6 h-6 text-gray-200 flex-shrink-0" />
           <span
             className={`text-sm font-medium text-gray-200 transition-all duration-300 whitespace-nowrap ${
               isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
-            }`}
-          >
+            }`}>
             Back to Menu
           </span>
         </div>
@@ -229,8 +223,9 @@ const SideBar = ({
 
       <nav className="flex-1 py-4 overflow-y-auto">
         {links.map((link) => {
+          console.log(location.pathname, link.url);
           const isActive =
-            location.pathname === link.url ||
+            location.pathname.indexOf(link.url) == 0 ||
             (link.hasSubmenu &&
               link.submenu.some((sub) => location.pathname === sub.url));
 
@@ -261,16 +256,14 @@ const SideBar = ({
           sm:hidden fixed top-0 left-0 h-full w-[70%] bg-oceanic z-40
           transform transition-transform duration-300 ease-in-out
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
-      >
+        `}>
         <DrawerContent isOpen={true} />
       </aside>
 
       <aside
         className={`hidden sm:block fixed top-0 left-0 h-full bg-oceanic z-20 transition-all duration-300 ${
           sidebarOpen ? "w-52" : "w-16"
-        }`}
-      >
+        }`}>
         <DrawerContent isOpen={sidebarOpen} />
       </aside>
     </>

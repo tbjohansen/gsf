@@ -13,6 +13,7 @@ import Users from "../src/views/users/Users";
 import Customers from "../src/views/customers/Customers";
 import PaymentCategories from "../src/views/setups/payment-category/PaymentCategories";
 import StudentRoutes from "../src/views/student/StudentRoutes";
+import OxygenManagement from "../src/views/oxygen-requisition/OxygenManagement";
 
 const LoginElement = () => <Login />;
 
@@ -34,9 +35,9 @@ const HostelsElement = () => (
   </AppLayout>
 );
 
-const ItemsElement = () => (
+const ItemsElement = (props) => (
   <AppLayout>
-    <Items />
+    <Items {...props} />
   </AppLayout>
 );
 
@@ -58,15 +59,15 @@ const FloorElement = () => (
   </AppLayout>
 );
 
-const MappedItemsElement = () => (
+const MappedItemsElement = (props) => (
   <AppLayout>
-    <MappedItems />
+    <MappedItems {...props} />
   </AppLayout>
 );
 
-const CustomersElement = () => (
+const CustomersElement = (props) => (
   <AppLayout>
-    <Customers />
+    <Customers {...props} />
   </AppLayout>
 );
 
@@ -76,25 +77,48 @@ const PaymentCategoriesElement = () => (
   </AppLayout>
 );
 
+const OxygenElement = () => (
+  <AppLayout>
+    <OxygenManagement />
+  </AppLayout>
+);
+
 const AppRoutes = () => {
   return (
     <React.Fragment>
       <Routes>
         <Route path="/students" element={<StudentRoutes />} />
-
         <Route path="/login" element={<LoginElement />} />
         <Route path="/" element={<Navigate to="/home" />} />
-
         <Route path="/home" element={<DashboardElement />} />
-        <Route path="/customers" element={<CustomersElement />} />
+        <Route
+          path="/customers"
+          element={<CustomersElement status="student" />}
+        />
+        <Route
+          path="/oxygen/customers"
+          element={<CustomersElement status="oxygen" />}
+        />
+        <Route
+          path="/oxygen/items"
+          element={<ItemsElement status="oxygen" />}
+        />
+        <Route
+          path="/oxygen/items/:itemID/mapped-items"
+          element={<MappedItemsElement status="oxygen" />}
+        />
+        <Route path="/oxygen" element={<OxygenElement />} />
         <Route path="/users" element={<UsersElement />} />
         <Route path="/hostels" element={<HostelsElement />} />
-        <Route path="/items" element={<ItemsElement />} />
+        <Route
+          path="/items"
+          element={<ItemsElement status="student_accomodation" />}
+        />
         <Route path="/setups" element={<PaymentCategoriesElement />} />
 
         <Route
           path="/items/:itemID/mapped-items"
-          element={<MappedItemsElement />}
+          element={<MappedItemsElement status="student_accomodation" />}
         />
 
         <Route path="/hostels/:hostelID" element={<HostelElement />} />

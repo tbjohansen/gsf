@@ -9,7 +9,12 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import { capitalize, formatDateTimeForDb } from "../../../helpers";
+import {
+  capitalize,
+  currencyFormatter,
+  formatDateTimeForDb,
+  formatter,
+} from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -28,11 +33,10 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function Items() {
-
+export default function Items({ status }) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [hostels, setHostels] = React.useState([]);
+  const [items, setItems] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
@@ -46,33 +50,35 @@ export default function Items() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/settings/item");
+      const response = await apiClient.get(
+        `/settings/item?Item_Type=${status}`
+      );
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch hostels");
+        toast.error(response.data?.error || "Failed to fetch items");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch hostels");
+        toast.error(response.data.error || "Failed to fetch items");
         return;
       }
 
       // Adjust based on your API response structure
-      const hostelData = response?.data?.data;
-      const newData = hostelData?.map((hostel, index) => ({
-        ...hostel,
+      const itemData = response?.data?.data;
+      const newData = itemData?.map((item, index) => ({
+        ...item,
         key: index + 1,
       }));
       console.log(newData);
-      setHostels(Array.isArray(newData) ? newData : []);
+      setItems(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch hostels error:", error);
+      console.error("Fetch items error:", error);
       setLoading(false);
-      toast.error("Failed to load hostels");
+      toast.error("Failed to load items");
     }
   };
 
@@ -90,47 +96,60 @@ export default function Items() {
     console.log("Row clicked:", row);
     // You can add your custom row click logic here
     // For example: navigate to details page, open modal, etc.
-    navigate(`/items/${row?.Item_ID}/mapped-items`);
+    navigate(
+      status === "oxygen"
+        ? `/${status}/items/${row?.Item_ID}/mapped-items`
+        : `/items/${row?.Item_ID}/mapped-items`
+    );
   };
 
   // Inside the Hostels component, replace the columns definition with:
-const columns = React.useMemo(() => [
-  { id: "key", label: "S/N",},
-  { id: "Item_Name", label: "Item Name", },
-  {
-    id: "Item_Status",
-    label: "Status",
-    format: (value) => (
-      <Badge
-        name={capitalize(value)}
-        color={value === "active" ? "green" : "red"}
-      />
-    ),
-  },
-  {
-    id: "created_at",
-    label: "Created At",
-    format: (value) => <span>{formatDateTimeForDb(value)}</span>,
-  },
-  {
-    id: "actions",
-    label: "Actions",
-    align: "center",
-    format: (value, row) => (
-      <div className="flex gap-4 justify-center">
-        <EditItem item={row} loadData={loadData} />
-      </div>
-    ),
-  },
-], [loadData]); // Add loadData as dependency
+  const columns = React.useMemo(
+    () => [
+      { id: "key", label: "S/N" },
+      { id: "Item_Name", label: "Item Name" },
+      {
+        id: "Item_Status",
+        label: "Status",
+        format: (value) => (
+          <Badge
+            name={capitalize(value)}
+            color={value === "active" ? "green" : "red"}
+          />
+        ),
+      },
+      {
+        id: "Item_Price",
+        label: "Price (TZS)",
+        format: (value) => <span>{formatter.format(value || 0)}</span>,
+        show: status === "oxygen",
+      },
+      {
+        id: "created_at",
+        label: "Created At",
+        format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        align: "center",
+        format: (value, row) => (
+          <div className="flex gap-4 justify-center">
+            <EditItem item={row} loadData={loadData} Item_Type={status} />
+          </div>
+        ),
+      },
+    ],
+    [loadData, status]
+  ); // Add loadData as dependency
 
   return (
     <>
-    <Breadcrumb/>
+      <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <h4>Items List</h4>
-          <AddItem loadData={loadData} />
+          <AddItem Item_Type={status} loadData={loadData} />
         </div>
       </div>
 
@@ -143,8 +162,7 @@ const columns = React.useMemo(() => [
                   <StyledTableCell
                     key={column.id}
                     align={column.align}
-                    style={{ minWidth: column.minWidth }}
-                  >
+                    style={{ minWidth: column.minWidth }}>
                     {column.label}
                   </StyledTableCell>
                 ))}
@@ -158,7 +176,7 @@ const columns = React.useMemo(() => [
                   </TableCell>
                 </TableRow>
               )}
-              {hostels
+              {items
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -167,33 +185,44 @@ const columns = React.useMemo(() => [
                       role="checkbox"
                       tabIndex={-1}
                       key={row.key || row.id}
-                      onClick={() => handleRowClick(row)}
+                      onClick={() =>
+                        status === "student_accomodation"
+                          ? handleRowClick(row)
+                          : null
+                      }
                       sx={{
                         cursor: "pointer",
-                        backgroundColor: selectedRow?.key === row.key ? 'rgba(0, 0, 0, 0.04)' : 'inherit',
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                        }
-                      }}
-                    >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell 
-                            key={column.id} 
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format ? column.format(value, row, handleRowClick) : value}
-                          </TableCell>
-                        );
-                      })}
+                        backgroundColor:
+                          selectedRow?.key === row.key
+                            ? "rgba(0, 0, 0, 0.04)"
+                            : "inherit",
+                        "&:hover": {
+                          backgroundColor: "rgba(0, 0, 0, 0.08)",
+                        },
+                      }}>
+                      {columns
+                        .filter(
+                          (e) => typeof e.show === "undefined" || !!e.show
+                        )
+                        .map((column) => {
+                          const value = row[column.id];
+                          return (
+                            <TableCell
+                              key={column.id}
+                              align={column.align}
+                              onClick={(e) => {
+                                // Prevent click event from bubbling up to the row
+                                // when clicking on action buttons
+                                if (column.id === "actions") {
+                                  e.stopPropagation();
+                                }
+                              }}>
+                              {column.format
+                                ? column.format(value, row, handleRowClick)
+                                : value}
+                            </TableCell>
+                          );
+                        })}
                     </TableRow>
                   );
                 })}
@@ -203,7 +232,7 @@ const columns = React.useMemo(() => [
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={hostels?.length}
+          count={items?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
