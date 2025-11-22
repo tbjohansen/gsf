@@ -39,9 +39,10 @@ const SideBar = ({
     },
     { id: 3, name: "Items", icon: MdOutlineListAlt, url: "/items" },
     { id: 4, name: "Students", icon: LuFileUser, url: "/customers" },
-    { id: 4, name: "Oxygen", icon: LuFileUser, url: "/oxygen" },
-    { id: 5, name: "Users", icon: LuUsers, url: "/users" },
-    { id: 6, name: "Setups", icon: RiListSettingsLine, url: "/setups" },
+    { id: 4, name: "Point of Sale", icon: LuFileUser, url: "/point-of-sale" },
+    { id: 5, name: "Oxygen", icon: LuFileUser, url: "/oxygen" },
+    { id: 6, name: "Users", icon: LuUsers, url: "/users" },
+    { id: 7, name: "Setups", icon: RiListSettingsLine, url: "/setups" },
     // { id: 9, name: "Settings", icon: LuSettings, url: "/settings" },
   ];
 

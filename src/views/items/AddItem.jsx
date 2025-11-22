@@ -28,6 +28,7 @@ const AddItem = ({ Item_Type, loadData }) => {
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState(0);
+  const [outsidePrice, setOutsidePrice] = useState(0);
 
   const [loading, setLoading] = useState(false);
 
@@ -41,6 +42,11 @@ const AddItem = ({ Item_Type, loadData }) => {
       return;
     }
     if (Item_Type === "oxygen" && !price) {
+      toast.error("Please enter item price");
+      return;
+    }
+
+    if (Item_Type === "oxygen" && !price && !outsidePrice) {
       toast.error("Please enter item price");
       return;
     }
@@ -62,7 +68,8 @@ const AddItem = ({ Item_Type, loadData }) => {
         Item_Name: name.trim(),
         Employee_ID: employeeId,
         Item_Type: Item_Type,
-        Item_Price: Item_Type === "oxygen" ? price : null,
+        Item_Price_Outside: Item_Type === "oxygen" ? outsidePrice : null,
+        Item_Price_Inside: Item_Type === "oxygen" ? price : null,
       };
 
       console.log("Submitting item data:", data);
@@ -82,7 +89,8 @@ const AddItem = ({ Item_Type, loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to create item");
+          console.log("Error:", response.data?.error);
+          toast.error("Failed to create item");
         }
         return;
       }
@@ -157,21 +165,43 @@ const AddItem = ({ Item_Type, loadData }) => {
                 />
               </div>
               {Item_Type === "oxygen" && (
-                <div className="w-full py-2 flex justify-center">
-                  <TextField
-                    type="number"
-                    label="Price (TZS)"
-                    value={price}
-                    onChange={(event) => {
-                      const parsed = parseFloat(event.target.value, 10);
-                      setPrice(Number.isNaN(parsed) ? 0 : Math.max(0, parsed));
-                    }}
-                    variant="outlined"
-                    size="small"
-                    className="w-[92%]"
-                    disabled={loading}
-                  />
-                </div>
+                <>
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      type="number"
+                      label="Inside Price (TZS)"
+                      value={price}
+                      onChange={(event) => {
+                        const parsed = parseFloat(event.target.value, 10);
+                        setPrice(
+                          Number.isNaN(parsed) ? 0 : Math.max(0, parsed)
+                        );
+                      }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      type="number"
+                      label="Outside Price (TZS)"
+                      value={outsidePrice}
+                      onChange={(event) => {
+                        const parsed = parseFloat(event.target.value, 10);
+                        setOutsidePrice(
+                          Number.isNaN(parsed) ? 0 : Math.max(0, parsed)
+                        );
+                      }}
+                      inputProps={{ min: 0 }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                </>
               )}
               <div className="w-full py-2 mt-5 flex justify-center">
                 <button

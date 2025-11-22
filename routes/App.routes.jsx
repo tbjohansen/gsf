@@ -14,6 +14,7 @@ import Customers from "../src/views/customers/Customers";
 import PaymentCategories from "../src/views/setups/payment-category/PaymentCategories";
 import StudentRoutes from "../src/views/student/StudentRoutes";
 import OxygenManagement from "../src/views/oxygen-requisition/OxygenManagement";
+import PointOfSale from "../src/views/oxygen-sales-management/PointOfSale";
 
 const LoginElement = () => <Login />;
 
@@ -83,6 +84,12 @@ const OxygenElement = () => (
   </AppLayout>
 );
 
+const PointOfSaleElement = () => (
+  <AppLayout>
+    <PointOfSale />
+  </AppLayout>
+);
+
 const AppRoutes = () => {
   return (
     <React.Fragment>
@@ -103,6 +110,7 @@ const AppRoutes = () => {
           path="/oxygen/items"
           element={<ItemsElement status="oxygen" />}
         />
+        <Route path="/point-of-sale" element={<PointOfSaleElement />} />
         <Route
           path="/oxygen/items/:itemID/mapped-items"
           element={<MappedItemsElement status="oxygen" />}

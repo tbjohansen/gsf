@@ -89,9 +89,14 @@ export default function Login() {
         // Store employee info in localStorage
         if (employee) {
           localStorage.setItem("userInfo", JSON.stringify(employee));
-          localStorage.setItem("employeeId", employee.Employee_ID.toString());
+          localStorage.setItem("employeeId", employee.Employee_ID?.toString());
           localStorage.setItem("userName", employee.name);
           localStorage.setItem("userEmail", employee.email);
+          localStorage.setItem("customerId", employee?.Customer_ID?.toString());
+          localStorage.setItem(
+            "customerOrigin",
+            employee.customer_origin?.toString()
+          );
         }
 
         // Set token in API client headers for future requests using apisauce method
@@ -165,8 +170,7 @@ export default function Login() {
                   </label>
                   <a
                     href="#"
-                    className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                  >
+                    className="text-sm font-medium text-blue-600 hover:text-blue-500">
                     Forgot password?
                   </a>
                 </div>
@@ -188,17 +192,14 @@ export default function Login() {
                 />
               </div>
 
-            
               <button
                 onClick={() => submit()}
                 disabled={loading}
-                className="w-full px-4 py-2 bg-gradient-to-r from-blue-900 to-blue-700 text-white font-medium rounded-md cursor-pointer transition-all duration-300 shadow-lg hover:shadow-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
+                className="w-full px-4 py-2 bg-gradient-to-r from-blue-900 to-blue-700 text-white font-medium rounded-md cursor-pointer transition-all duration-300 shadow-lg hover:shadow-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                 {loading ? "Signing in..." : "Sign in"}
               </button>
             </div>
 
-          
             <p className="mt-6 text-center text-sm text-gray-600">
               Not registered?{" "}
               <span className="text-gray-900 font-medium">

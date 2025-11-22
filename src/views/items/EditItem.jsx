@@ -29,6 +29,7 @@ const EditItem = ({ item, loadData, Item_Type }) => {
 
   const [name, setName] = useState(item?.Item_Name);
   const [price, setPrice] = useState(item?.Item_Price);
+  const [outsidePrice, setOutsidePrice] = useState(item?.Item_Price_Outside);
 
   const [status, setStatus] = useState({
     id: item?.Item_Status,
@@ -66,6 +67,11 @@ const EditItem = ({ item, loadData, Item_Type }) => {
       return;
     }
 
+    if (Item_Type === "oxygen" && !price && !outsidePrice) {
+      toast.error("Please enter item price");
+      return;
+    }
+
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
 
@@ -84,7 +90,8 @@ const EditItem = ({ item, loadData, Item_Type }) => {
         Item_ID: item?.Item_ID,
         Employee_ID: employeeId,
         Item_Type: Item_Type,
-        Item_Price: Item_Type === "oxygen" ? price : null,
+        Item_Price_Outside: Item_Type === "oxygen" ? outsidePrice : null,
+        Item_Price_Inside: Item_Type === "oxygen" ? price : null,
       };
 
       console.log("Submitting item data:", data);
@@ -182,22 +189,44 @@ const EditItem = ({ item, loadData, Item_Type }) => {
                 />
               </div>
               {Item_Type === "oxygen" && (
-                <div className="w-full py-2 flex justify-center">
-                  <TextField
-                    type="number"
-                    label="Price (TZS)"
-                    value={price}
-                    onChange={(event) => {
-                      const parsed = parseFloat(event.target.value, 10);
-                      setPrice(Number.isNaN(parsed) ? 0 : Math.max(0, parsed));
-                    }}
-                    inputProps={{ min: 0 }}
-                    variant="outlined"
-                    size="small"
-                    className="w-[92%]"
-                    disabled={loading}
-                  />
-                </div>
+                <>
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      type="number"
+                      label="Inside Price (TZS)"
+                      value={price}
+                      onChange={(event) => {
+                        const parsed = parseFloat(event.target.value, 10);
+                        setPrice(
+                          Number.isNaN(parsed) ? 0 : Math.max(0, parsed)
+                        );
+                      }}
+                      inputProps={{ min: 0 }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      type="number"
+                      label="Outside Price (TZS)"
+                      value={outsidePrice}
+                      onChange={(event) => {
+                        const parsed = parseFloat(event.target.value, 10);
+                        setOutsidePrice(
+                          Number.isNaN(parsed) ? 0 : Math.max(0, parsed)
+                        );
+                      }}
+                      inputProps={{ min: 0 }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                </>
               )}
               <div className="w-full py-2 mt-5 flex justify-center">
                 <button

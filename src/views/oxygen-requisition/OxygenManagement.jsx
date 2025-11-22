@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiActivity,
@@ -21,19 +21,15 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-const [data, setData] = useState({
-  tanksDispensedToday: 0,
-  gasOrdersToday: 0,
-  revenueToday: 0,
-  topTank: {
-    name: "UltraPure 50L",
-    unitsSoldToday: 0,
-  },
-});
-
-useEffect(() => {
-  console.log(data);
-}, [data]);
+// const [data, setData] = useState({
+//   tanksDispensedToday: 0,
+//   gasOrdersToday: 0,
+//   revenueToday: 0,
+//   topTank: {
+//     name: "UltraPure 50L",
+//     unitsSoldToday: 0,
+//   },
+// });
 
 const weeklyRevenueData = [
   { id: "mon", day: "Mon", amount: 6100 },

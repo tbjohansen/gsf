@@ -119,8 +119,14 @@ export default function Items({ status }) {
         ),
       },
       {
-        id: "Item_Price",
-        label: "Price (TZS)",
+        id: "Item_Price_Inside",
+        label: "Inside Price (TZS)",
+        format: (value) => <span>{formatter.format(value || 0)}</span>,
+        show: status === "oxygen",
+      },
+      {
+        id: "Item_Price_Outside",
+        label: "Outside Price (TZS)",
         format: (value) => <span>{formatter.format(value || 0)}</span>,
         show: status === "oxygen",
       },
