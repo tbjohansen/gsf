@@ -1,7 +1,7 @@
 import { create } from "apisauce";
 
 const apiClient = create({
-  baseURL: "http://41.188.172.117/api",
+  baseURL: "/v2/api",
   timeout: 30000, // 30 seconds timeout
   headers: {
     "Content-Type": "application/json",
