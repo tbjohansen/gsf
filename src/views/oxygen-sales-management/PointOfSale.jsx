@@ -37,12 +37,22 @@ const PointOfSale = () => {
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [previousRequests, setPreviousRequests] = useState([]);
+  const [loadingPreviousRequests, setLoadingPreviousRequests] = useState(false);
 
   // Fetch items and customers from API
   useEffect(() => {
     loadItems();
     loadCustomers();
+    loadPreviousRequests();
   }, []);
+
+  // Reload previous requests when selected customer changes
+  useEffect(() => {
+    if (selectedCustomer) {
+      loadPreviousRequests();
+    }
+  }, [selectedCustomer]);
 
   const loadItems = async () => {
     setLoading(true);
@@ -113,6 +123,45 @@ const PointOfSale = () => {
       console.error("Fetch customers error:", error);
       setLoadingCustomers(false);
       toast.error("Failed to load customers");
+    }
+  };
+
+  const loadPreviousRequests = async () => {
+    // Use selectedCustomer if available, otherwise fall back to localStorage
+    const customerId = localStorage.getItem("customerId");
+    console.log("customerId", customerId);
+    if (!customerId) {
+      return;
+    }
+
+    setLoadingPreviousRequests(true);
+    try {
+      const response = await apiClient.get(
+        `/oxygen/oxygen-request?Customer_ID=${customerId}&Customer_Status=active`
+      );
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoadingPreviousRequests(false);
+        toast.error(response.data.error || "Failed to fetch previous requests");
+        return;
+      }
+
+      if (!response.ok) {
+        setLoadingPreviousRequests(false);
+        toast.error(
+          response.data?.error || "Failed to fetch previous requests"
+        );
+        return;
+      }
+
+      const requestData =
+        response?.data?.data?.data || response?.data?.data || [];
+      setPreviousRequests(Array.isArray(requestData) ? requestData : []);
+      setLoadingPreviousRequests(false);
+    } catch (error) {
+      console.error("Fetch previous requests error:", error);
+      setLoadingPreviousRequests(false);
+      toast.error("Failed to load previous requests");
     }
   };
 
@@ -298,6 +347,9 @@ const PointOfSale = () => {
       // Clear selected items and customer
       setSelectedItems([]);
       setSelectedCustomer(null);
+
+      // Reload previous requests
+      loadPreviousRequests();
     } catch (error) {
       console.error("Submit order error:", error);
       setSubmitting(false);
@@ -575,6 +627,99 @@ const PointOfSale = () => {
               )}
             </Paper>
           </div>
+        </div>
+
+        {/* Previous Requests Section */}
+        <div className="mt-6">
+          <Paper sx={{ width: "100%", overflow: "hidden" }}>
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Previous Requests
+              </h3>
+            </div>
+
+            <TableContainer sx={{ maxHeight: 400 }}>
+              <Table stickyHeader aria-label="previous requests table">
+                <TableHead>
+                  <TableRow>
+                    <StyledTableCell>Request ID</StyledTableCell>
+                    <StyledTableCell>Date</StyledTableCell>
+                    <StyledTableCell>Items</StyledTableCell>
+                    <StyledTableCell align="right">
+                      Total Amount (TZS)
+                    </StyledTableCell>
+                    <StyledTableCell>Status</StyledTableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loadingPreviousRequests && (
+                    <TableRow>
+                      <TableCell colSpan={5} sx={{ padding: 0 }}>
+                        <LinearProgress />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {previousRequests.length === 0 &&
+                    !loadingPreviousRequests && (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center">
+                          No previous requests found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  {previousRequests.map((request) => (
+                    <TableRow
+                      key={request.Request_ID || request.id}
+                      hover
+                      sx={{
+                        "&:hover": {
+                          backgroundColor: "rgba(0, 0, 0, 0.04)",
+                        },
+                      }}>
+                      <TableCell>
+                        {request.Request_ID || request.id || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {request.Request_Date
+                          ? new Date(request.Request_Date).toLocaleDateString()
+                          : request.created_at
+                          ? new Date(request.created_at).toLocaleDateString()
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {request.items && Array.isArray(request.items)
+                          ? `${request.items.length} item(s)`
+                          : request.Items
+                          ? `${request.Items.length} item(s)`
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell align="right">
+                        {request.Total_Amount
+                          ? formatter.format(request.Total_Amount)
+                          : request.total
+                          ? formatter.format(request.total)
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            request.Request_Status === "completed" ||
+                            request.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : request.Request_Status === "pending" ||
+                                request.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}>
+                          {request.Request_Status || request.status || "N/A"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
         </div>
       </div>
     </>

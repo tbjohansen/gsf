@@ -224,7 +224,7 @@ const SideBar = ({
 
       <nav className="flex-1 py-4 overflow-y-auto">
         {links.map((link) => {
-          console.log(location.pathname, link.url);
+          // console.log(location.pathname, link.url);
           const isActive =
             location.pathname.indexOf(link.url) == 0 ||
             (link.hasSubmenu &&
