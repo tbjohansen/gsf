@@ -68,7 +68,7 @@ export default function Rooms() {
         ...room,
         key: index + 1,
       }));
-      console.log(newData);
+      // console.log(newData);
       setRooms(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
@@ -86,20 +86,12 @@ export default function Rooms() {
     setPage(0);
   };
 
-    // const handleRowClick = (row) => {
-    //   setSelectedRow(row);
-    //   console.log("Row clicked:", row);
-    //   // You can add your custom row click logic here
-    //   // For example: navigate to details page, open modal, etc.
-    //   navigate(`/hostels/${row?.Hostel_ID}/blocks/${row?.Block_ID}/floors/${row?.Flow_ID}`);
-    // };
-
   const columns = React.useMemo(
     () => [
-      { id: "key", label: "S/N",  },
-      { id: "Room_Name", label: "Name", },
-      { id: "Room_Type", label: "Room Type", },
-      { id: "No_Bed", label: "No Of Beds", },
+      { id: "key", label: "S/N" },
+      { id: "Room_Name", label: "Name" },
+      { id: "Room_Type", label: "Room Type" },
+      { id: "No_Bed", label: "No Of Beds" },
       {
         id: "Room_Status",
         label: "Status",
@@ -174,9 +166,7 @@ export default function Rooms() {
                       role="checkbox"
                       tabIndex={-1}
                       key={row.key || row.id}
-                      //   onClick={() => handleRowClick(row)}
                       sx={{
-                        // cursor: "pointer",
                         backgroundColor:
                           selectedRow?.key === row.key
                             ? "rgba(0, 0, 0, 0.04)"
@@ -200,9 +190,7 @@ export default function Rooms() {
                               }
                             }}
                           >
-                            {column.format
-                              ? column.format(value, row, )
-                              : value}
+                            {column.format ? column.format(value, row) : value}
                           </TableCell>
                         );
                       })}

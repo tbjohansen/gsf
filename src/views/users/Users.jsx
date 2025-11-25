@@ -18,6 +18,7 @@ import { capitalize } from "lodash";
 import AddUser from "./AddUser";
 import Badge from "../../components/Badge";
 import EditUser from "./EditUser";
+import AssignPermission from "./AssignPermission";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -111,6 +112,16 @@ export default function Users() {
         label: "Created At",
         align: "left",
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+      },
+      {
+        id: "access",
+        label: "Access",
+        align: "center",
+        format: (value, row) => (
+          <div className="flex gap-2 justify-center">
+            <AssignPermission employee={row} loadData={loadData} />
+          </div>
+        ),
       },
       {
         id: "actions",

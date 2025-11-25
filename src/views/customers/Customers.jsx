@@ -16,6 +16,8 @@ import { useNavigate } from "react-router-dom";
 import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import UploadCustomers from "./UploadCustomers";
+import AddCustomer from "./AddCustomer";
+import Breadcrumb from "../../components/Breadcrumb";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -27,7 +29,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function Customers() {
+export default function Customers({ status }) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [users, setUsers] = React.useState([]);
@@ -44,7 +46,12 @@ export default function Customers() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/customer/customer");
+      let url = `/customer/customer?`;
+      if (status) {
+        url += `Customer_Nature=${status}`;
+      }
+
+      const response = await apiClient.get(url);
 
       if (!response.ok) {
         setLoading(false);
@@ -64,7 +71,7 @@ export default function Customers() {
         ...user,
         key: index + 1,
       }));
-      console.log(newData);
+      // console.log(newData);
       setUsers(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
@@ -95,18 +102,27 @@ export default function Customers() {
       {
         id: "Gender",
         label: "Gender",
+        show: status !== "oxygen",
         format: (value) => <span>{capitalize(value)}</span>,
       },
       {
         id: "Nationality",
         label: "Nationality",
+        show: status !== "oxygen",
         format: (value) => <span>{capitalize(value)}</span>,
       },
       { id: "Phone_Number", label: "Phone" },
       { id: "Email", label: "Email" },
-      { id: "Student_ID", label: "Customer ID" },
-      { id: "Program_Study", label: "Program" },
-      { id: "Year_Study", label: "Year" },
+      {
+        id: "Student_ID",
+        label: `${status === "student" ? "Student ID" : "Customer ID"}`,
+        show: status !== "oxygen",
+        minWidth: 170,
+      },
+      { id: "Program_Study", label: "Program", show: status === "student" },
+      { id: "Year_Study", label: "Year", show: status === "student" },
+      { id: "Semester", label: "Semester", show: status === "student" },
+      { id: "Admission_ID", label: "Admission ID", show: status === "student", minWidth: 170, },
       {
         id: "Customer_Status",
         label: "Status",
@@ -124,13 +140,21 @@ export default function Customers() {
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
       },
     ],
-    [loadData]
+    [loadData, status]
   ); // Add loadData as dependency
 
   return (
     <>
-      <div className="w-full flex my-2 justify-center">
-        <UploadCustomers />
+      <Breadcrumb />
+      <div className="w-full my-6">
+        <div className="w-full">
+          <UploadCustomers status={status} loadData={loadData} />
+        </div>
+        <div className="w-full">
+          <div className="flex gap-4 justify-end">
+            <AddCustomer loadData={loadData} status={status} />
+          </div>
+        </div>
       </div>
 
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -138,15 +162,20 @@ export default function Customers() {
           <Table stickyHeader aria-label="sticky table">
             <TableHead>
               <TableRow>
-                {columns.map((column) => (
-                  <StyledTableCell
-                    key={column.id}
-                    align={column.align}
-                    style={{ minWidth: column.minWidth }}
-                  >
-                    {column.label}
-                  </StyledTableCell>
-                ))}
+                {columns
+                  .filter(
+                    (column) =>
+                      typeof column.show === "undefined" || !!column.show
+                  )
+                  .map((column) => (
+                    <StyledTableCell
+                      key={column.id}
+                      align={column.align}
+                      style={{ minWidth: column.minWidth }}
+                    >
+                      {column.label}
+                    </StyledTableCell>
+                  ))}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -176,24 +205,31 @@ export default function Customers() {
                         },
                       }}
                     >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format ? column.format(value, row) : value}
-                          </TableCell>
-                        );
-                      })}
+                      {columns
+                        .filter(
+                          (column) =>
+                            typeof column.show === "undefined" || !!column.show
+                        )
+                        .map((column) => {
+                          const value = row[column.id];
+                          return (
+                            <TableCell
+                              key={column.id}
+                              align={column.align}
+                              onClick={(e) => {
+                                // Prevent click event from bubbling up to the row
+                                // when clicking on action buttons
+                                if (column.id === "actions") {
+                                  e.stopPropagation();
+                                }
+                              }}
+                            >
+                              {column.format
+                                ? column.format(value, row)
+                                : value}
+                            </TableCell>
+                          );
+                        })}
                     </TableRow>
                   );
                 })}

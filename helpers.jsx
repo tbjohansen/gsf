@@ -10,6 +10,9 @@ export const formatDateForDb = (date) => {
   return moment(date).format("YYYY-MM-DD");
 };
 
+
+
+
 /**
  * Formats a date object or string to the format of year-month-date hour:minute:second.
  * @param date

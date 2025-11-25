@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { LuLoader } from "react-icons/lu";
 import apiClient from "../../api/Client";
 
-export default function UploadCustomers() {
+export default function UploadCustomers({ loadData, status }) {
   const [excelData, setExcelData] = useState([]);
   const [fileName, setFileName] = useState("");
   const [headers, setHeaders] = useState([]);
@@ -87,13 +87,14 @@ export default function UploadCustomers() {
     e.preventDefault();
 
     if (!excelData) {
-      toast.error("Please upload students excel");
+      toast.error(
+        `Please upload ${status === "student" ? "students" : "customers"} excel`
+      );
       return;
     }
 
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
-    const userName = localStorage.getItem("userName");
 
     if (!employeeId) {
       toast.error("User information not found. Please login again.");
@@ -108,7 +109,7 @@ export default function UploadCustomers() {
     };
 
     try {
-      console.log("Submitting students data:", data);
+      console.log("Submitting data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/customer/import-customer", data);
@@ -125,7 +126,11 @@ export default function UploadCustomers() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to upload students");
+          toast.error(
+            `Failed to upload  ${
+              status === "student" ? "students" : "customers"
+            }`
+          );
         }
         return;
       }
@@ -136,13 +141,16 @@ export default function UploadCustomers() {
 
         // Handle validation errors (nested error object)
         if (response.data?.error && typeof response.data.error === "object") {
-          // Extract first validation error message
-          const firstErrorKey = Object.keys(response.data.error)[0];
-          const firstErrorMessage = response.data.error[firstErrorKey][0];
-          toast.error("Failed to upload students");
+          toast.error(
+            `Failed to upload  ${
+              status === "student" ? "students" : "customers"
+            }`
+          );
         } else {
           // Handle simple error string
-          const errorMessage = "Failed to upload students";
+          const errorMessage = `Failed to upload  ${
+            status === "student" ? "students" : "customers"
+          }`;
           toast.error(errorMessage);
         }
         return;
@@ -150,12 +158,18 @@ export default function UploadCustomers() {
 
       // Success
       setLoading(false);
-      toast.success("Students uploded successfully");
+      toast.success(
+        `${
+          status === "student" ? "Students" : "Customers"
+        } uploded successfully`
+      );
 
       // Trigger parent component refresh
       if (loadData && typeof loadData === "function") {
         loadData();
       }
+
+      clearData();
 
       // TODO: Dispatch action to update Redux store if needed
       // dispatch(addHostelToStore(response.data.data));
@@ -197,7 +211,9 @@ export default function UploadCustomers() {
               <h3 className="text-lg font-bold text-black mb-2">
                 {isDragging
                   ? "Drop it here!"
-                  : "Upload Students Excel File Here"}
+                  : `Upload ${
+                      status === "student" ? "Students" : "Customers"
+                    } Excel File Here`}
               </h3>
               <p className="text-gray-400 text-sm mb-6">
                 Drag and drop or click to browse
@@ -255,7 +271,8 @@ export default function UploadCustomers() {
                   ) : (
                     <>
                       <FaUpload className="w-4 h-4" />
-                      Upload Students
+                      Upload{" "}
+                      {` ${status === "student" ? "Students" : "Customers"}`}
                     </>
                   )}
                 </button>

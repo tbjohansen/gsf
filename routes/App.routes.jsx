@@ -19,12 +19,18 @@ import Features from "../src/views/real-estate/Features";
 import RealEsatesRequests from "../src/views/real-estate/RealEstatesRequests";
 import RealEstateEmployees from "../src/views/real-estate/RealEstateEmployees";
 import RealEstateCustomers from "../src/views/real-estate/RealEstateCustomers";
+import StudentRoutes from "../src/views/student/StudentRoutes";
+import OxygenManagement from "../src/views/oxygen-requisition/OxygenManagement";
+import MappedUnitFeatures from "../src/views/real-estate/MappedUnitFeatures";
+import AccommodationForm from "../src/views/hostels/AccommodationForm";
+import Dashboard from "../src/Dashboard";
+import EstateDashboard from "../src/EstateDashboard";
 
 const LoginElement = () => <Login />;
 
 const DashboardElement = () => (
   <AppLayout>
-    <Home />
+    <Dashboard />
   </AppLayout>
 );
 
@@ -40,9 +46,15 @@ const HostelsElement = () => (
   </AppLayout>
 );
 
-const ItemsElement = () => (
+const HostelsDashbordElement = () => (
   <AppLayout>
-    <Items />
+    <Home />
+  </AppLayout>
+);
+
+const ItemsElement = (props) => (
+  <AppLayout>
+    <Items {...props} />
   </AppLayout>
 );
 
@@ -64,15 +76,15 @@ const FloorElement = () => (
   </AppLayout>
 );
 
-const MappedItemsElement = () => (
+const MappedItemsElement = (props) => (
   <AppLayout>
-    <MappedItems />
+    <MappedItems {...props} />
   </AppLayout>
 );
 
-const CustomersElement = () => (
+const CustomersElement = (props) => (
   <AppLayout>
-    <Customers />
+    <Customers {...props} />
   </AppLayout>
 );
 
@@ -82,9 +94,9 @@ const PaymentCategoriesElement = () => (
   </AppLayout>
 );
 
-const PaymentsElement = () => (
+const PaymentsElement = (props) => (
   <AppLayout>
-    <Payments />
+    <Payments {...props} />
   </AppLayout>
 );
 
@@ -124,47 +136,127 @@ const EstateCustomersElement = () => (
   </AppLayout>
 );
 
+const OxygenElement = () => (
+  <AppLayout>
+    <OxygenManagement />
+  </AppLayout>
+);
+
+const EstatesElement = () => (
+  <AppLayout>
+    <EstateDashboard />
+  </AppLayout>
+);
+
+const AssignFeaturesElement = () => (
+  <AppLayout>
+    <MappedUnitFeatures />
+  </AppLayout>
+);
+
 const AppRoutes = () => {
   return (
     <React.Fragment>
       <Routes>
+        <Route path="/students" element={<StudentRoutes />} />
         <Route path="/login" element={<LoginElement />} />
         <Route path="/" element={<Navigate to="/home" />} />
-
         <Route path="/home" element={<DashboardElement />} />
-        <Route path="/customers" element={<CustomersElement />} />
         <Route path="/users" element={<UsersElement />} />
-        <Route path="/hostels" element={<HostelsElement />} />
         <Route path="/payments" element={<PaymentsElement />} />
         <Route path="/items" element={<ItemsElement />} />
-        <Route path="/setups" element={<PaymentCategoriesElement />} />
         <Route path="/profile" element={<ProfileElement />} />
-
-        <Route path="/real-estates/units" element={<UnitsElement />} />
-        <Route path="/real-estates/features" element={<FeaturesElement />} />
-        <Route path="/real-estates/requests" element={<RequestsListElement />} />
-         <Route path="/real-estates/customers" element={<EstateCustomersElement />} />
-        <Route path="/real-estates/employees" element={<EstateEmployeesElement />} />
+        <Route path="/customers" element={<CustomersElement />} />
 
         <Route
           path="/items/:itemID/mapped-items"
           element={<MappedItemsElement />}
         />
 
-        <Route path="/hostels/:hostelID" element={<HostelElement />} />
+        {/* oxygen */}
+        <Route path="/oxygen" element={<OxygenElement />} />
         <Route
-          path="/hostels/:hostelID/blocks/:blockID"
+          path="/oxygen/customers"
+          element={<CustomersElement status="oxygen" />}
+        />
+        <Route
+          path="/oxygen/items"
+          element={<ItemsElement status="oxygen" />}
+        />
+        <Route
+          path="/oxygen/items/:itemID/mapped-items"
+          element={<MappedItemsElement status="oxygen" />}
+        />
+
+        {/* <Route path="/setups" element={<PaymentCategoriesElement />} /> */}
+
+        {/* real estates */}
+        <Route path="/real-estates" element={<EstatesElement />} />
+        <Route path="/real-estates/units" element={<UnitsElement />} />
+        <Route
+          path="/real-estates/units/:unitID/assigned-features"
+          element={<AssignFeaturesElement />}
+        />
+        <Route path="/real-estates/features" element={<FeaturesElement />} />
+        <Route
+          path="/real-estates/requests"
+          element={<RequestsListElement />}
+        />
+        <Route
+          path="/real-estates/customers"
+          element={<EstateCustomersElement status="real_estate" />}
+        />
+        <Route
+          path="/real-estates/employees"
+          element={<EstateEmployeesElement />}
+        />
+         <Route
+          path="/real-estates/items"
+          element={<ItemsElement status="real_estate" />}
+        />
+        <Route
+          path="/real-estates/items/:itemID/mapped-items"
+          element={<MappedItemsElement status="real_estate" />}
+        />
+        <Route
+          path="/real-estates/payments"
+          element={<PaymentsElement status="real_estate" />}
+        />
+
+        {/* //hostels */}
+        <Route path="/hostels" element={<HostelsDashbordElement />} />
+        <Route path="/hostels/list" element={<HostelsElement />} />
+        <Route path="/hostels/list/:hostelID" element={<HostelElement />} />
+        <Route
+          path="/hostels/list/:hostelID/blocks/:blockID"
           element={<BlockElement />}
         />
-        <Route path="/hostels/:hostelID/blocks" element={<HostelElement />} />
+        <Route path="/hostels/list/:hostelID/blocks" element={<HostelElement />} />
         <Route
-          path="/hostels/:hostelID/blocks/:blockID/floors/:floorID"
+          path="/hostels/list/:hostelID/blocks/:blockID/floors/:floorID"
           element={<FloorElement />}
         />
         <Route
-          path="/hostels/:hostelID/blocks/:blockID/floors"
+          path="/hostels/list/:hostelID/blocks/:blockID/floors"
           element={<BlockElement />}
         />
+        <Route
+          path="/hostels/students"
+          element={<CustomersElement status="student" />}
+        />
+        <Route
+          path="/hostels/items"
+          element={<ItemsElement status="student_accomodation" />}
+        />
+        <Route
+          path="/hostels/items/:itemID/mapped-items"
+          element={<MappedItemsElement status="student_accomodation" />}
+        />
+        <Route
+          path="/hostels/payments"
+          element={<PaymentsElement status="student" />}
+        />
+        <Route path="/hostels/setups" element={<PaymentCategoriesElement />} />
       </Routes>
     </React.Fragment>
   );

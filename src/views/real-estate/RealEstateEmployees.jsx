@@ -33,7 +33,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 export default function RealEstateEmployees() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [features, setFeatures] = React.useState([]);
+  const [employees, setEmployees] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
@@ -67,8 +67,8 @@ export default function RealEstateEmployees() {
         ...feature,
         key: index + 1,
       }));
-      console.log(newData);
-      setFeatures(Array.isArray(newData) ? newData : []);
+      // console.log(newData);
+      setEmployees(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
       console.error("Fetch employees error:", error);
@@ -92,7 +92,7 @@ export default function RealEstateEmployees() {
       { id: "key", label: "S/N" },
       {
         id: "description",
-        label: "Feature Descrption",
+        label: "Employee Name",
         format: (value) => <span>{capitalize(value)}</span>,
       },
       {
@@ -121,8 +121,8 @@ export default function RealEstateEmployees() {
         ),
       },
     ],
-    [loadData]
-  ); // Add loadData as dependency
+    []
+  );
 
   return (
     <>
@@ -166,7 +166,7 @@ export default function RealEstateEmployees() {
                   </TableCell>
                 </TableRow>
               )}
-              {features
+              {employees
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -212,7 +212,7 @@ export default function RealEstateEmployees() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={features?.length}
+          count={employees?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

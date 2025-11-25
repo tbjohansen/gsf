@@ -9,7 +9,12 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import { capitalize, formatDateTimeForDb } from "../../../helpers";
+import {
+  capitalize,
+  currencyFormatter,
+  formatDateTimeForDb,
+  formatter,
+} from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -28,16 +33,18 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function Items() {
+export default function Items({ status }) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [itemsList, setItemsList] = React.useState([]);
+  const [items, setItems] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
 
-  // Fetch itemsList from API
+  console.log(status);
+
+  // Fetch hostels from API
   React.useEffect(() => {
     loadData();
   }, []);
@@ -45,7 +52,12 @@ export default function Items() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/settings/item");
+      let url = `/settings/item?`;
+      if (status) {
+        url += `Item_Type=${status}`;
+      }
+
+      const response = await apiClient.get(url);
 
       if (!response.ok) {
         setLoading(false);
@@ -60,13 +72,13 @@ export default function Items() {
       }
 
       // Adjust based on your API response structure
-      const hostelData = response?.data?.data;
-      const newData = hostelData?.map((hostel, index) => ({
-        ...hostel,
+      const itemData = response?.data?.data;
+      const newData = itemData?.map((item, index) => ({
+        ...item,
         key: index + 1,
       }));
-      console.log(newData);
-      setItemsList(Array.isArray(newData) ? newData : []);
+      // console.log(newData);
+      setItems(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
       console.error("Fetch items error:", error);
@@ -86,15 +98,18 @@ export default function Items() {
 
   const handleRowClick = (row) => {
     setSelectedRow(row);
-    console.log("Row clicked:", row);
-    // You can add your item row click logic here
-    // For example: navigate to details page, open modal, etc.
-    navigate(`/items/${row?.Item_ID}/mapped-items`);
+    navigate(
+      status === "oxygen"
+        ? `/${status}/items/${row?.Item_ID}/mapped-items`
+        : status === "student_accomodation"
+        ? `/hostels/items/${row?.Item_ID}/mapped-items`
+        : `/items/${row?.Item_ID}/mapped-items`
+    );
   };
 
   // Inside the Hostels component, replace the columns definition with:
-  const columns = React.useMemo(
-    () => [
+  const columns = React.useMemo(() => {
+    return [
       { id: "key", label: "S/N" },
       { id: "Item_Name", label: "Item Name" },
       {
@@ -107,6 +122,11 @@ export default function Items() {
           />
         ),
       },
+      status === "oxygen" && {
+        id: "Item_Price",
+        label: "Price (TZS)",
+        format: (value) => <span>{formatter.format(value || 0)}</span>,
+      },
       {
         id: "created_at",
         label: "Created At",
@@ -118,13 +138,12 @@ export default function Items() {
         align: "center",
         format: (value, row) => (
           <div className="flex gap-4 justify-center">
-            <EditItem item={row} loadData={loadData} />
+            <EditItem item={row} loadData={loadData} Item_Type={status} />
           </div>
         ),
       },
-    ],
-    [loadData]
-  ); // Add loadData as dependency
+    ];
+  }, [status]);
 
   return (
     <>
@@ -132,7 +151,7 @@ export default function Items() {
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <h4>Items List</h4>
-          <AddItem loadData={loadData} />
+          <AddItem Item_Type={status} loadData={loadData} />
         </div>
       </div>
 
@@ -160,7 +179,7 @@ export default function Items() {
                   </TableCell>
                 </TableRow>
               )}
-              {itemsList
+              {items
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -169,7 +188,11 @@ export default function Items() {
                       role="checkbox"
                       tabIndex={-1}
                       key={row.key || row.id}
-                      onClick={() => handleRowClick(row)}
+                      onClick={() =>
+                        status === "student_accomodation"
+                          ? handleRowClick(row)
+                          : null
+                      }
                       sx={{
                         cursor: "pointer",
                         backgroundColor:
@@ -181,26 +204,30 @@ export default function Items() {
                         },
                       }}
                     >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format
-                              ? column.format(value, row, handleRowClick)
-                              : value}
-                          </TableCell>
-                        );
-                      })}
+                      {columns
+                        .filter(
+                          (e) => typeof e.show === "undefined" || !!e.show
+                        )
+                        .map((column) => {
+                          const value = row[column.id];
+                          return (
+                            <TableCell
+                              key={column.id}
+                              align={column.align}
+                              onClick={(e) => {
+                                // Prevent click event from bubbling up to the row
+                                // when clicking on action buttons
+                                if (column.id === "actions") {
+                                  e.stopPropagation();
+                                }
+                              }}
+                            >
+                              {column.format
+                                ? column.format(value, row, handleRowClick)
+                                : value}
+                            </TableCell>
+                          );
+                        })}
                     </TableRow>
                   );
                 })}
@@ -210,7 +237,7 @@ export default function Items() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={itemsList?.length}
+          count={items?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

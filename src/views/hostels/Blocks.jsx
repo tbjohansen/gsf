@@ -8,16 +8,11 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import Button from "@mui/material/Button";
-import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
 import Badge from "../../components/Badge";
 import { capitalize, formatDateTimeForDb } from "../../../helpers";
-import AddHostel from "./AddHostel";
-import EditHostel from "./EditHostel";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
-import Box from "@mui/material/Box";
 import { useNavigate, useParams } from "react-router-dom";
 import EditBlock from "./EditBlock";
 import AddBlock from "./AddBlock";
@@ -72,7 +67,7 @@ export default function Blocks() {
         ...block,
         key: index + 1,
       }));
-      console.log(newData);
+      // console.log(newData);
       setBlocks(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
@@ -93,10 +88,7 @@ export default function Blocks() {
 
   const handleRowClick = (row) => {
     setSelectedRow(row);
-    console.log("Row clicked:", row);
-    // You can add your custom row click logic here
-    // For example: navigate to details page, open modal, etc.
-    navigate(`/hostels/${row?.Hostel_ID}/blocks/${row?.Block_ID}`);
+    navigate(`/hostels/list/${row?.Hostel_ID}/blocks/${row?.Block_ID}`);
   };
 
     // Inside the Hostels component, replace the columns definition with:
@@ -129,7 +121,7 @@ export default function Blocks() {
         </div>
       ),
     },
-  ], [loadData]); // Add loadData as dependency
+  ], []);
 
   return (
     <>

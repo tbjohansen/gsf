@@ -26,7 +26,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function Payments() {
+export default function Payments({ status }) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [payments, setPayments] = React.useState([]);
@@ -34,6 +34,8 @@ export default function Payments() {
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
+
+  console.log(status);
 
   // Fetch payments from API
   React.useEffect(() => {
@@ -43,17 +45,22 @@ export default function Payments() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/customer/customer-request");
+      let url = `/customer/customer-request?`;
+
+      if (status === "student") {
+        url += `Customer_Status=paid&Room_Status=paid&Request_Type=hostel`;
+      }
+      const response = await apiClient.get(url);
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch payments");
+        toast.error("Failed to fetch payments");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch payments");
+        toast.error("Failed to fetch payments");
         return;
       }
 
@@ -63,7 +70,7 @@ export default function Payments() {
         ...payment,
         key: index + 1,
       }));
-      console.log(newData);
+      // console.log(newData);
       setPayments(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
@@ -88,8 +95,8 @@ export default function Payments() {
       { id: "key", label: "S/N" },
       {
         id: "name",
-        label: "Student Name",
-         minWidth: 170,
+        label: `${status === "student" ? "Student Name" : "Customer Name"}`,
+        minWidth: 170,
         format: (row, value) => (
           <span>{capitalize(value?.customer?.Customer_Name)}</span>
         ),
@@ -97,13 +104,15 @@ export default function Payments() {
       {
         id: "gender",
         label: "Gender",
+        show: status !== "oxygen",
         format: (row, value) => (
           <span>{capitalize(value?.customer?.Gender)}</span>
         ),
       },
       {
         id: "student_id",
-        label: "Student ID",
+        label: `${status === "student" ? "Student ID" : "Customer ID"}`,
+        show: status !== "oxygen",
         format: (row, value) => (
           <span>{capitalize(value?.customer?.Student_ID)}</span>
         ),
@@ -111,6 +120,7 @@ export default function Payments() {
       {
         id: "program",
         label: "Program",
+        show: status !== "oxygen",
         format: (row, value) => (
           <span>
             {capitalize(value?.customer?.Program_Study)} (
@@ -155,56 +165,47 @@ export default function Payments() {
         id: "completed_date",
         label: "Payment Date",
         minWidth: 170,
-        format: (row, value) => (
-          <span>{value?.Sangira?.Completed_Date}</span>
-        ),
+        format: (row, value) => <span>{value?.Sangira?.Completed_Date}</span>,
       },
       {
         id: "payment_receipt",
         label: "Receipt",
-        format: (row, value) => (
-          <span>{value?.Sangira?.Receipt_Number}</span>
-        ),
+        format: (row, value) => <span>{value?.Sangira?.Receipt_Number}</span>,
       },
       {
         id: "requested_at",
         label: "Requested Date",
-         minWidth: 170,
-        format: (row, value) => (
-          <span>{value?.Sangira?.Requested_Date}</span>
-        ),
+        minWidth: 170,
+        format: (row, value) => <span>{value?.Sangira?.Requested_Date}</span>,
       },
       {
         id: "requested_room",
         label: "Room",
-         minWidth: 170,
-        format: (row, value) => (
-          <span>{value?.room?.Room_Name}</span>
-        ),
+        show: status !== "oxygen",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.room?.Room_Name}</span>,
       },
       {
         id: "hostel",
         label: "Hostel",
-         minWidth: 170,
-        format: (row, value) => (
-          <span>{value?.room?.hostel?.Hostel_Name}</span>
-        ),
+        show: status !== "oxygen",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.room?.hostel?.Hostel_Name}</span>,
       },
       {
         id: "block",
         label: "Block",
-         minWidth: 170,
-        format: (row, value) => (
-          <span>{value?.room?.block?.Block_Name}</span>
-        ),
+        show: status !== "oxygen",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.room?.block?.Block_Name}</span>,
       },
     ],
-    [loadData]
-  ); // Add loadData as dependency
+    []
+  );
 
   return (
     <>
-      {/* <Breadcrumb /> */}
+      {status ? <Breadcrumb /> : null}
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <h4>Payments List</h4>

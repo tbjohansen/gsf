@@ -66,7 +66,7 @@ export default function Units() {
         ...user,
         key: index + 1,
       }));
-      console.log(newData);
+      // console.log(newData);
       setUnits(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
@@ -85,6 +85,11 @@ export default function Units() {
     setPage(0);
   };
 
+  const handleRowClick = (row) => {
+    setSelectedRow(row);
+    navigate(`/real-estates/units/${row?.id}/assigned-features`);
+  };
+
   // Inside the users component, replace the columns definition with:
   const columns = React.useMemo(
     () => [
@@ -94,10 +99,18 @@ export default function Units() {
         label: "Unit Name",
         format: (value) => <span>{capitalize(value)}</span>,
       },
-      { id: "real_estate_type", label: "Unit Type", format: (value) => <span>{capitalize(value)}</span>, },
-      { id: "price", label: "Price", format: (value) => <span>TZS {formatter.format(value || 0)}</span>, },
       {
-        id: "employee_status",
+        id: "real_estate_type",
+        label: "Unit Type",
+        format: (value) => <span>{capitalize(value)}</span>,
+      },
+      {
+        id: "price",
+        label: "Price",
+        format: (value) => <span>TZS {formatter.format(value || 0)}</span>,
+      },
+      {
+        id: "status",
         label: "Status",
         format: (value) => (
           <Badge
@@ -122,12 +135,12 @@ export default function Units() {
         ),
       },
     ],
-    [loadData]
-  ); // Add loadData as dependency
+    []
+  );
 
   return (
     <>
-    <Breadcrumb/>
+      <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <h4>Real Estate Units</h4>
@@ -168,7 +181,9 @@ export default function Units() {
                       role="checkbox"
                       tabIndex={-1}
                       key={row.key || row.id}
+                      onClick={() => handleRowClick(row)}
                       sx={{
+                        cursor: "pointer",
                         backgroundColor:
                           selectedRow?.key === row.key
                             ? "rgba(0, 0, 0, 0.04)"
@@ -192,7 +207,9 @@ export default function Units() {
                               }
                             }}
                           >
-                            {column.format ? column.format(value, row) : value}
+                            {column.format
+                              ? column.format(value, row, handleRowClick)
+                              : value}
                           </TableCell>
                         );
                       })}

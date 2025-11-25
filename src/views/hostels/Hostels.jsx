@@ -50,13 +50,13 @@ export default function Hostels() {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch hostels");
+        toast.error("Failed to fetch hostels");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch hostels");
+        toast.error("Failed to fetch hostels");
         return;
       }
 
@@ -66,7 +66,7 @@ export default function Hostels() {
         ...hostel,
         key: index + 1,
       }));
-      console.log(newData);
+      // console.log(newData);
       setHostels(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
@@ -87,10 +87,7 @@ export default function Hostels() {
 
   const handleRowClick = (row) => {
     setSelectedRow(row);
-    console.log("Row clicked:", row);
-    // You can add your custom row click logic here
-    // For example: navigate to details page, open modal, etc.
-    navigate(`/hostels/${row?.Hostel_ID}`);
+    navigate(`/hostels/list/${row?.Hostel_ID}`);
   };
 
   // Inside the Hostels component, replace the columns definition with:

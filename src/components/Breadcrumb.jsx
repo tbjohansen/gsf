@@ -1,14 +1,14 @@
 import React from "react";
 import { useLocation as useLoc, useNavigate as useNav } from "react-router-dom";
 import { capitalize as cap } from "../../helpers";
-import { 
-  HiHome, 
-  HiChevronRight, 
-  HiCog, 
-  HiUser, 
+import {
+  HiHome,
+  HiChevronRight,
+  HiCog,
+  HiUser,
   HiChartBar,
   HiCollection,
-  HiDocumentText
+  HiDocumentText,
 } from "react-icons/hi";
 
 export default function Breadcrumb() {
@@ -40,7 +40,7 @@ export default function Breadcrumb() {
       files: HiCollection,
       hostels: HiCollection,
     };
-    
+
     return iconMap[segment] || null;
   };
 
@@ -57,8 +57,7 @@ export default function Breadcrumb() {
         {/* Home/Dashboard Link */}
         <button
           onClick={() => goTo("/")}
-          className="flex items-center text-blue-900 hover:text-blue-800 transition-all duration-300 px-2 py-1 rounded-xl cursor-pointer group hover:bg-blue-50 hover:shadow-sm border border-gray-200 hover:border-blue-200 active:scale-95"
-        >
+          className="flex items-center text-blue-900 hover:text-blue-800 transition-all duration-300 px-2 py-1 rounded-xl cursor-pointer group hover:bg-blue-50 hover:shadow-sm border border-gray-200 hover:border-blue-200 active:scale-95">
           <HiHome className="text-md mr-2.5 group-hover:scale-110 transition-transform text-blue-900" />
           <span className="font-medium">Dashboard</span>
         </button>
@@ -77,15 +76,18 @@ export default function Breadcrumb() {
                 <HiChevronRight className="text-lg transition-all duration-300 hover:text-gray-400 hover:scale-110" />
                 <HiChevronRight className="text-lg -ml-3 transition-all duration-300 hover:text-gray-400 hover:scale-110 delay-75" />
               </div>
-            
+
               {/* Breadcrumb Item */}
               {isLast ? (
-                <></>
+                <>
+                  <span className="font-medium group-hover:translate-x-0.5 transition-transform">
+                    {displayText}
+                  </span>
+                </>
               ) : (
                 <button
                   onClick={() => goTo(path)}
-                  className="flex items-center text-gray-700 hover:text-blue-700 transition-all duration-300 px-2 py-1 rounded-xl cursor-pointer group hover:bg-gray-50 hover:shadow-sm border border-gray-200 active:scale-95"
-                >
+                  className="flex items-center text-gray-700 hover:text-blue-700 transition-all duration-300 px-2 py-1 rounded-xl cursor-pointer group hover:bg-gray-50 hover:shadow-sm border border-gray-200 active:scale-95">
                   {SegmentIcon && (
                     <SegmentIcon className="text-lg mr-2.5 group-hover:scale-110 transition-transform text-gray-500 group-hover:text-blue-500" />
                   )}

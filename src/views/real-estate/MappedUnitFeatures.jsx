@@ -14,8 +14,8 @@ import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
-import MapItem from "./MapItem";
-import RemoveItem from "./RemoveItem";
+import MapUnitFeature from "./MapUnitFeature";
+import RemoveMappedUnitFeature from "./RemoveMappedUnitFeature";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -35,7 +35,7 @@ export default function MappedUnitFeatures() {
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
-  const { itemID } = useParams();
+  const { unitID } = useParams();
 
   // Fetch hostels from API
   React.useEffect(() => {
@@ -45,37 +45,42 @@ export default function MappedUnitFeatures() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/settings/real-estate-assigned-feature", {
-        Item_ID: itemID,
-      });
+      const response = await apiClient.get(
+        "/settings/real-estate-assigned-feature",
+        {
+          real_estate_id: unitID,
+        }
+      );
 
       console.log(response);
 
-      if (!response.ok) { 
+      if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch assigned feature");
+        toast.error(
+          response.data?.error || "Failed to fetch assigned features"
+        );
         return;
       }
 
       if (response?.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch assigned feature");
+        toast.error(response.data.error || "Failed to fetch assigned features");
         return;
       }
 
       // Adjust based on your API response structure
-      const hostelData = response?.data?.data?.data;
-      const newData = hostelData?.map((hostel, index) => ({
-        ...hostel,
+      const featuresData = response?.data?.data?.data;
+      const newData = featuresData?.map((feature, index) => ({
+        ...feature,
         key: index + 1,
       }));
-      console.log(newData);
+      //   console.log(newData);
       setMappedFeatures(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch hostels error:", error);
+      console.error("Fetch assigned features error:", error);
       setLoading(false);
-      toast.error("Failed to load assigned feature");
+      toast.error("Failed to load assigned features");
     }
   };
 
@@ -88,58 +93,23 @@ export default function MappedUnitFeatures() {
     setPage(0);
   };
 
-  const handleRowClick = (row) => {
-    setSelectedRow(row);
-    console.log("Row clicked:", row);
-    // You can add your custom row click logic here
-    // For example: navigate to details page, open modal, etc.
-    // navigate(`/hostels/${row?.Hostel_ID}`);
-  };
-
-  // Inside the Hostels component, replace the columns definition with:
   const columns = React.useMemo(
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "Price",
-        label: "Price",
+        id: "unit",
+        label: "Unit",
+        format: (value) => <span>{capitalize(value)}</span>,
+      },
+      {
+        id: "feature",
+        label: "Feature",
+        format: (value) => <span>{capitalize(value)}</span>,
+      },
+      {
+        id: "quantity",
+        label: "Quantity",
         format: (value) => <span>{formatter.format(value)}</span>,
-      },
-      {
-        id: "Natinality",
-        label: "Nationality",
-        format: (value) => <span>{capitalize(value)}</span>,
-      },
-      {
-        id: "Room_Type",
-        label: "Room Type",
-        format: (value) => <span>{capitalize(value)}</span>,
-      },
-      {
-        id: "hostel",
-        label: "Hostel",
-        format: (row, value) => (
-          <span>{capitalize(value?.room?.hostel?.Hostel_Name)}</span>
-        ),
-      },
-      {
-        id: "block",
-        label: "Block",
-        format: (row, value) => (
-          <span>{capitalize(value?.room?.block?.Block_Name)}</span>
-        ),
-      },
-      {
-        id: "floor",
-        label: "Floor",
-        format: (row, value) => (
-          <span>{capitalize(value?.room?.flow?.Flow_Name)}</span>
-        ),
-      },
-      {
-        id: "room",
-        label: "Room",
-        format: (value) => <span>{capitalize(value?.Room_Name)}</span>,
       },
       {
         id: "created_at",
@@ -152,13 +122,13 @@ export default function MappedUnitFeatures() {
         align: "center",
         format: (value, row) => (
           <div className="flex gap-2 justify-center">
-            <RemoveItem item={row} loadData={loadData}/>
+            <RemoveMappedUnitFeature item={row} loadData={loadData} />
           </div>
         ),
       },
     ],
-    [loadData]
-  ); // Add loadData as dependency
+    []
+  );
 
   return (
     <>
@@ -166,7 +136,7 @@ export default function MappedUnitFeatures() {
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <h4>Assigned Unit Features List</h4>
-          <MapItem loadData={loadData} />
+          <MapUnitFeature loadData={loadData} />
         </div>
       </div>
 
@@ -203,7 +173,6 @@ export default function MappedUnitFeatures() {
                       role="checkbox"
                       tabIndex={-1}
                       key={row.key || row.id}
-                      //   onClick={() => handleRowClick(row)}
                       sx={{
                         // cursor: "pointer",
                         backgroundColor:
@@ -229,9 +198,7 @@ export default function MappedUnitFeatures() {
                               }
                             }}
                           >
-                            {column.format
-                              ? column.format(value, row, handleRowClick)
-                              : value}
+                            {column.format ? column.format(value, row) : value}
                           </TableCell>
                         );
                       })}

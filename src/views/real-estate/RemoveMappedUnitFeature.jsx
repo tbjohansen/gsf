@@ -57,7 +57,6 @@ const RemoveMappedUnitFeature = ({ feature, loadData }) => {
     try {
       // Prepare the data to send
       const data = {
-        id: feature?.id,
         Employee_ID: employeeId,
       };
 
@@ -88,14 +87,14 @@ const RemoveMappedUnitFeature = ({ feature, loadData }) => {
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
         const errorMessage =
-          response.data.error || "Failed to remove mapped item";
+          response.data.error || "Failed to remove assigned feature";
         toast.error(errorMessage);
         return;
       }
 
       // Success
       setLoading(false);
-      toast.success("Mapped item is removed successfully");
+      toast.success("Assigned feature is removed successfully");
       // Close modal and reset form
       handleClose();
 
@@ -107,7 +106,7 @@ const RemoveMappedUnitFeature = ({ feature, loadData }) => {
       // TODO: Dispatch action to update Redux store if needed
       // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
-      console.error("Remove mapped item error:", error);
+      console.error("Remove assigned feature error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }

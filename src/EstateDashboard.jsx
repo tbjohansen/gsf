@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import apiClient from "./api/Client";
 import { capitalize, formatter } from "../helpers";
 
-const Home = () => {
+const EstateDashboard = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [payments, setPayments] = useState([]);
@@ -77,10 +77,9 @@ const Home = () => {
     }
   };
 
-  console.log(stats);
+//   console.log(stats);
 
   useEffect(() => {
-    console.log("Yess");
     loadPaymentsData();
     loadHostelStats();
   }, []);
@@ -90,14 +89,14 @@ const Home = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-md p-6 text-white">
           <h2 className="text-2xl font-bold mb-2">
-            Welcome to GSF Hostels Dashboard
+            Welcome to GSF Houses and Space Renting Dashboard
           </h2>
           <p className="opacity-90 mb-4">
-            Managing student hostels and payments
+            Managing employee housing and space renting
           </p>
           <div className="flex flex-wrap gap-3">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-sm">
-              <span>🎓 Student Hostels</span>
+              <span>House Renting</span>
             </div>
           </div>
         </div>
@@ -106,7 +105,7 @@ const Home = () => {
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-600">
-                Student Hostels
+                Houses
               </h3>
               <BiSolidBuildings className="w-5 h-5 text-blue-600" />
             </div>
@@ -114,7 +113,7 @@ const Home = () => {
               {stats?.totalHostel || 0}
             </p>
             <p className="text-xs text-blue-600 mt-2">
-              {formatter.format(stats?.totalBeds || 0)} student beds available
+              {formatter.format(stats?.totalBeds || 0)} units available
             </p>
           </div>
 
@@ -230,4 +229,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default EstateDashboard;

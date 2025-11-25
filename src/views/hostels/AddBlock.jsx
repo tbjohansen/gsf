@@ -93,12 +93,8 @@ const AddBlock = ({loadData}) => {
         Employee_ID: employeeId,
       };
 
-      console.log("Submitting block data:", data);
-
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/settings/block", data);
-
-      console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {

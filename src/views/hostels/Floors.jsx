@@ -14,8 +14,6 @@ import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate, useParams } from "react-router-dom";
-import EditBlock from "./EditBlock";
-import AddBlock from "./AddBlock";
 import Breadcrumb from "../../components/Breadcrumb";
 import AddFloor from "./AddFloor";
 import EditFlow from "./EditFloor";
@@ -54,13 +52,13 @@ export default function Floors() {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch floors");
+        toast.error("Failed to fetch floors");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch floors");
+        toast.error("Failed to fetch floors");
         return;
       }
 
@@ -70,7 +68,7 @@ export default function Floors() {
         ...floor,
         key: index + 1,
       }));
-      console.log(newData);
+      // console.log(newData);
       setFloors(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
@@ -91,10 +89,9 @@ export default function Floors() {
 
   const handleRowClick = (row) => {
     setSelectedRow(row);
-    console.log("Row clicked:", row);
-    // You can add your custom row click logic here
-    // For example: navigate to details page, open modal, etc.
-    navigate(`/hostels/${hostelID}/blocks/${blockID}/floors/${row?.Flow_ID}`);
+    navigate(
+      `/hostels/list/${hostelID}/blocks/${blockID}/floors/${row?.Flow_ID}`
+    );
   };
 
   // Inside the Hostels component, replace the columns definition with:
@@ -129,8 +126,8 @@ export default function Floors() {
         ),
       },
     ],
-    [loadData]
-  ); // Add loadData as dependency
+    []
+  );
 
   return (
     <>

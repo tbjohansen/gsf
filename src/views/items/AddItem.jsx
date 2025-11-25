@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { MdAdd } from "react-icons/md";
 import apiClient from "../../api/Client";
+import { Autocomplete } from "@mui/material";
 
 const style = {
   position: "absolute",
@@ -18,15 +19,38 @@ const style = {
   p: 4,
 };
 
-const AddItem = ({ loadData }) => {
+const AddItem = ({ Item_Type, loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
     setName("");
+    setPrice(0);
   };
 
   const [name, setName] = useState("");
+  const [price, setPrice] = useState(0);
+  const [itemType, setItemType] = useState("");
+
+  const sortedItemType = [
+    {
+      id: "oxygen",
+      label: "Oxygen Plant",
+    },
+    {
+      id: "student_accomodation",
+      label: "Student Accomodation",
+    },
+    {
+      id: "rent",
+      label: "Rent",
+    },
+  ];
+
+  const itemOnChange = (e, value) => {
+    setItemType(value);
+  };
+
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -38,10 +62,18 @@ const AddItem = ({ loadData }) => {
       toast.error("Please enter item name");
       return;
     }
+    if (Item_Type === "oxygen" && !price) {
+      toast.error("Please enter item price");
+      return;
+    }
+
+    if (!Item_Type && !itemType) {
+      toast.error("Please select item type");
+      return;
+    }
 
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
-    const userName = localStorage.getItem("userName");
 
     if (!employeeId) {
       toast.error("User information not found. Please login again.");
@@ -55,14 +87,12 @@ const AddItem = ({ loadData }) => {
       const data = {
         Item_Name: name.trim(),
         Employee_ID: employeeId,
+        Item_Type: Item_Type ? Item_Type : itemType,
+        Item_Price: Item_Type === "oxygen" ? price : null,
       };
-
-      console.log("Submitting item data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/settings/item", data);
-
-      console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {
@@ -85,9 +115,6 @@ const AddItem = ({ loadData }) => {
 
         // Handle validation errors (nested error object)
         if (response.data?.error && typeof response.data.error === "object") {
-          // Extract first validation error message
-          const firstErrorKey = Object.keys(response.data.error)[0];
-          const firstErrorMessage = response.data.error[firstErrorKey][0];
           toast.error("Failed to create item");
         } else {
           // Handle simple error string
@@ -150,6 +177,39 @@ const AddItem = ({ loadData }) => {
                   autoFocus
                 />
               </div>
+              {!Item_Type && (
+                <div className="w-full py-2 flex justify-center">
+                  <Autocomplete
+                    id="combo-box-demo"
+                    options={sortedItemType}
+                    size="small"
+                    freeSolo
+                    className="w-[92%]"
+                    value={itemType}
+                    onChange={itemOnChange}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Select Item Type" />
+                    )}
+                  />
+                </div>
+              )}
+              {Item_Type === "oxygen" && (
+                <div className="w-full py-2 flex justify-center">
+                  <TextField
+                    type="number"
+                    label="Price (TZS)"
+                    value={price}
+                    onChange={(event) => {
+                      const parsed = parseFloat(event.target.value, 10);
+                      setPrice(Number.isNaN(parsed) ? 0 : Math.max(0, parsed));
+                    }}
+                    variant="outlined"
+                    size="small"
+                    className="w-[92%]"
+                    disabled={loading}
+                  />
+                </div>
+              )}
               <div className="w-full py-2 mt-5 flex justify-center">
                 <button
                   onClick={(e) => submit(e)}

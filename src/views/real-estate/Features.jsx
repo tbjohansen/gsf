@@ -66,7 +66,7 @@ export default function Features() {
         ...feature,
         key: index + 1,
       }));
-      console.log(newData);
+      // console.log(newData);
       setFeatures(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
@@ -94,16 +94,16 @@ export default function Features() {
         label: "Feature Descrption",
         format: (value) => <span>{capitalize(value)}</span>,
       },
-      {
-        id: "employee_status",
-        label: "Status",
-        format: (value) => (
-          <Badge
-            name={capitalize(value)}
-            color={value === "active" ? "green" : "error"}
-          />
-        ),
-      },
+      // {
+      //   id: "employee_status",
+      //   label: "Status",
+      //   format: (value) => (
+      //     <Badge
+      //       name={capitalize(value)}
+      //       color={value === "active" ? "green" : "error"}
+      //     />
+      //   ),
+      // },
       {
         id: "created_at",
         label: "Created At",
