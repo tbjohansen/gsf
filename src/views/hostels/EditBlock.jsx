@@ -4,7 +4,7 @@ import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
-import { MdAdd, MdEdit } from "react-icons/md";
+import { MdEdit } from "react-icons/md";
 import apiClient from "../../api/Client";
 import Autocomplete from "@mui/material/Autocomplete";
 import { capitalize } from "lodash";
@@ -12,7 +12,7 @@ import { useParams } from "react-router-dom";
 
 const style = {
   position: "absolute",
-  top: "40%",
+  top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 500,

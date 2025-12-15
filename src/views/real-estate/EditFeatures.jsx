@@ -25,27 +25,8 @@ const EditFeature = ({ feature, loadData }) => {
     setOpen(false);
   };
 
-  //   const [status, setStatus] = useState({
-  //     id: unit?.status,
-  //     label: capitalize(unit?.status),
-  //   });
   const [description, setDescription] = useState(feature?.description);
   const [loading, setLoading] = useState(false);
-
-  const sortedStatus = [
-    {
-      id: "active",
-      label: "Active",
-    },
-    {
-      id: "inactive",
-      label: "Inactive",
-    },
-  ];
-
-  const statusOnChange = (e, value) => {
-    setStatus(value);
-  };
 
   const dispatch = useDispatch();
 
@@ -53,7 +34,7 @@ const EditFeature = ({ feature, loadData }) => {
     e.preventDefault();
 
     if (!description || description.trim() === "") {
-      toast.error("Please enter feature description");
+      toast.error("Please enter feature name");
       return;
     }
 
@@ -74,7 +55,7 @@ const EditFeature = ({ feature, loadData }) => {
         Employee_ID: employeeId,
       };
 
-    //   console.log("Submitting feature data:", data);
+      //   console.log("Submitting feature data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.put(
@@ -82,7 +63,7 @@ const EditFeature = ({ feature, loadData }) => {
         data
       );
 
-    //   console.log("Response:", response);
+      //   console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {
@@ -150,10 +131,8 @@ const EditFeature = ({ feature, loadData }) => {
                 <TextField
                   size="small"
                   id="outlined-multiline-static"
-                  multiline
-                  rows={2}
                   variant="outlined"
-                  label="Description"
+                  label="Feature Name"
                   className="w-[92%]"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}

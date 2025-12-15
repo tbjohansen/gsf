@@ -9,7 +9,7 @@ import apiClient from "../../api/Client";
 
 const style = {
   position: "absolute",
-  top: "40%",
+  top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 500,
@@ -146,11 +146,6 @@ const AddHostel = ({ loadData }) => {
                   className="w-[92%]"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      createHostel(e);
-                    }
-                  }}
                   disabled={loading}
                   autoFocus
                 />

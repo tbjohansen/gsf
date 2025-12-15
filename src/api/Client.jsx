@@ -5,7 +5,7 @@ const apiClient = create({
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
-    "Accept": "application/json",
+    Accept: "application/json",
   },
 });
 

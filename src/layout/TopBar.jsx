@@ -150,99 +150,103 @@ const TopBar = ({
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-blue-50 to-blue-100 shadow-sm">
-      <div className="px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleDrawerToggle}
-              className="sm:hidden p-2 hover:bg-blue-200/50 rounded-lg transition-colors"
-            >
-              {mobileOpen ? (
-                <LuX className="w-6 h-6 text-blue-900" />
-              ) : (
-                <LuMenu className="w-6 h-6 text-blue-900" />
-              )}
-            </button>
-            <h1 className="text-lg font-bold text-blue-900">GSF PROJECTS</h1>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:block text-sm font-bold text-blue-900">
-              {greeting}, {getUserDisplayName()}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <span className="hidden sm:block text-xs font-bold text-blue-900">
-              {date}
-            </span>
-
-            <div className="relative">
+    <>
+      <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-[rgb(22,40,79)] shadow-sm">
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="w-10 h-10 rounded-full bg-blue-900 text-white flex items-center justify-center border-2 border-blue-200 hover:border-blue-300 transition-colors cursor-pointer"
+                onClick={handleDrawerToggle}
+                className="sm:hidden p-2 hover:bg-blue-200/50 rounded-lg transition-colors"
               >
-                {getInitials(userInfo.name)}
+                {mobileOpen ? (
+                  <LuX className="w-6 h-6 text-white" />
+                ) : (
+                  <LuMenu className="w-6 h-6 text-white" />
+                )}
               </button>
+              <h1 className="text-lg text-white">GSF PROJECTS</h1>
+            </div>
 
-              {menuOpen && (
-                <>
-                  <div
-                    onClick={() => setMenuOpen(false)}
-                    className="fixed inset-0 z-40"
-                  />
-                  <div className="absolute right-0 mt-3 w-60 bg-white rounded-lg shadow-lg z-50 overflow-hidden">
-                    <div className="absolute -top-2 right-3 w-4 h-4 bg-white transform rotate-45" />
-                    <div className="relative bg-white">
-                      <button
-                        onClick={() => setMenuOpen(false)}
-                        className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-blue-900 text-white flex items-center justify-center text-sm">
-                          {getInitials(userInfo?.name)}
-                        </div>
-                        <div
-                          onClick={() => setOpenProfile()}
-                          className="cursor-pointer flex flex-col"
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:block text-sm text-white">
+                {greeting}, {getUserDisplayName()}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <span className="hidden sm:block text-xs text-white">{date}</span>
+
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="w-10 h-10 rounded-full bg-[rgb(46,227,240)] text-[blue-900] flex items-center justify-center border-2 border-blue-200 hover:border-blue-300 transition-colors cursor-pointer"
+                >
+                  {getInitials(userInfo.name)}
+                </button>
+
+                {menuOpen && (
+                  <>
+                    <div
+                      onClick={() => setMenuOpen(false)}
+                      className="fixed inset-0 z-40"
+                    />
+                    <div className="absolute right-0 mt-3 w-60 bg-white rounded-lg shadow-lg z-50 overflow-hidden">
+                      <div className="absolute -top-2 right-3 w-4 h-4 bg-white transform rotate-45" />
+                      <div className="relative bg-white">
+                        <button
+                          onClick={() => setMenuOpen(false)}
+                          className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
                         >
-                          <span className="text-sm font-medium text-gray-900">
-                            {capitalize(userInfo?.name)}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {userInfo.email}
-                          </span>
-                        </div>
-                      </button>
-                      <div className="border-t border-gray-200" />
-                      <button
-                        onClick={handleLogout}
-                        disabled={isLoggingOut}
-                        className="w-full cursor-pointer flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left disabled:opacity-50"
-                      >
-                        {isLoggingOut ? (
-                          <>
-                            <LuLoader className="w-4 h-4 text-gray-600 animate-spin" />
-                            <span className="text-sm text-gray-700">
-                              Logging out...
+                          <div className="w-8 h-8 rounded-full bg-blue-900 text-white flex items-center justify-center text-sm">
+                            {getInitials(userInfo?.name)}
+                          </div>
+                          <div
+                            onClick={() => setOpenProfile()}
+                            className="cursor-pointer flex flex-col"
+                          >
+                            <span className="text-sm text-gray-900">
+                              {capitalize(userInfo?.name)}
                             </span>
-                          </>
-                        ) : (
-                          <>
-                            <LuLogOut className="w-4 h-4 text-red-600" />
-                            <span className="text-sm text-red-600">Logout</span>
-                          </>
-                        )}
-                      </button>
+                            <span className="text-xs text-gray-500">
+                              {userInfo.email}
+                            </span>
+                          </div>
+                        </button>
+                        <div className="border-t border-gray-200" />
+                        <button
+                          onClick={handleLogout}
+                          disabled={isLoggingOut}
+                          className="w-full cursor-pointer flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left disabled:opacity-50"
+                        >
+                          {isLoggingOut ? (
+                            <>
+                              <LuLoader className="w-4 h-4 text-gray-600 animate-spin" />
+                              <span className="text-sm text-gray-700">
+                                Logging out...
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <LuLogOut className="w-4 h-4 text-red-600" />
+                              <span className="text-sm text-red-600">
+                                Logout
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </header>
+        <div className="h-1 w-full bg-[rgb(46,227,240)]"></div>
+      </header>
+      
+    </>
   );
 };
 

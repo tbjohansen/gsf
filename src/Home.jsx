@@ -1,19 +1,31 @@
-import { MdPeople, MdTrendingUp } from "react-icons/md";
-import { BiSolidBuildings } from "react-icons/bi";
+import { MdAssignmentAdd, MdOutlineListAlt, MdPeople, MdTrendingUp } from "react-icons/md";
+import { BiBuildingHouse, BiSolidBuildings } from "react-icons/bi";
 import { FaHome } from "react-icons/fa";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import apiClient from "./api/Client";
 import { capitalize, formatter } from "../helpers";
+import ManagementCard from "./components/ManagementCard";
+import { PiStudent } from "react-icons/pi";
+import { RiListSettingsLine } from "react-icons/ri";
+import { useNavigate } from "react-router-dom";
+import { FiArrowRight } from "react-icons/fi";
+import { IoBed  } from "react-icons/io5";
 
 const Home = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [payments, setPayments] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [hostels, setHostels] = useState([]);
+  const [items, setItems] = useState([]);
+  const [setups, setSetups] = useState([]);
+  const [assigned, setAssigned] = useState([]);
   const [stats, setStatistics] = useState("");
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
+  const hasFetchedData = useRef(false);
 
-  // Fetch payments request from API
+  const navigate = useNavigate();
 
   const loadPaymentsData = async () => {
     setLoading(true);
@@ -77,31 +89,187 @@ const Home = () => {
     }
   };
 
-  console.log(stats);
+  const loadHostels = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get("/settings/hostel");
+
+      if (!response.ok) {
+        setLoading(false);
+        //  toast.error("Failed to fetch hostels");
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        //  toast.error("Failed to fetch hostels");
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const hostelData = response?.data?.data;
+      const newData = hostelData?.map((hostel, index) => ({
+        ...hostel,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setHostels(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch hostels error:", error);
+      setLoading(false);
+      //  toast.error("Failed to load hostels");
+    }
+  };
+
+  const loadSetups = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get("/settings/payment-category");
+
+      if (!response.ok) {
+        setLoading(false);
+        //  toast.error(
+        //    response.data?.error || "Failed to fetch payment categories"
+        //  );
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        //  toast.error(
+        //    response.data.error || "Failed to fetch payment categories"
+        //  );
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const categoryData = response?.data?.data;
+      const newData = categoryData?.map((category, index) => ({
+        ...category,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setSetups(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch payment categories error:", error);
+      setLoading(false);
+    }
+  };
+
+  const loadStudents = async () => {
+    setLoading(true);
+    try {
+      let url = `/customer/customer?&Customer_Nature=student`;
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const userData = response?.data?.data?.data;
+      const newData = userData?.map((user, index) => ({
+        ...user,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setStudents(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch customers error:", error);
+      setLoading(false);
+    }
+  };
+
+  const loadItems = async () => {
+    setLoading(true);
+    try {
+      let url = `/settings/item?&Item_Type=student_accomodatio`;
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const itemData = response?.data?.data;
+      const newData = itemData?.map((item, index) => ({
+        ...item,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setItems(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch items error:", error);
+      setLoading(false);
+    }
+  };
+
+    const loadAssigned = async () => {
+      setLoading(true);
+      try {
+        let url = `/customer/customer-request?&Customer_Status=paid&Room_Status=paid&Request_Type=hostel`;
+
+        const response = await apiClient.get(url);
+  
+        if (!response.ok) {
+          setLoading(false);
+          return;
+        }
+  
+        if (response.data?.error || response.data?.code >= 400) {
+          setLoading(false);
+          return;
+        }
+  
+        // Adjust based on your API response structure
+        const paymentsData = response?.data?.data?.data;
+        const newData = paymentsData?.map((payment, index) => ({
+          ...payment,
+          key: index + 1,
+        }));
+        // console.log(newData);
+        setAssigned(Array.isArray(newData) ? newData : []);
+        setLoading(false);
+      } catch (error) {
+        console.error("Fetch payments error:", error);
+        setLoading(false);
+      }
+    };
 
   useEffect(() => {
-    console.log("Yess");
-    loadPaymentsData();
-    loadHostelStats();
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadPaymentsData();
+      loadHostelStats();
+      loadHostels();
+      loadSetups();
+      loadStudents();
+      loadItems();
+      loadAssigned();
+    }
   }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-md p-6 text-white">
-          <h2 className="text-2xl font-bold mb-2">
-            Welcome to GSF Hostels Dashboard
-          </h2>
-          <p className="opacity-90 mb-4">
-            Managing student hostels and payments
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-sm">
-              <span>🎓 Student Hostels</span>
-            </div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-2">
@@ -114,22 +282,37 @@ const Home = () => {
               {stats?.totalHostel || 0}
             </p>
             <p className="text-xs text-blue-600 mt-2">
-              {formatter.format(stats?.totalBeds || 0)} student beds available
+              {formatter.format(stats?.totalRooms || 0)} total rooms
             </p>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-600">
-                Blocks / Wings
+                Total Beds
               </h3>
-              <FaHome className="w-5 h-5 text-sky-600" />
+              <IoBed className="w-5 h-5 text-sky-600" />
             </div>
             <p className="text-3xl font-bold text-gray-800">
-              {formatter.format(stats?.totalHostel || 0)}
+              {formatter.format(stats?.totalBeds || 0)}
             </p>
             <p className="text-xs text-sky-600 mt-2">
-              {formatter.format(stats?.totalRooms || 0)} available rooms
+              {formatter.format(stats?.totalRooms || 0)} available beds
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-600">
+                Total Occupants
+              </h3>
+              <MdPeople className="w-5 h-5 text-purple-600" />
+            </div>
+            <p className="text-3xl font-bold text-gray-800">
+              {formatter.format(stats?.occupants || 5)}
+            </p>
+            <p className="text-xs text-purple-600 mt-2">
+              {formatter.format(stats?.rates || 2)}% occupancy rate
             </p>
           </div>
 
@@ -145,47 +328,39 @@ const Home = () => {
               +18% from last semester
             </p>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600">
-                Total Occupants
-              </h3>
-              <MdPeople className="w-5 h-5 text-purple-600" />
-            </div>
-            <p className="text-3xl font-bold text-gray-800">
-              {formatter.format(stats?.occupants || 0)}
-            </p>
-            <p className="text-xs text-purple-600 mt-2">
-              {formatter.format(stats?.rates || 0)}% occupancy rate
-            </p>
-          </div>
+          
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            Recent Payments & Updates
-          </h3>
+          <div
+            onClick={() => navigate("/projects/hostels/payments")}
+            className="flex justify-between cursor-pointer"
+          >
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Recent Payments & Updates
+            </h3>
+            <FiArrowRight className="w-5 h-5 text-slate-400 hover:text-sky-600 transition-colors" />
+          </div>
           <div className="space-y-4">
             {[
               {
                 id: 1,
-                type: "Booking",
-                property: "Hostel Room 205",
+                type: "Payment",
+                property: "BSM - Room 205",
                 time: "1 hour ago",
-                status: "Confirmed",
+                status: "Completed",
               },
               {
                 id: 2,
                 type: "Payment",
                 property: "BSM - Room 34",
                 time: "3 hours ago",
-                status: "Received",
+                status: "Completed",
               },
               {
                 id: 3,
-                type: "Check-out",
-                property: "Nuru B12",
+                type: "Payment",
+                property: "Nuru - B12",
                 time: "5 hours ago",
                 status: "Completed",
               },
@@ -223,6 +398,65 @@ const Home = () => {
                 </span>
               </div>
             ))}
+          </div>
+          <div className="py-2 border-t border-slate-100">
+            <p
+              onClick={() => navigate("/projects/hostels/payments")}
+              className="cursor-pointer text-sm hover:text-blue-900 text-sky-600 font-medium text-center group-hover:text-sky-700"
+            >
+              View all payments →
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-6 border-t border-slate-200">
+          <header className="mb-6">
+            <h2 className="text-xl font-semibold text-slate-900">Management</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Manage student accommodation details and payment items 
+            </p>
+          </header>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ManagementCard
+              title="Hostels"
+              icon={BiBuildingHouse}
+              items={hostels}
+              route="/projects/hostels/list"
+              header={"Status"}
+              headerValue={"Hostel_Status"}
+            />
+            <ManagementCard
+              title="Students"
+              icon={PiStudent}
+              items={students}
+              route="/projects/hostels/students"
+              header={"Status"}
+              headerValue={"Customer_Status"}
+            />
+             <ManagementCard
+              title="Pending Room Assignment"
+              icon={MdAssignmentAdd}
+              items={assigned}
+              route="/projects/hostels/pending-room-assignments"
+              header={"Status"}
+              headerValue={"Room_Status"}
+            />
+            <ManagementCard
+              title="Payment Items"
+              icon={MdOutlineListAlt}
+              items={items}
+              route="/projects/hostels/items"
+              header={"Status"}
+              headerValue={"Item_Status"}
+            />
+            <ManagementCard
+              title="Payment Types"
+              icon={RiListSettingsLine}
+              items={setups}
+              route="/projects/hostels/setups"
+              header={"Months"}
+              headerValue={"Category_Quantity"}
+            />
           </div>
         </div>
       </div>

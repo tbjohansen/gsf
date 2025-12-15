@@ -42,8 +42,6 @@ export default function Items({ status }) {
 
   const navigate = useNavigate();
 
-  console.log(status);
-
   // Fetch hostels from API
   React.useEffect(() => {
     loadData();
@@ -97,12 +95,13 @@ export default function Items({ status }) {
   };
 
   const handleRowClick = (row) => {
+    console.log(status);
     setSelectedRow(row);
     navigate(
       status === "oxygen"
-        ? `/${status}/items/${row?.Item_ID}/mapped-items`
-        : status === "student_accomodation"
-        ? `/hostels/items/${row?.Item_ID}/mapped-items`
+        ? `projects/${status}/items/${row?.Item_ID}/mapped-items`
+        : status === "student_accomodation" || status === "student_accomodatio"
+        ? `/projects/hostels/items/${row?.Item_ID}/mapped-items`
         : `/items/${row?.Item_ID}/mapped-items`
     );
   };
@@ -123,8 +122,14 @@ export default function Items({ status }) {
         ),
       },
       status === "oxygen" && {
-        id: "Item_Price",
-        label: "Price (TZS)",
+        id: "Item_Price_Inside",
+        label: "Inside Price (TZS)",
+        format: (value) => <span>{formatter.format(value || 0)}</span>,
+        show: status === "oxygen",
+      },
+      status === "oxygen" && {
+        id: "Item_Price_Outside",
+        label: "Outside Price (TZS)",
         format: (value) => <span>{formatter.format(value || 0)}</span>,
       },
       {
@@ -189,7 +194,7 @@ export default function Items({ status }) {
                       tabIndex={-1}
                       key={row.key || row.id}
                       onClick={() =>
-                        status === "student_accomodation"
+                        status === "student_accomodation" || status === "student_accomodatio"
                           ? handleRowClick(row)
                           : null
                       }

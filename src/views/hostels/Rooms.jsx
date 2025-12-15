@@ -37,10 +37,13 @@ export default function Rooms() {
 
   const navigate = useNavigate();
   const { hostelID, blockID, floorID } = useParams();
+  const hasFetchedData = React.useRef(false);
 
-  // Fetch hostels from API
   React.useEffect(() => {
-    loadData();
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadData();
+    }
   }, []);
 
   const loadData = async () => {

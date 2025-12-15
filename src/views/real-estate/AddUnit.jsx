@@ -40,16 +40,12 @@ const AddUnit = ({ loadData }) => {
 
   const sortedTypes = [
     {
-      id: "farm",
-      label: "Farm",
-    },
-    {
       id: "house",
       label: "House",
     },
     {
-      id: "business",
-      label: "Business ",
+      id: "business land",
+      label: "Business",
     },
   ];
 
@@ -77,7 +73,6 @@ const AddUnit = ({ loadData }) => {
 
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
-    const userName = localStorage.getItem("userName");
 
     if (!employeeId) {
       toast.error("User information not found. Please login again.");
@@ -96,12 +91,8 @@ const AddUnit = ({ loadData }) => {
         Employee_ID: employeeId,
       };
 
-      console.log("Submitting unit data:", data);
-
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/settings/real-estate", data);
-
-      console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {

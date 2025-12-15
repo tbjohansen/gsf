@@ -19,6 +19,7 @@ import Badge from "../../components/Badge";
 import EditFeature from "./EditFeatures";
 import { FcSynchronize } from "react-icons/fc";
 import AddEmployee from "./AddEmployee";
+import { TextField } from "@mui/material";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -34,46 +35,122 @@ export default function RealEstateEmployees() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [employees, setEmployees] = React.useState([]);
+  const [name, setName] = React.useState("");
+  const [customerID, setCustomerID] = React.useState("");
+  const [phoneNumber, setPhoneNumber] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [syncLoading, setSyncLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
 
-  // Fetch users from API
+  const hasFetchedData = React.useRef(false);
+
   React.useEffect(() => {
-    loadData();
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadData();
+    }
   }, []);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/settings/real-estate-feature");
+      let url = `/customer/customer?&Customer_Nature=house_rent`;
+
+      if (name) {
+        url += `&Customer_Name=${name}`;
+      }
+
+      if (customerID) {
+        url += `&Customer_ID=${customerID}`;
+      }
+
+      if (phoneNumber) {
+        url += `&Phone_Number=${phoneNumber}`;
+      }
+
+      const response = await apiClient.get(url);
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch employees");
+        toast.error(response?.data?.error || "Failed to fetch employees");
         return;
       }
 
-      if (response.data?.error || response.data?.code >= 400) {
+      if (response.data?.error || response?.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch employees");
+        toast.error(response?.data?.error || "Failed to fetch employees");
         return;
       }
+
+      const userData = response?.data?.data?.data || [];
+
+      const employeesArray = [];
+
+      userData.forEach((user, index) => {
+        if (user?.Student_ID != null) {
+          employeesArray.push(user);
+        }
+      });
 
       // Adjust based on your API response structure
-      const featuresData = response?.data?.data;
-      const newData = featuresData?.map((feature, index) => ({
-        ...feature,
-        key: index + 1,
-      }));
-      // console.log(newData);
-      setEmployees(Array.isArray(newData) ? newData : []);
+      if (employeesArray?.length > 0) {
+        const newData = employeesArray?.map((user, index) => ({
+          ...user,
+          key: index + 1,
+        }));
+        // console.log(newData);
+        setEmployees(Array.isArray(newData) ? newData : []);
+      }
       setLoading(false);
     } catch (error) {
       console.error("Fetch employees error:", error);
       setLoading(false);
       toast.error("Failed to load employees");
+    }
+  };
+
+  const onSyncEmployees = async () => {
+    // Get employee info from localStorage
+    const employeeId = localStorage.getItem("employeeId");
+
+    if (!employeeId) {
+      toast.error("User information not found. Please login again.");
+      return;
+    }
+
+    setSyncLoading(true);
+    try {
+      let url = `/synchronise-employee?&Employee_ID=${employeeId}`;
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        setSyncLoading(false);
+        toast.error(
+          response?.data?.error || "Failed to fetch employees from eHMS"
+        );
+        return;
+      }
+
+      if (response.data?.error || response?.data?.code >= 400) {
+        setSyncLoading(false);
+        toast.error(
+          response?.data?.error || "Failed to fetch employees from eHMS"
+        );
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const userData = response?.data?.data;
+
+      console.log(userData);
+      setSyncLoading(false);
+    } catch (error) {
+      console.error("Fetch employees error:", error);
+      setSyncLoading(false);
+      toast.error("Failed to load employees from eHMS");
     }
   };
 
@@ -91,12 +168,30 @@ export default function RealEstateEmployees() {
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "description",
+        id: "Customer_Name",
         label: "Employee Name",
+        minWidth: 170,
         format: (value) => <span>{capitalize(value)}</span>,
       },
       {
-        id: "employee_status",
+        id: "Gender",
+        label: "Gender",
+        format: (value) => <span>{capitalize(value)}</span>,
+      },
+      {
+        id: "Nationality",
+        label: "Nationality",
+        format: (value) => <span>{capitalize(value)}</span>,
+      },
+      { id: "Phone_Number", label: "Phone" },
+      { id: "Email", label: "Email" },
+      {
+        id: "Student_ID",
+        label: `Employee Number`,
+        minWidth: 170,
+      },
+      {
+        id: "Customer_Status",
         label: "Status",
         format: (value) => (
           <Badge
@@ -110,16 +205,16 @@ export default function RealEstateEmployees() {
         label: "Created At",
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
       },
-      {
-        id: "actions",
-        label: "Actions",
-        align: "center",
-        format: (value, row) => (
-          <div className="flex gap-2 justify-center">
-            <EditFeature feature={row} loadData={loadData} />
-          </div>
-        ),
-      },
+      // {
+      //   id: "actions",
+      //   label: "Actions",
+      //   align: "center",
+      //   format: (value, row) => (
+      //     <div className="flex gap-2 justify-center">
+      //       <EditFeature feature={row} loadData={loadData} />
+      //     </div>
+      //   ),
+      // },
     ],
     []
   );
@@ -127,19 +222,56 @@ export default function RealEstateEmployees() {
   return (
     <>
       <Breadcrumb />
-      <div className="w-full h-12">
+      <div className="w-full h-12 mb-3">
         <div className="w-full my-2 flex flex-row gap-2">
           <h4 className="w-[50%]">Employees List</h4>
-          <div className="w-[50%] flex flex-row gap-2">
-            <button className="group h-10 w-72 flex justify-center bg-gradient-to-r from-blue-900 to-sky-600 text-white font-semibold rounded-xl cursor-pointer hover:from-blue-500 hover:to-sky-500 transition-all duration-300 shadow-lg hover:shadow-sky-500/50 hover:scale-105">
-            <div className="flex items-center text-white gap-2">
-              <FcSynchronize className="w-5 h-5" />
-              Synchronize Employees
-            </div>
-          </button>
-          <AddEmployee loadData={loadData} />
+          <div className="w-[50%] flex flex-row justify-between">
+            <button
+              onClick={() => onSyncEmployees()}
+              disabled={syncLoading}
+              className="group h-10 w-64 flex justify-center bg-gradient-to-r from-blue-900 to-sky-600 text-white rounded-xl cursor-pointer hover:from-blue-800"
+            >
+              <div className="flex text-sm items-center text-white gap-2">
+                <FcSynchronize className="w-5 h-5" />
+                Synchronize Employees
+              </div>
+            </button>
+            <AddEmployee loadData={loadData} />
           </div>
         </div>
+      </div>
+
+      <div className="w-full py-2 flex gap-2 mb-1">
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label={"Name"}
+          variant="outlined"
+          className="w-[33%]"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label={"Employee ID"}
+          variant="outlined"
+          className="w-[33%]"
+          value={customerID}
+          onChange={(e) => setCustomerID(e.target.value)}
+          autoFocus
+        />
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label="Phone Number"
+          variant="outlined"
+          className="w-[33%]"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
+          autoFocus
+        />
       </div>
 
       <Paper sx={{ width: "100%", overflow: "hidden" }}>

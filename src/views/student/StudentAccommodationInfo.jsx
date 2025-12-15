@@ -14,6 +14,7 @@ import {
   capitalize,
   formatDateForDb,
   formatDateTimeForDb,
+  formatter,
 } from "../../../helpers";
 
 const StudentAccommodationInfo = ({
@@ -246,7 +247,7 @@ const StudentAccommodationInfo = ({
                   Room Type
                 </p>
                 <p className="text-base font-semibold text-gray-900">
-                  {accommodation.Room_Type}
+                  {accommodation?.Room_Type}
                 </p>
               </div>
             )}
@@ -270,7 +271,7 @@ const StudentAccommodationInfo = ({
                   Room Price
                 </p>
                 <p className="text-lg font-bold text-blue-700">
-                  {accommodation.Price} {accommodation.Currency || "TZS"}
+                  {formatter?.format(accommodation?.Price)} {accommodation.Currency || "TZS"}
                 </p>
               </div>
             )}

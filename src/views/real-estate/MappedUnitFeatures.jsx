@@ -37,9 +37,13 @@ export default function MappedUnitFeatures() {
   const navigate = useNavigate();
   const { unitID } = useParams();
 
-  // Fetch hostels from API
+  const hasFetchedData = React.useRef(false);
+
   React.useEffect(() => {
-    loadData();
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadData();
+    }
   }, []);
 
   const loadData = async () => {
@@ -51,8 +55,6 @@ export default function MappedUnitFeatures() {
           real_estate_id: unitID,
         }
       );
-
-      console.log(response);
 
       if (!response.ok) {
         setLoading(false);
@@ -69,7 +71,7 @@ export default function MappedUnitFeatures() {
       }
 
       // Adjust based on your API response structure
-      const featuresData = response?.data?.data?.data;
+      const featuresData = response?.data?.data;
       const newData = featuresData?.map((feature, index) => ({
         ...feature,
         key: index + 1,
@@ -97,14 +99,11 @@ export default function MappedUnitFeatures() {
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "unit",
-        label: "Unit",
-        format: (value) => <span>{capitalize(value)}</span>,
-      },
-      {
-        id: "feature",
+        id: "mapped_feature",
         label: "Feature",
-        format: (value) => <span>{capitalize(value)}</span>,
+        format: (row, value) => (
+          <span>{capitalize(value?.feature?.description)}</span>
+        ),
       },
       {
         id: "quantity",
@@ -122,7 +121,7 @@ export default function MappedUnitFeatures() {
         align: "center",
         format: (value, row) => (
           <div className="flex gap-2 justify-center">
-            <RemoveMappedUnitFeature item={row} loadData={loadData} />
+            <RemoveMappedUnitFeature feature={row} loadData={loadData} />
           </div>
         ),
       },

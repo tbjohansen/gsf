@@ -16,6 +16,8 @@ import { useNavigate } from "react-router-dom";
 import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import UploadEstatesCustomers from "./UploadEstatesCustomers";
+import { TextField } from "@mui/material";
+import Breadcrumb from "../../components/Breadcrumb";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -32,19 +34,42 @@ export default function RealEstateCustomers() {
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [users, setUsers] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
+  const [name, setName] = React.useState("");
+  const [customerID, setCustomerID] = React.useState("");
+  const [phoneNumber, setPhoneNumber] = React.useState("");
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
 
-  // Fetch hostels from API
+  const hasFetchedData = React.useRef(false);
+
   React.useEffect(() => {
-    loadData();
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadData();
+    }
   }, []);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/customer/customer");
+      let url = `/customer/customer?`;
+
+      url += `&Customer_Nature=${"house_rent"}`;
+
+      if (name) {
+        url += `&Customer_Name=${name}`;
+      }
+
+      if (customerID) {
+        url += `&Customer_ID=${customerID}`;
+      }
+
+      if (phoneNumber) {
+        url += `&Phone_Number=${phoneNumber}`;
+      }
+
+      const response = await apiClient.get(url);
 
       if (!response.ok) {
         setLoading(false);
@@ -58,14 +83,25 @@ export default function RealEstateCustomers() {
         return;
       }
 
+      const userData = response?.data?.data?.data || [];
+
+      const employeesArray = [];
+
+      userData?.forEach((user, index) => {
+        if (user?.Student_ID == null || user?.Student_ID === "") {
+          employeesArray.push(user);
+        }
+      });
+
       // Adjust based on your API response structure
-      const userData = response?.data?.data?.data;
-      const newData = userData?.map((user, index) => ({
-        ...user,
-        key: index + 1,
-      }));
-      console.log(newData);
-      setUsers(Array.isArray(newData) ? newData : []);
+      if (employeesArray?.length > 0) {
+        const newData = employeesArray?.map((user, index) => ({
+          ...user,
+          key: index + 1,
+        }));
+        // console.log(newData);
+        setUsers(Array.isArray(newData) ? newData : []);
+      }
       setLoading(false);
     } catch (error) {
       console.error("Fetch customers error:", error);
@@ -104,9 +140,6 @@ export default function RealEstateCustomers() {
       },
       { id: "Phone_Number", label: "Phone" },
       { id: "Email", label: "Email" },
-      { id: "Student_ID", label: "Customer ID" },
-      { id: "Program_Study", label: "Program" },
-      { id: "Year_Study", label: "Year" },
       {
         id: "Customer_Status",
         label: "Status",
@@ -129,10 +162,43 @@ export default function RealEstateCustomers() {
 
   return (
     <>
+      <Breadcrumb />
       <div className="w-full flex my-2 justify-center">
         <UploadEstatesCustomers />
       </div>
 
+      <div className="w-full py-2 flex gap-2 mb-1">
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label={"Name"}
+          variant="outlined"
+          className="w-[33%]"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label={"Customer ID"}
+          variant="outlined"
+          className="w-[33%]"
+          value={customerID}
+          onChange={(e) => setCustomerID(e.target.value)}
+          autoFocus
+        />
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label="Phone Number"
+          variant="outlined"
+          className="w-[33%]"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
+          autoFocus
+        />
+      </div>
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
         <TableContainer sx={{ maxHeight: 440 }}>
           <Table stickyHeader aria-label="sticky table">

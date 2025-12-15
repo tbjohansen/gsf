@@ -1,17 +1,7 @@
 import { useState } from "react";
-import {
-  LuActivity,
-  LuBuilding,
-  LuCalendar,
-  LuDollarSign,
-  LuHouse,
-  LuLeaf,
-  LuTreePine,
-  LuTrendingUp,
-  LuUser,
-  LuWarehouse,
-} from "react-icons/lu";
-import { GiFarmTractor, GiMoneyStack  } from "react-icons/gi";
+import { LuActivity, LuLeaf, LuTrendingUp } from "react-icons/lu";
+import { PiFarmLight } from "react-icons/pi";
+import { GiFarmTractor, GiMoneyStack } from "react-icons/gi";
 import { LuLandPlot } from "react-icons/lu";
 import { GoPeople } from "react-icons/go";
 import { BiBuildingHouse } from "react-icons/bi";
@@ -82,175 +72,12 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold text-black mb-2">
           GSF Projects Dashboard
         </h1>
-        <p className="text-gray-600">Overview of all projects operations</p>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Card 1 - Hostels */}
-        <div
-          className="rounded-lg p-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
-          style={{
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          }}
-        >
-          <div className="flex flex-row justify-between items-start mb-2">
-            <h4 className="text-white text-xs font-light opacity-90">
-              Total Hostels
-            </h4>
-            <BiBuildingHouse className="w-7 h-7 text-white" />
-          </div>
-          <div className="mt-3">
-            <h3 className="text-white text-2xl font-semibold">
-              {businessData.hostels.totalBuildings}
-            </h3>
-          </div>
-        </div>
-
-        {/* Card 2 - Properties */}
-        <div
-          className="rounded-lg p-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
-          style={{
-            background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-          }}
-        >
-          <div className="flex flex-row justify-between items-start mb-2">
-            <h4 className="text-white text-xs font-light opacity-90">
-              Rental Units
-            </h4>
-            <BsHouses className="w-7 h-7 text-white" />
-          </div>
-          <div className="mt-3">
-            <h3 className="text-white text-2xl font-semibold">
-              {businessData.houseRenting.totalProperties}
-            </h3>
-          </div>
-        </div>
-
-        {/* Card 3 - Farm Plots */}
-        <div
-          className="rounded-lg p-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
-          style={{
-            background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-          }}
-        >
-          <div className="flex flex-row justify-between items-start mb-2">
-            <h4 className="text-white text-xs font-light opacity-90">
-              Farm Plots
-            </h4>
-            <GiFarmTractor className="w-7 h-7 text-white" />
-          </div>
-          <div className="mt-3">
-            <h3 className="text-white text-2xl font-semibold">
-              {businessData.farmPlots.totalPlots}
-            </h3>
-          </div>
-        </div>
-
-        {/* Card 4 - Oxygen */}
-        <div
-          className="rounded-lg p-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
-          style={{
-            background: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-          }}
-        >
-          <div className="flex flex-row justify-between items-start mb-2">
-            <h4 className="text-white text-xs font-light opacity-90">
-              Oxygen Inventory
-            </h4>
-            <LuLeaf className="w-7 h-7 text-white" />
-          </div>
-          <div className="mt-3">
-            <h3 className="text-white text-2xl font-semibold">
-              {businessData.oxygen.inventory} <span className="text-lg">Cylinders</span>
-            </h3>
-          </div>
-        </div>
-
-        {/* Card 5 - Spaces */}
-        <div
-          className="rounded-lg p-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
-          style={{
-            background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-          }}
-        >
-          <div className="flex flex-row justify-between items-start mb-2">
-            <h4 className="text-white text-xs font-light opacity-90">
-              Available Spaces
-            </h4>
-            <LuLandPlot className="w-7 h-7 text-white" />
-          </div>
-          <div className="mt-3">
-            <h3 className="text-white text-2xl font-semibold">
-              {businessData.spaceRenting.totalSpaces}
-            </h3>
-          </div>
-        </div>
-
-        {/* Card 6 - Customers */}
-        <div
-          className="rounded-lg p-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
-          style={{
-            background: "linear-gradient(135deg, #30cfd0 0%, #330867 100%)",
-          }}
-        >
-          <div className="flex flex-row justify-between items-start mb-2">
-            <h4 className="text-white text-xs font-light opacity-90">
-              Total Customers
-            </h4>
-            <GoPeople className="w-7 h-7 text-white" />
-          </div>
-          <div className="mt-3">
-            <h3 className="text-white text-2xl font-semibold">
-              {totalCustomers}
-            </h3>
-          </div>
-        </div>
-
-        {/* Card 7 - Hostels Revenue */}
-        <div
-          className="rounded-lg p-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
-          style={{
-            background: "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
-          }}
-        >
-          <div className="flex flex-row justify-between items-start mb-2">
-            <h4 className="text-white text-xs font-light opacity-90">
-              Hostels Revenue
-            </h4>
-            <GiMoneyStack className="w-7 h-7 text-white" />
-          </div>
-          <div className="mt-3">
-            <h3 className="text-white text-xl font-semibold">
-              TZS {formatter.format(businessData.hostels.revenue)}
-            </h3>
-          </div>
-        </div>
-
-        {/* Card 8 - Total Revenue */}
-        <div
-          className="rounded-lg p-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
-          style={{
-            background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
-          }}
-        >
-          <div className="flex flex-row justify-between items-start mb-2">
-            <h4 className="text-white text-xs font-light opacity-90">
-              Total Revenue
-            </h4>
-            <LuTrendingUp className="w-7 h-7 text-white" />
-          </div>
-          <div className="mt-3">
-            <h3 className="text-white text-xl font-semibold">
-              TZS {formatter.format(totalRevenue)}
-            </h3>
-          </div>
-        </div>
+        <p className="text-gray-600">The overview of all project operations</p>
       </div>
 
       {/* Business Modules Section */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-black mb-4">Projects</h2>
+        {/* <h2 className="text-2xl font-bold text-black mb-4">Projects</h2> */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Hostels */}
           <div
@@ -258,7 +85,7 @@ const Dashboard = () => {
             className="bg-white rounded-lg p-5 border-white shadow-xl hover:border-gray-100 transition-all duration-300 cursor-pointer hover:shadow-lg"
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-lg bg-purple-600">
+              <div className="p-3 rounded-lg bg-indigo-600">
                 <BiBuildingHouse className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-black text-lg font-semibold">
@@ -305,7 +132,7 @@ const Dashboard = () => {
             className="bg-white rounded-lg p-5 border-white shadow-xl hover:border-gray-100 transition-all duration-300 cursor-pointer hover:shadow-lg"
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-lg bg-pink-600">
+              <div className="p-3 rounded-lg bg-purple-600">
                 <BsHouses className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-black text-lg font-semibold">
@@ -482,6 +309,49 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
+
+          {/* Nuru Farm */}
+          <div
+            onClick={() => setSelectedModule("spaceRenting")}
+            className="bg-white rounded-lg p-5 border border-white shadow-xl hover:border-gray-100 transition-all duration-300 cursor-pointer hover:shadow-lg"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-lg bg-sky-900">
+                <PiFarmLight className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-black text-lg font-semibold">Nuru Farm</h3>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Total Sheeps</span>
+                <span className="text-black font-medium">
+                  {businessData.spaceRenting.totalSpaces}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Vegetables</span>
+                <span className="text-black font-medium">
+                  {businessData.spaceRenting.bookedSpaces}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Fruits</span>
+                <span className="text-black font-medium">
+                  {businessData.spaceRenting.customers}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Total Supplied (kgs)</span>
+                <span className="text-black font-medium">{70}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Revenue</span>
+                <span className="text-black font-medium">
+                  TZS {formatter.format(businessData.spaceRenting.revenue)}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -553,9 +423,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-
-     
-      
     </div>
   );
 };

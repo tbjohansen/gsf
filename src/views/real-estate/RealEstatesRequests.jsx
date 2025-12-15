@@ -9,7 +9,7 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import { capitalize, formatDateTimeForDb, formatter } from "../../../helpers";
+import { capitalize, formatter } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -35,10 +35,14 @@ export default function RealEsatesRequests() {
 
   const navigate = useNavigate();
 
-  // Fetch payments from API
-  React.useEffect(() => {
+const hasFetchedData = React.useRef(false);
+
+React.useEffect(() => {
+  if (!hasFetchedData.current) {
+    hasFetchedData.current = true;
     loadData();
-  }, []);
+  }
+}, []);
 
   const loadData = async () => {
     setLoading(true);

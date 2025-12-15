@@ -2,11 +2,10 @@ import React, { useState } from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { toast } from "react-hot-toast";
 import { MdAdd } from "react-icons/md";
 import apiClient from "../../api/Client";
-import Autocomplete from "@mui/material/Autocomplete";
 
 const style = {
   position: "absolute",
@@ -37,13 +36,12 @@ const AddFeature = ({ loadData }) => {
     e.preventDefault();
 
     if (!description || description.trim() === "") {
-      toast.error("Please enter feature description");
+      toast.error("Please enter feature name");
       return;
     }
 
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
-    const userName = localStorage.getItem("userName");
 
     if (!employeeId) {
       toast.error("User information not found. Please login again.");
@@ -59,12 +57,9 @@ const AddFeature = ({ loadData }) => {
         Employee_ID: employeeId,
       };
 
-      console.log("Submitting feature data:", data);
-
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/settings/real-estate-feature", data);
 
-      console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {
@@ -143,10 +138,8 @@ const AddFeature = ({ loadData }) => {
                 <TextField
                   size="small"
                   id="outlined-multiline-static"
-                  multiline
-                  rows={2}
                   variant="outlined"
-                  label="Description"
+                  label="Feature Name"
                   className="w-[92%]"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}

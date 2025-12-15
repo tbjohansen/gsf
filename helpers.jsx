@@ -10,9 +10,6 @@ export const formatDateForDb = (date) => {
   return moment(date).format("YYYY-MM-DD");
 };
 
-
-
-
 /**
  * Formats a date object or string to the format of year-month-date hour:minute:second.
  * @param date
@@ -123,4 +120,38 @@ export const formatter = new Intl.NumberFormat("en-US");
 export const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "TZS",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
 });
+
+export const validatePhoneNumber = (phoneNumber) => {
+    // Check if the input contains only digits
+    if (!/^\d+$/.test(phoneNumber)) {
+        return false;
+    }
+    
+    // Check if the number has exactly 10 characters
+    if (phoneNumber.length !== 10) {
+        return false;
+    }
+    
+    // Check if it starts with 0
+    if (phoneNumber.charAt(0) !== '0') {
+        return false;
+    }
+    
+    // Check if the second digit is 5, 6, or 7
+    const secondDigit = phoneNumber.charAt(1);
+    if (secondDigit !== '5' && secondDigit !== '6' && secondDigit !== '7') {
+        return false;
+    }
+    
+    return true;
+}
+
+export const validPhoneNumber = (phoneNumber) => {
+  if (!phoneNumber || typeof phoneNumber !== 'string') return false;
+  
+  return phoneNumber.length === 10 && 
+    ["05", "06", "07"].includes(phoneNumber.slice(0, 2));
+}

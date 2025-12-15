@@ -1,4 +1,3 @@
-import * as React from "react";
 import { styled } from "@mui/material/styles";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
@@ -9,12 +8,15 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import { capitalize, formatDateTimeForDb, formatter } from "../../../helpers";
+import { capitalize, formatter } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
+import { Autocomplete, TextField } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { values } from "lodash";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -27,20 +29,73 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function Payments({ status }) {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [payments, setPayments] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [selectedRow, setSelectedRow] = React.useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [payments, setPayments] = useState([]);
+  const [paymentType, setPaymentType] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [customerID, setCustomerID] = useState("");
+  const [admissionID, setAdmissionID] = useState("");
+  const [name, setName] = useState("");
+  const [sangiraNumber, setSangiraNumber] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
 
   const navigate = useNavigate();
 
-  console.log(status);
+  const sortedPaymentTypes = [
+    {
+      id: "hostel",
+      label: "Hostel",
+    },
+    {
+      id: "oxygen",
+      label: "Oxygen",
+    },
+    {
+      id: "farm",
+      label: "Farm",
+    },
+    {
+      id: "real_estate",
+      label: "Real Estate",
+    },
+  ];
+
+  const paymentTypeOnChange = (e, value) => {
+    setPaymentType(value);
+  };
+
+  const sortedPaymentStatus = [
+    {
+      id: "pending",
+      label: "Pending",
+    },
+    {
+      id: "expired",
+      label: "Expired",
+    },
+    {
+      id: "completed",
+      label: "Completed",
+    },
+  ];
+
+  const paymentStatuOnChange = (e, value) => {
+    setPaymentStatus(value);
+  };
 
   // Fetch payments from API
-  React.useEffect(() => {
+  useEffect(() => {
     loadData();
-  }, []);
+  }, [
+    name,
+    customerID,
+    admissionID,
+    sangiraNumber,
+    paymentType,
+    paymentStatus,
+  ]);
 
   const loadData = async () => {
     setLoading(true);
@@ -50,6 +105,7 @@ export default function Payments({ status }) {
       if (status === "student") {
         url += `Customer_Status=paid&Room_Status=paid&Request_Type=hostel`;
       }
+
       const response = await apiClient.get(url);
 
       if (!response.ok) {
@@ -90,7 +146,7 @@ export default function Payments({ status }) {
   };
 
   // Inside the Hostels component, replace the columns definition with:
-  const columns = React.useMemo(
+  const columns = useMemo(
     () => [
       { id: "key", label: "S/N" },
       {
@@ -102,14 +158,6 @@ export default function Payments({ status }) {
         ),
       },
       {
-        id: "gender",
-        label: "Gender",
-        show: status !== "oxygen",
-        format: (row, value) => (
-          <span>{capitalize(value?.customer?.Gender)}</span>
-        ),
-      },
-      {
         id: "student_id",
         label: `${status === "student" ? "Student ID" : "Customer ID"}`,
         show: status !== "oxygen",
@@ -117,10 +165,16 @@ export default function Payments({ status }) {
           <span>{capitalize(value?.customer?.Student_ID)}</span>
         ),
       },
-      {
+      status === "student" && {
+        id: "gender",
+        label: "Gender",
+        format: (row, value) => (
+          <span>{capitalize(value?.customer?.Gender)}</span>
+        ),
+      },
+      status === "student" && {
         id: "program",
         label: "Program",
-        show: status !== "oxygen",
         format: (row, value) => (
           <span>
             {capitalize(value?.customer?.Program_Study)} (
@@ -130,10 +184,13 @@ export default function Payments({ status }) {
       },
       {
         id: "total_amount",
-        label: "Amount",
+        label: "Amount (TZS)",
+        minWidth: 150,
         format: (row, value) => (
           <span>
-            {formatter.format(value?.Sangira?.Grand_Total_Price || 0)}
+            {formatter.format(
+              value?.Sangira?.Grand_Total_Price || value?.Price
+            )}
           </span>
         ),
       },
@@ -143,7 +200,7 @@ export default function Payments({ status }) {
         align: "center",
         format: (row, value) => (
           <Badge
-            name={capitalize(value?.Sangira?.Sangira_Status)}
+            name={capitalize(value?.Sangira?.Sangira_Status || "Expired")}
             color={
               value?.Sangira?.Sangira_Status === "completed"
                 ? "green"
@@ -162,6 +219,12 @@ export default function Payments({ status }) {
         ),
       },
       {
+        id: "Request_Type",
+        label: "Payment Type",
+        minWidth: 170,
+        format: (row, value) => <span>{capitalize(value?.Request_Type)}</span>,
+      },
+      {
         id: "completed_date",
         label: "Payment Date",
         minWidth: 170,
@@ -173,31 +236,36 @@ export default function Payments({ status }) {
         format: (row, value) => <span>{value?.Sangira?.Receipt_Number}</span>,
       },
       {
+        id: "bank",
+        label: "Bank Name",
+        minWidth: 170,
+        format: (row, value) => (
+          <span>{value?.Sangira?.Payment_Direction}</span>
+        ),
+      },
+      {
         id: "requested_at",
         label: "Requested Date",
-        minWidth: 170,
+        minWidth: 180,
         format: (row, value) => <span>{value?.Sangira?.Requested_Date}</span>,
       },
-      {
-        id: "requested_room",
-        label: "Room",
-        show: status !== "oxygen",
-        minWidth: 170,
-        format: (row, value) => <span>{value?.room?.Room_Name}</span>,
-      },
-      {
+      status === "student" && {
         id: "hostel",
         label: "Hostel",
-        show: status !== "oxygen",
         minWidth: 170,
         format: (row, value) => <span>{value?.room?.hostel?.Hostel_Name}</span>,
       },
-      {
+      status === "student" && {
         id: "block",
         label: "Block",
-        show: status !== "oxygen",
         minWidth: 170,
         format: (row, value) => <span>{value?.room?.block?.Block_Name}</span>,
+      },
+      status === "student" && {
+        id: "requested_room",
+        label: "Room",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.room?.Room_Name}</span>,
       },
     ],
     []
@@ -207,11 +275,78 @@ export default function Payments({ status }) {
     <>
       {status ? <Breadcrumb /> : null}
       <div className="w-full h-12">
-        <div className="w-full my-2 flex justify-between">
-          <h4>Payments List</h4>
-        </div>
+        <h4>Payments List</h4>
       </div>
 
+      <div className="w-full py-2 flex gap-2 mb-1">
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label={status === "student" ? "Student Name" : "Customer Name"}
+          variant="outlined"
+          className="w-[25%]"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label={status === "student" ? "Student ID" : "Customer ID"}
+          variant="outlined"
+          className="w-[25%]"
+          value={customerID}
+          onChange={(e) => setCustomerID(e.target.value)}
+          autoFocus
+        />
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label="Sangira Number"
+          variant="outlined"
+          className="w-[25%]"
+          value={sangiraNumber}
+          onChange={(e) => setSangiraNumber(e.target.value)}
+          autoFocus
+        />
+        {status === "student" ? (
+          <TextField
+            size="small"
+            id="outlined-basic"
+            label="Admission ID"
+            variant="outlined"
+            className="w-[25%]"
+            value={admissionID}
+            onChange={(e) => setAdmissionID(e.target.value)}
+            autoFocus
+          />
+        ) : (
+          <Autocomplete
+            id="combo-box-demo"
+            options={sortedPaymentTypes}
+            size="small"
+            freeSolo
+            className="w-[25%]"
+            value={paymentType}
+            onChange={paymentTypeOnChange}
+            renderInput={(params) => (
+              <TextField {...params} label="Payment Type" />
+            )}
+          />
+        )}
+        <Autocomplete
+          id="combo-box-demo"
+          options={sortedPaymentStatus}
+          size="small"
+          freeSolo
+          className="w-[25%]"
+          value={paymentStatus}
+          onChange={paymentStatuOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Payment Status" />
+          )}
+        />
+      </div>
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
         <TableContainer sx={{ maxHeight: 440 }}>
           <Table stickyHeader aria-label="sticky table">
@@ -280,7 +415,7 @@ export default function Payments({ status }) {
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 100]}
           component="div"
           count={payments?.length}
           rowsPerPage={rowsPerPage}

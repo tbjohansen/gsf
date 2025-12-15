@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import EditPaymentCategory from "./EditPaymentCategory";
+import Breadcrumb from "../../../components/Breadcrumb";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -66,7 +67,7 @@ export default function PaymentCategories() {
         ...category,
         key: index + 1,
       }));
-      console.log(newData);
+      // console.log(newData);
       setPaymentCategories(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
@@ -112,10 +113,10 @@ export default function PaymentCategories() {
 
   return (
     <>
-      {/* <Breadcrumb/> */}
+      <Breadcrumb/>
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
-          <h4>Payment Categories List</h4>
+          <h4>Payment Types List</h4>
         </div>
       </div>
 

@@ -11,7 +11,7 @@ import { capitalize } from "../../../helpers";
 
 const style = {
   position: "absolute",
-  top: "40%",
+  top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 500,
@@ -28,10 +28,10 @@ const EditUnit = ({ unit, loadData }) => {
   };
 
   const [name, setName] = useState(unit?.name);
-  //   const [status, setStatus] = useState({
-  //     id: unit?.status,
-  //     label: capitalize(unit?.status),
-  //   });
+  const [status, setStatus] = useState({
+    id: unit?.status,
+    label: capitalize(unit?.status),
+  });
   const [unitType, setUnitType] = useState({
     id: unit?.real_estate_type,
     label: capitalize(unit?.real_estate_type),
@@ -42,15 +42,11 @@ const EditUnit = ({ unit, loadData }) => {
 
   const sortedTypes = [
     {
-      id: "farm",
-      label: "Farm",
-    },
-    {
       id: "house",
       label: "House",
     },
     {
-      id: "business",
+      id: "business land",
       label: "Business ",
     },
   ];
@@ -94,6 +90,11 @@ const EditUnit = ({ unit, loadData }) => {
       return;
     }
 
+    if (!status) {
+      toast.error("Please select status");
+      return;
+    }
+
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
 
@@ -109,20 +110,17 @@ const EditUnit = ({ unit, loadData }) => {
       const data = {
         name: name.trim(),
         real_estate_type: unitType?.id,
+        status: status?.id,
         price,
         description,
         Employee_ID: employeeId,
       };
-
-      console.log("Submitting unit data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.put(
         `/settings/real-estate/${unit?.id}`,
         data
       );
-
-      console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {
@@ -199,7 +197,7 @@ const EditUnit = ({ unit, loadData }) => {
                   autoFocus
                 />
               </div>
-              {/* <div className="w-full py-2 flex justify-center">
+              <div className="w-full py-2 flex justify-center">
                 <Autocomplete
                   id="combo-box-demo"
                   options={sortedStatus}
@@ -212,7 +210,7 @@ const EditUnit = ({ unit, loadData }) => {
                     <TextField {...params} label="Select Status" />
                   )}
                 />
-              </div> */}
+              </div>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"

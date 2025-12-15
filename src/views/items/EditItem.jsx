@@ -7,11 +7,11 @@ import { toast } from "react-hot-toast";
 import { MdEdit } from "react-icons/md";
 import apiClient from "../../api/Client";
 import Autocomplete from "@mui/material/Autocomplete";
-import { capitalize } from "../../../helpers";
+import { capitalize, formatter } from "../../../helpers";
 
 const style = {
   position: "absolute",
-  top: "40%",
+  top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 500,
@@ -29,6 +29,7 @@ const EditItem = ({ item, loadData, Item_Type }) => {
 
   const [name, setName] = useState(item?.Item_Name);
   const [price, setPrice] = useState(item?.Item_Price);
+  const [outsidePrice, setOutsidePrice] = useState(item?.Item_Price_Outside);
 
   const [status, setStatus] = useState({
     id: item?.Item_Status,
@@ -66,6 +67,11 @@ const EditItem = ({ item, loadData, Item_Type }) => {
       return;
     }
 
+    if (Item_Type === "oxygen" && !price && !outsidePrice) {
+      toast.error("Please enter item price");
+      return;
+    }
+
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
 
@@ -84,15 +90,12 @@ const EditItem = ({ item, loadData, Item_Type }) => {
         Item_ID: item?.Item_ID,
         Employee_ID: employeeId,
         Item_Type: Item_Type,
-        Item_Price: Item_Type === "oxygen" ? price : null,
+        Item_Price_Outside: Item_Type === "oxygen" ? outsidePrice : null,
+        Item_Price_Inside: Item_Type === "oxygen" ? price : null,
       };
-
-      console.log("Submitting item data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.put(`/settings/item`, data);
-
-      console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {
@@ -141,7 +144,8 @@ const EditItem = ({ item, loadData, Item_Type }) => {
     <div>
       <button
         onClick={handleOpen}
-        className="w-10 h-10 bg-white cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group">
+        className="w-10 h-10 bg-white cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group"
+      >
         <MdEdit className="w-6 h-6 text-gray-800 group-hover:text-blue-600 transition-colors" />
       </button>
 
@@ -149,7 +153,8 @@ const EditItem = ({ item, loadData, Item_Type }) => {
         open={open}
         onClose={handleClose}
         aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description">
+        aria-describedby="modal-modal-description"
+      >
         <Box sx={style} className="rounded-md">
           <div>
             <h3 className="text-center text-xl py-4">Edit Item Details</h3>
@@ -182,28 +187,49 @@ const EditItem = ({ item, loadData, Item_Type }) => {
                 />
               </div>
               {Item_Type === "oxygen" && (
-                <div className="w-full py-2 flex justify-center">
-                  <TextField
-                    type="number"
-                    label="Price (TZS)"
-                    value={price}
-                    onChange={(event) => {
-                      const parsed = parseFloat(event.target.value, 10);
-                      setPrice(Number.isNaN(parsed) ? 0 : Math.max(0, parsed));
-                    }}
-                    inputProps={{ min: 0 }}
-                    variant="outlined"
-                    size="small"
-                    className="w-[92%]"
-                    disabled={loading}
-                  />
-                </div>
+                <>
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      label="Inside Price (TZS)"
+                      value={price ? formatter.format(Number(price)) : ""}
+                      onChange={(e) => {
+                        // Remove any non-digit characters except decimal point
+                        const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                        setPrice(rawValue);
+                      }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      label="Outside Price (TZS)"
+                      value={
+                        outsidePrice
+                          ? formatter.format(Number(outsidePrice))
+                          : ""
+                      }
+                      onChange={(e) => {
+                        // Remove any non-digit characters except decimal point
+                        const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                        setOutsidePrice(rawValue);
+                      }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                </>
               )}
               <div className="w-full py-2 mt-5 flex justify-center">
                 <button
                   onClick={(e) => submit(e)}
                   disabled={loading}
-                  className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   {loading ? "Updating..." : "Edit Item"}
                 </button>
               </div>

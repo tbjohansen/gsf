@@ -190,7 +190,6 @@ const MapUnitFeature = ({ loadData }) => {
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
                   disabled={loading}
-                  autoFocus
                 />
               </div>
 

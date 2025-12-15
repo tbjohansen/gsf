@@ -32,7 +32,7 @@ const AppLayout = ({ children }) => {
       />
 
       <main
-        className={`flex-1 pt-20 bg-blue-50 w-[100%] transition-all duration-300 ${
+        className={`flex-1 pt-10 bg-blue-50 w-[100%] transition-all duration-300 ${
           sidebarOpen ? "sm:pl-52" : "sm:pl-16"
         }`}
       >

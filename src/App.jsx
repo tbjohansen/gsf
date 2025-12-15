@@ -41,16 +41,8 @@ const App = () => {
       }
     } else {
       // No token found, redirect to login if not already there
-      console.log(location.pathname);
-      console.log("were in");
-      const publicRoutes = [
-        "/login",
-        "/forgot-password",
-        "/register",
-        "/students",
-      ];
+      const publicRoutes = ["/login", "/forgot-password", "/register"];
       if (!publicRoutes.includes(location.pathname)) {
-        console.log("navigate out");
         navigate("/login");
       }
     }
@@ -109,62 +101,18 @@ const App = () => {
   }, [navigate, location.pathname]);
 
   const refreshToken = async () => {
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) return false;
-
-      // Call your refresh token API endpoint
-      // Adjust the endpoint based on your backend API
-      const response = await apiClient.post("/refresh");
-
-      // Apisauce returns { ok, data, problem, ... }
-      if (!response.ok) {
-        console.log("Token refresh failed:", response.problem);
-        return false;
-      }
-
-      // Check if response contains error
-      if (response.data?.error || response.data?.code >= 400) {
-        console.log("Token refresh failed:", response.data.error);
-        return false;
-      }
-
-      // Extract new token from response
-      const { authorization } = response.data.data;
-
-      if (authorization?.access_token) {
-        // Update token in localStorage
-        localStorage.setItem("authToken", authorization.access_token);
-        localStorage.setItem("tokenType", authorization.token_type);
-        localStorage.setItem("expiresIn", authorization.expires_in.toString());
-
-        // Calculate and store new expiration timestamp
-        const expirationTime = Date.now() + authorization.expires_in * 1000;
-        localStorage.setItem("tokenExpiration", expirationTime.toString());
-
-        // Update authorization header using apisauce method
-        apiClient.setHeader(
-          "Authorization",
-          `${authorization.token_type} ${authorization.access_token}`
-        );
-
-        console.log("Token refreshed successfully");
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error("Token refresh error:", error);
-      return false;
+    // If already refreshing, return the existing promise
+    if (isRefreshing.current) {
+      return refreshPromise.current;
     }
 
     isRefreshing.current = true;
-
+    
     refreshPromise.current = (async () => {
       try {
         const refreshToken = localStorage.getItem("refreshToken");
         const currentToken = localStorage.getItem("authToken");
-
+        
         if (!currentToken && !refreshToken) {
           console.log("No tokens available for refresh");
           return false;
@@ -177,7 +125,7 @@ const App = () => {
         // Use the refresh token if available, otherwise try with current token
         const response = await apiClient.post("/refresh", {
           refresh_token: refreshToken,
-          token: currentToken,
+          token: currentToken
         });
 
         // Apisauce returns { ok, data, problem, ... }
@@ -194,7 +142,7 @@ const App = () => {
 
         // Handle different response structures
         let newToken, tokenType, expiresIn;
-
+        
         if (response.data.data?.authorization) {
           // Your current structure
           const { authorization } = response.data.data;
@@ -217,18 +165,15 @@ const App = () => {
           // Update token in localStorage
           localStorage.setItem("authToken", newToken);
           localStorage.setItem("tokenType", tokenType);
-
+          
           // Calculate and store new expiration timestamp
-          const expirationTime = Date.now() + expiresIn * 1000;
+          const expirationTime = Date.now() + (expiresIn * 1000);
           localStorage.setItem("tokenExpiration", expirationTime.toString());
 
           // Store refresh token if provided
-          if (
-            response.data.data?.refresh_token ||
-            response.data?.refresh_token
-          ) {
+          if (response.data.data?.refresh_token || response.data?.refresh_token) {
             localStorage.setItem(
-              "refreshToken",
+              "refreshToken", 
               response.data.data?.refresh_token || response.data?.refresh_token
             );
           }
@@ -242,6 +187,7 @@ const App = () => {
           console.log("No new token received in refresh response");
           return false;
         }
+
       } catch (error) {
         console.error("Token refresh error:", error);
         return false;

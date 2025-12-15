@@ -28,7 +28,6 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-
 export default function Blocks() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -37,17 +36,22 @@ export default function Blocks() {
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
-  const {hostelID} = useParams();
+  const { hostelID } = useParams();
+  const hasFetchedData = React.useRef(false);
 
-  // Fetch hostels from API
   React.useEffect(() => {
-    loadData();
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadData();
+    }
   }, []);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get(`/settings/block`, {Hostel_ID: hostelID});
+      const response = await apiClient.get(`/settings/block`, {
+        Hostel_ID: hostelID,
+      });
 
       if (!response.ok) {
         setLoading(false);
@@ -88,44 +92,49 @@ export default function Blocks() {
 
   const handleRowClick = (row) => {
     setSelectedRow(row);
-    navigate(`/hostels/list/${row?.Hostel_ID}/blocks/${row?.Block_ID}`);
+    navigate(
+      `/projects/hostels/list/${row?.Hostel_ID}/blocks/${row?.Block_ID}`
+    );
   };
 
-    // Inside the Hostels component, replace the columns definition with:
-  const columns = React.useMemo(() => [
-    { id: "key", label: "S/N", },
-    { id: "Block_Name", label: "Name",},
-    {
-      id: "Block_Status",
-      label: "Status",
-      format: (value) => (
-        <Badge
-          name={capitalize(value)}
-          color={value === "active" ? "green" : "red"}
-        />
-      ),
-    },
-    {
-      id: "created_at",
-      label: "Created At",
-      align: "left",
-      format: (value) => <span>{formatDateTimeForDb(value)}</span>,
-    },
-    {
-      id: "actions",
-      label: "Actions",
-      align: "center",
-      format: (value, row) => (
-        <div className="flex gap-4 justify-center">
-          <EditBlock block={row} loadData={loadData} />
-        </div>
-      ),
-    },
-  ], []);
+  // Inside the Hostels component, replace the columns definition with:
+  const columns = React.useMemo(
+    () => [
+      { id: "key", label: "S/N" },
+      { id: "Block_Name", label: "Name" },
+      {
+        id: "Block_Status",
+        label: "Status",
+        format: (value) => (
+          <Badge
+            name={capitalize(value)}
+            color={value === "active" ? "green" : "red"}
+          />
+        ),
+      },
+      {
+        id: "created_at",
+        label: "Created At",
+        align: "left",
+        format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        align: "center",
+        format: (value, row) => (
+          <div className="flex gap-4 justify-center">
+            <EditBlock block={row} loadData={loadData} />
+          </div>
+        ),
+      },
+    ],
+    []
+  );
 
   return (
     <>
-    <Breadcrumb/>
+      <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <h4>Hostel Blocks List</h4>
@@ -169,17 +178,20 @@ export default function Blocks() {
                       onClick={() => handleRowClick(row)}
                       sx={{
                         cursor: "pointer",
-                        backgroundColor: selectedRow?.key === row.key ? 'rgba(0, 0, 0, 0.04)' : 'inherit',
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                        }
+                        backgroundColor:
+                          selectedRow?.key === row.key
+                            ? "rgba(0, 0, 0, 0.04)"
+                            : "inherit",
+                        "&:hover": {
+                          backgroundColor: "rgba(0, 0, 0, 0.08)",
+                        },
                       }}
                     >
                       {columns.map((column) => {
                         const value = row[column.id];
                         return (
-                          <TableCell 
-                            key={column.id} 
+                          <TableCell
+                            key={column.id}
                             align={column.align}
                             onClick={(e) => {
                               // Prevent click event from bubbling up to the row
@@ -189,7 +201,9 @@ export default function Blocks() {
                               }
                             }}
                           >
-                            {column.format ? column.format(value, row, handleRowClick) : value}
+                            {column.format
+                              ? column.format(value, row, handleRowClick)
+                              : value}
                           </TableCell>
                         );
                       })}

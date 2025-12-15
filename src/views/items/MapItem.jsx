@@ -9,6 +9,7 @@ import { TbSitemap } from "react-icons/tb";
 import apiClient from "../../api/Client";
 import Autocomplete from "@mui/material/Autocomplete";
 import { useParams } from "react-router-dom";
+import { formatter } from "../../../helpers";
 
 const style = {
   position: "absolute",
@@ -336,6 +337,7 @@ const MapItem = ({ loadData }) => {
       const response = await apiClient.get("/settings/room", {
         Flow_ID: floor?.id,
         Room_Type: roomType?.id,
+        mapped_Room_Only: "1"
       });
 
       if (!response.ok) {
@@ -420,8 +422,12 @@ const MapItem = ({ loadData }) => {
                   label="Room Price"
                   variant="outlined"
                   className="w-[45%]"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  value={price ? formatter.format(Number(price)) : ""}
+                  onChange={(e) => {
+                    // Remove any non-digit characters except decimal point
+                    const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                    setPrice(rawValue);
+                  }}
                   disabled={loading}
                   autoFocus
                 />

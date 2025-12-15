@@ -17,7 +17,7 @@ const style = {
   top: "45%",
   left: "50%",
   transform: "translate(-50%, -50%)",
-  width: 500,
+  width: 600,
   bgcolor: "background.paper",
   boxShadow: 24,
   p: 4,
@@ -42,6 +42,12 @@ const AssignPermission = ({ employee, loadData }) => {
   const [Can_Acces_Farm, setFarmPermission] = useState(
     employee?.Can_Acces_Farm || "no"
   );
+  const [Can_Access_Sales, setOxygenProductionPermission] = useState(
+    employee?.Can_Access_Sales || "no"
+  );
+  const [Can_Access_Production, setOxygenSalesPermission] = useState(
+    employee?.Can_Access_Production || "no"
+  );
   const [loading, setLoading] = useState(false);
 
   // Handler for hostel permission checkbox
@@ -57,6 +63,16 @@ const AssignPermission = ({ employee, loadData }) => {
   // Handler for oxygen permission checkbox
   const handleOxygenChange = (event) => {
     setOxygenPermission(event.target.checked ? "yes" : "no");
+  };
+
+  // Handler for oxygen production permission checkbox
+  const handleOxygenProductionChange = (event) => {
+    setOxygenProductionPermission(event.target.checked ? "yes" : "no");
+  };
+
+  // Handler for oxygen sales permission checkbox
+  const handleOxygenSalesChange = (event) => {
+    setOxygenSalesPermission(event.target.checked ? "yes" : "no");
   };
 
   // Handler for farm permission checkbox
@@ -88,6 +104,8 @@ const AssignPermission = ({ employee, loadData }) => {
         Can_Acces_Real_Estate: Can_Acces_Real_Estate,
         Can_Acces_Oxygen: Can_Acces_Oxygen,
         Can_Acces_Farm: Can_Acces_Farm,
+        Can_Access_Sales: Can_Access_Sales,
+        Can_Access_Production: Can_Access_Production,
       };
 
       // console.log("Submitting user data:", data);
@@ -107,8 +125,7 @@ const AssignPermission = ({ employee, loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to update user permission"
-          );
+          toast.error("Failed to update user permission");
         }
         return;
       }
@@ -204,7 +221,27 @@ const AssignPermission = ({ employee, loadData }) => {
                         }
                         label="Oxygen Plant"
                       />
-                    </FormGroup>
+                      </FormGroup>
+                      <FormGroup>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={Can_Access_Production === "yes"}
+                              onChange={handleOxygenProductionChange}
+                            />
+                          }
+                          label="Oxygen Production"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={Can_Access_Sales === "yes"}
+                              onChange={handleOxygenSalesChange}
+                            />
+                          }
+                          label="Oxygen Sales"
+                        />
+                      </FormGroup>
                   </div>
                 </div>
               </div>

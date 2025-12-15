@@ -11,7 +11,7 @@ import { useParams } from "react-router-dom";
 
 const style = {
   position: "absolute",
-  top: "40%",
+  top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 500,
@@ -95,12 +95,8 @@ const AddRoom = ({ loadData }) => {
         Employee_ID: employeeId,
       };
 
-      console.log("Submitting room data:", data);
-
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/settings/room", data);
-
-      console.log("Response:", response);
 
       // Check if request was successful
       if (!response.ok) {

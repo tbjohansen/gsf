@@ -37,10 +37,13 @@ export default function Floors() {
 
   const navigate = useNavigate();
   const { hostelID, blockID } = useParams();
+  const hasFetchedData = React.useRef(false);
 
-  // Fetch hostels from API
   React.useEffect(() => {
-    loadData();
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadData();
+    }
   }, []);
 
   const loadData = async () => {
@@ -90,7 +93,7 @@ export default function Floors() {
   const handleRowClick = (row) => {
     setSelectedRow(row);
     navigate(
-      `/hostels/list/${hostelID}/blocks/${blockID}/floors/${row?.Flow_ID}`
+      `/projects/hostels/list/${hostelID}/blocks/${blockID}/floors/${row?.Flow_ID}`
     );
   };
 

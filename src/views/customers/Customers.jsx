@@ -18,6 +18,7 @@ import Badge from "../../components/Badge";
 import UploadCustomers from "./UploadCustomers";
 import AddCustomer from "./AddCustomer";
 import Breadcrumb from "../../components/Breadcrumb";
+import { Autocomplete, TextField } from "@mui/material";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -33,6 +34,9 @@ export default function Customers({ status }) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [users, setUsers] = React.useState([]);
+  const [name, setName] = React.useState("");
+  const [customerID, setCustomerID] = React.useState("");
+  const [phoneNumber, setPhoneNumber] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
@@ -41,14 +45,34 @@ export default function Customers({ status }) {
   // Fetch hostels from API
   React.useEffect(() => {
     loadData();
-  }, []);
+  }, [name, customerID, phoneNumber]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       let url = `/customer/customer?`;
       if (status) {
-        url += `Customer_Nature=${status}`;
+        url += `&Customer_Nature=${status}`;
+      }
+
+      if (name) {
+        if (status === "student") {
+          url += `&Student_Name=${name}`;
+        } else {
+          url += `&Customer_Name=${name}`;
+        }
+      }
+
+      if (customerID) {
+        if (status === "student") {
+          url += `&Student_ID=${customerID}`;
+        } else {
+          url += `&Customer_ID=${customerID}`;
+        }
+      }
+
+      if (phoneNumber) {
+        url += `&Phone_Number=${phoneNumber}`;
       }
 
       const response = await apiClient.get(url);
@@ -122,7 +146,12 @@ export default function Customers({ status }) {
       { id: "Program_Study", label: "Program", show: status === "student" },
       { id: "Year_Study", label: "Year", show: status === "student" },
       { id: "Semester", label: "Semester", show: status === "student" },
-      { id: "Admission_ID", label: "Admission ID", show: status === "student", minWidth: 170, },
+      {
+        id: "Admission_ID",
+        label: "Admission ID",
+        show: status === "student",
+        minWidth: 170,
+      },
       {
         id: "Customer_Status",
         label: "Status",
@@ -141,7 +170,7 @@ export default function Customers({ status }) {
       },
     ],
     [loadData, status]
-  ); // Add loadData as dependency
+  );
 
   return (
     <>
@@ -157,6 +186,38 @@ export default function Customers({ status }) {
         </div>
       </div>
 
+      <div className="w-full py-2 flex gap-2 mb-1">
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label={"Name"}
+          variant="outlined"
+          className="w-[33%]"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label={status === "student" ? "Student ID" : "Customer ID"}
+          variant="outlined"
+          className="w-[33%]"
+          value={customerID}
+          onChange={(e) => setCustomerID(e.target.value)}
+          autoFocus
+        />
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label="Phone Number"
+          variant="outlined"
+          className="w-[33%]"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
+          autoFocus
+        />
+      </div>
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
         <TableContainer sx={{ maxHeight: 440 }}>
           <Table stickyHeader aria-label="sticky table">

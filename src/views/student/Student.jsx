@@ -3,6 +3,9 @@ import { toast } from "react-hot-toast";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
 import LinearProgress from "@mui/material/LinearProgress";
+import Box from "@mui/material/Box";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import apiClient from "../../api/Client";
 import {
   LuUser,
@@ -11,14 +14,34 @@ import {
   LuPrinter,
 } from "react-icons/lu";
 import { ROOM_TYPES, TIMEOUT } from "../../constants";
-import { capitalize, formatDateTimeForDb } from "../../../helpers";
+import { capitalize, formatDateTimeForDb, formatter } from "../../../helpers";
 import StudentAccommodationInfo from "./StudentAccommodationInfo";
 import moment from "moment";
+
+// Tab Panel component for MUI Tabs
+function TabPanel(props) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+    </div>
+  );
+}
 
 const Student = () => {
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
+
+  // Tab management for step 3
+  const [tabValue, setTabValue] = useState(0);
 
   // Step 1: Student ID validation
   const [studentId, setStudentId] = useState("");
@@ -41,6 +64,7 @@ const Student = () => {
   const [selectedRoomPrice, setSelectedRoomPrice] = useState(null);
   const [paymentPeriod, setPaymentPeriod] = useState();
   const [quantity, setQuantity] = useState(1);
+  const [paymentReason, setPaymentReason] = useState(null);
 
   const [loadingHostels, setLoadingHostels] = useState(false);
   const [loadingCategory, setLoadingCategory] = useState(false);
@@ -98,17 +122,17 @@ const Student = () => {
 
   // Load hostels when step 2 is reached
   useEffect(() => {
-    if (currentStep === 2 && selectedRoomType) {
-      loadRoomPrices(selectedRoomType.id);
+    if (currentStep === 2 && selectedRoom) {
+      loadRoomPrices(selectedRoom.id);
     }
-  }, [currentStep, selectedRoomType]);
+  }, [currentStep, selectedRoom]);
 
   // Load hostels when step 2 is reached
   useEffect(() => {
-    if (currentStep === 2 && selectedRoomPrice) {
-      loadHostels(selectedRoomPrice.Price);
+    if (currentStep === 2) {
+      loadHostels();
     }
-  }, [currentStep, selectedRoomPrice]);
+  }, [currentStep]);
 
   useEffect(() => {
     if (currentStep === 2) {
@@ -124,9 +148,12 @@ const Student = () => {
       setSelectedBlock(null);
       setSelectedFloor(null);
       setSelectedRoom(null);
+      setSelectedRoomPrice(null);
+      setSelectedRoomType(null);
       setBlocks([]);
       setFloors([]);
       setRooms([]);
+      setRoomPrices([]);
     }
   }, [selectedHostel]);
 
@@ -137,20 +164,43 @@ const Student = () => {
       // Reset dependent selections
       setSelectedFloor(null);
       setSelectedRoom(null);
+      setSelectedRoomPrice(null);
+      setSelectedRoomType(null);
       setFloors([]);
       setRooms([]);
+      setRoomPrices([]);
     }
   }, [selectedBlock, selectedHostel]);
 
   // Load rooms when floor is selected
   useEffect(() => {
     if (selectedFloor?.id && selectedBlock?.id && selectedHostel?.id) {
+      // loadRooms(selectedFloor.id);
+      // Reset dependent selection
+      setSelectedRoom(null);
+      setSelectedRoomPrice(null);
+      setSelectedRoomType(null);
+      setRooms([]);
+      setRoomPrices([]);
+    }
+  }, [selectedFloor, selectedBlock, selectedHostel]);
+
+  // Load rooms when floor is selected
+  useEffect(() => {
+    if (
+      selectedFloor?.id &&
+      selectedBlock?.id &&
+      selectedHostel?.id &&
+      selectedRoomType?.id
+    ) {
       loadRooms(selectedFloor.id);
       // Reset dependent selection
       setSelectedRoom(null);
+      setSelectedRoomPrice(null);
       setRooms([]);
+      setRoomPrices([]);
     }
-  }, [selectedFloor, selectedBlock, selectedHostel]);
+  }, [selectedFloor, selectedBlock, selectedHostel, selectedRoomType]);
 
   const getDisplayData = (fieldName) => {
     switch (fieldName) {
@@ -334,11 +384,11 @@ const Student = () => {
   };
 
   //Load Room Price
-  const loadRoomPrices = async (roomType) => {
+  const loadRoomPrices = async (roomId) => {
     setLoadingRoomPrices(true);
     try {
       const response = await apiClient.get(
-        `/student-room-price?room_type=${roomType}&nationality=${studentData?.Customer_Type}`
+        `/student-room-price?Room_ID=${roomId}&room_type=${selectedRoomType?.id}&nationality=${studentData?.Customer_Type}`
       );
 
       if (!response.ok) {
@@ -355,12 +405,16 @@ const Student = () => {
 
       const roomPricesData = response?.data?.data?.map((e) => ({
         ...e,
-        label: `${capitalize(e.Room_Type)} (${getPriceUnit(e?.Natinality)} ${
-          e.Price
-        })`,
+        label: `${capitalize(e.Room_Type)} (${getPriceUnit(
+          e?.Natinality
+        )} ${formatter.format(e?.Price || 0)})`,
       }));
       setRoomPrices(Array.isArray(roomPricesData) ? roomPricesData : []);
       setLoadingRoomPrices(false);
+
+      if (roomPricesData?.length > 0) {
+        setSelectedRoomPrice(roomPricesData[0]);
+      }
     } catch (error) {
       console.error("Fetch Room Prices error:", error);
       setLoadingRoomPrices(false);
@@ -373,7 +427,7 @@ const Student = () => {
     setLoadingHostels(true);
     try {
       const response = await apiClient.get(
-        `/student-hostel?price=${roomPrice}&nationality=${studentData?.Customer_Type}&room_type=${selectedRoomType.id}`
+        `/student-hostel?&nationality=${studentData?.Customer_Type}`
       );
 
       if (!response.ok) {
@@ -439,7 +493,7 @@ const Student = () => {
     setLoadingBlocks(true);
     try {
       const response = await apiClient.get(
-        `/student-block?price=${selectedRoomPrice.Price}&nationality=${studentData?.Customer_Type}&room_type=${selectedRoomType.id}&hostel_id=${hostelId}`
+        `/student-block?nationality=${studentData?.Customer_Type}&hostel_id=${hostelId}`
       );
 
       if (!response.ok) {
@@ -469,7 +523,7 @@ const Student = () => {
     setLoadingFloors(true);
     try {
       const response = await apiClient.get(
-        `/student-flow?price=${selectedRoomPrice.Price}&nationality=${studentData?.Customer_Type}&room_type=${selectedRoomType.id}&block_id=${blockId}`
+        `/student-flow?nationality=${studentData?.Customer_Type}&block_id=${blockId}`
       );
 
       if (!response.ok) {
@@ -496,10 +550,11 @@ const Student = () => {
 
   // Load rooms for selected floor
   const loadRooms = async (floorId) => {
+    console.log(studentData);
     setLoadingRooms(true);
     try {
       const response = await apiClient.get(
-        `/student-room?price=${selectedRoomPrice.Price}&nationality=${studentData?.Customer_Type}&room_type=${selectedRoomType.id}&flow_id=${floorId}`
+        `/student-room?Nationality=${studentData?.Customer_Type}&room_type=${selectedRoomType.id}&flow_id=${floorId}`
       );
 
       if (!response.ok) {
@@ -547,6 +602,17 @@ const Student = () => {
       return;
     }
 
+    if (!selectedRoomPrice) {
+      toast.error("Please select room price");
+      return;
+    }
+
+    if (paymentPeriod?.label === "Month" && !paymentReason) {
+      console.log(paymentReason);
+      toast.error("Please enter reason for payment");
+      return;
+    }
+
     setSubmitting(true);
 
     console.log(studentData?.itemsData);
@@ -563,8 +629,10 @@ const Student = () => {
         Request_Type: "hostel",
         Phone_Number: studentData?.Phone_Number,
         Customer_ID: studentData?.Customer_ID,
+        Customer_Name: studentData?.Customer_Name,
         Quantity: quantity,
         Item_ID: studentData?.itemsData?.Item_ID,
+        Payment_Reason: paymentReason,
       };
 
       console.log("Submitting student accommodation data:", data);
@@ -700,6 +768,7 @@ const Student = () => {
         setRooms([]);
         setRoomPrices([]);
         setCountdown(0);
+        setTabValue(0); // Reset tab to first tab
       }, 3000); // Wait 3 seconds before redirecting
     }
   }, [countdown, currentStep, invoiceData]);
@@ -713,6 +782,11 @@ const Student = () => {
       .padStart(2, "0")}`;
   };
 
+  // Handle tab change
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
   // Step indicator component
   const StepIndicator = () => (
     <div className="flex items-center justify-center mb-8">
@@ -724,7 +798,8 @@ const Student = () => {
                 currentStep >= step
                   ? "bg-oceanic text-white"
                   : "bg-gray-200 text-gray-500"
-              }`}>
+              }`}
+            >
               {currentStep > step ? (
                 <LuCircleCheck className="w-6 h-6" />
               ) : (
@@ -734,7 +809,8 @@ const Student = () => {
             <span
               className={`mt-2 text-sm font-medium ${
                 currentStep >= step ? "text-oceanic" : "text-gray-500"
-              }`}>
+              }`}
+            >
               {step === 1
                 ? "Student"
                 : step === 2
@@ -758,7 +834,8 @@ const Student = () => {
     <div
       className={`mx-auto py-8 ${
         currentStep === 2 || currentStep === 3 ? "max-w-7xl px-4" : "max-w-4xl"
-      }`}>
+      }`}
+    >
       <div className="bg-white rounded-2xl shadow-lg p-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -816,7 +893,8 @@ const Student = () => {
                 <button
                   onClick={validateStudentId}
                   disabled={validatingStudent || !studentId.trim()}
-                  className="w-full mt-4 h-12 bg-oceanic text-white rounded-lg font-semibold hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
+                  className="w-full mt-4 h-12 bg-oceanic text-white rounded-lg font-semibold hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
                   {validatingStudent ? "Validating..." : "Next"}
                 </button>
               </div>
@@ -921,70 +999,6 @@ const Student = () => {
                 <div className="space-y-5 ">
                   {/* Form Fields Grid - 2 columns */}
                   <div className="grid grid-cols-2 gap-5">
-                    {/* Room Type Selection */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Room Type <span className="text-red-500">*</span>
-                      </label>
-
-                      <Autocomplete
-                        options={ROOM_TYPES}
-                        value={selectedRoomType}
-                        onChange={(e, value) => setSelectedRoomType(value)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Select a room type"
-                            variant="outlined"
-                            size="small"
-                            className="bg-gray-50"
-                          />
-                        )}
-                        disabled={submitting}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "#f9fafb",
-                          },
-                        }}
-                      />
-                    </div>
-
-                    {/* Room Prices Selection */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Room Price <span className="text-red-500">*</span>
-                      </label>
-                      {loadingRoomPrices ? (
-                        <div>
-                          <LinearProgress />
-                          <p className="text-xs text-gray-500 mt-2">
-                            Loading room prices...
-                          </p>
-                        </div>
-                      ) : (
-                        <Autocomplete
-                          options={roomPrices}
-                          value={selectedRoomPrice}
-                          onChange={(e, value) => setSelectedRoomPrice(value)}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              placeholder="Select a room price"
-                              variant="outlined"
-                              size="small"
-                              className="bg-gray-50"
-                            />
-                          )}
-                          disabled={loadingRoomPrices || submitting}
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              backgroundColor: "#f9fafb",
-                            },
-                          }}
-                        />
-                      )}
-                    </div>
-
                     {/* Hostel Selection */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1105,6 +1119,34 @@ const Student = () => {
                       )}
                     </div>
 
+                    {/* Room Type Selection */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Room Type <span className="text-red-500">*</span>
+                      </label>
+
+                      <Autocomplete
+                        options={ROOM_TYPES}
+                        value={selectedRoomType}
+                        onChange={(e, value) => setSelectedRoomType(value)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder="Select a room type"
+                            variant="outlined"
+                            size="small"
+                            className="bg-gray-50"
+                          />
+                        )}
+                        disabled={!selectedFloor || submitting}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "#f9fafb",
+                          },
+                        }}
+                      />
+                    </div>
+
                     {/* Room Selection */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1126,7 +1168,7 @@ const Student = () => {
                             <TextField
                               {...params}
                               placeholder={
-                                selectedFloor
+                                selectedRoomType
                                   ? "Select a room"
                                   : "Please select a floor first"
                               }
@@ -1136,8 +1178,47 @@ const Student = () => {
                             />
                           )}
                           disabled={
-                            !selectedFloor || loadingRooms || submitting
+                            !selectedRoomType || loadingRooms || submitting
                           }
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "#f9fafb",
+                            },
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Room Prices Selection */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Room Price <span className="text-red-500">*</span>
+                      </label>
+                      {loadingRoomPrices ? (
+                        <div>
+                          <LinearProgress />
+                          <p className="text-xs text-gray-500 mt-2">
+                            Loading room prices...
+                          </p>
+                        </div>
+                      ) : (
+                        <Autocomplete
+                          options={roomPrices}
+                          value={selectedRoomPrice}
+                          disabled={true}
+                          onChange={(e, value) => setSelectedRoomPrice(value)}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Select a room price"
+                              variant="outlined"
+                              size="small"
+                              className="bg-gray-50"
+                            />
+                          )}
+                          // disabled={
+                          //   !selectedRoom || loadingRoomPrices || submitting
+                          // }
                           sx={{
                             "& .MuiOutlinedInput-root": {
                               backgroundColor: "#f9fafb",
@@ -1187,40 +1268,59 @@ const Student = () => {
                               },
                             }}
                           />
-                          {paymentPeriod?.label === "Month" && (
-                            <div className="mt-4">
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Months to pay for
-                              </label>
-                              <TextField
-                                type="number"
-                                value={quantity}
-                                onChange={(event) => {
-                                  const parsed = parseInt(
-                                    event.target.value,
-                                    10
-                                  );
-                                  setQuantity(
-                                    Number.isNaN(parsed)
-                                      ? 1
-                                      : Math.max(1, parsed)
-                                  );
-                                }}
-                                inputProps={{ min: 1 }}
-                                variant="outlined"
-                                size="small"
-                                className="bg-gray-50"
-                                disabled={submitting}
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Enter how many months you want to pay for.
-                              </p>
-                            </div>
-                          )}
                         </>
                       )}
                     </div>
                   </div>
+
+                  {paymentPeriod?.label === "Month" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="mt-4 w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Months to pay for{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <TextField
+                          type="number"
+                          value={quantity}
+                          onChange={(event) => {
+                            const parsed = parseInt(event.target.value, 10);
+                            setQuantity(
+                              Number.isNaN(parsed) ? 1 : Math.max(1, parsed)
+                            );
+                          }}
+                          inputProps={{ min: 1 }}
+                          variant="outlined"
+                          size="small"
+                          className="bg-gray-50 w-[100%]"
+                          disabled={submitting}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter how many months you want to pay for.
+                        </p>
+                      </div>
+
+                      <div className="w-full mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Reason <span className="text-red-500">*</span>
+                        </label>
+                        <TextField
+                          type="text"
+                          value={paymentReason}
+                          onChange={(e) => setPaymentReason(e.target.value)}
+                          variant="outlined"
+                          size="small"
+                          className="bg-gray-50 w-[100%]"
+                          disabled={submitting}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter a reason why you want to pay for {quantity}{" "}
+                          month(s).
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedRoom ? (
                     <div className="bg-white/70 rounded-lg p-4 border border-blue-100 align-center flex flex-col">
                       <div className="flex w-full  justify-between">
@@ -1242,7 +1342,11 @@ const Student = () => {
                         </p>
                         <p className="text-base font-semibold text-gray-900">
                           {getPriceUnit(studentData?.Customer_Type)}{" "}
-                          {selectedRoomPrice?.Price * quantity}
+                          {selectedRoomPrice?.Price
+                            ? formatter?.format(
+                                selectedRoomPrice?.Price * quantity
+                              )
+                            : 0}
                         </p>
                       </div>
                     </div>
@@ -1258,7 +1362,8 @@ const Student = () => {
                         !selectedFloor ||
                         !selectedRoom
                       }
-                      className="w-full h-12 bg-lime-700 text-white rounded-lg font-semibold hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg">
+                      className="w-full cursor-pointer h-12 bg-lime-700 text-white rounded-lg font-semibold hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+                    >
                       {submitting ? "Proccessing..." : "Pay Now"}
                     </button>
                   </div>
@@ -1269,7 +1374,7 @@ const Student = () => {
           </>
         )}
 
-        {/* Step 3: Invoice Summary & Payment */}
+        {/* Step 3: Invoice Summary & Payment with Tabs */}
         {currentStep === 3 && invoiceData && (
           <div className="space-y-6">
             {/* Success Header */}
@@ -1278,7 +1383,8 @@ const Student = () => {
                 invoiceData?.Sangira_Status === "pending"
                   ? "from-yellow-50 to-amber-50"
                   : "from-green-50 to-emerald-50"
-              } rounded-xl p-6 border border-green-200`}>
+              } rounded-xl p-6 border border-green-200`}
+            >
               <div className="flex items-center gap-3 mb-2">
                 {invoiceData?.Sangira_Status === "pending" ? (
                   <>
@@ -1299,7 +1405,7 @@ const Student = () => {
               {invoiceData?.Sangira_Status === "pending" ? (
                 <p className="text-gray-600">
                   Please complete your payment using the details below. The
-                  Sangira Number expires in 45 minutes.
+                  Sangira Number expires in 24 hours.
                 </p>
               ) : (
                 <p className="text-gray-600">
@@ -1318,7 +1424,7 @@ const Student = () => {
                       Sangira Number Expires In
                     </p>
                     <p className="text-xs text-gray-600">
-                      Complete payment before the timer expires
+                      Complete payment before the timer expires (minutes)
                     </p>
                   </div>
                   <div
@@ -1328,215 +1434,856 @@ const Student = () => {
                         : countdown < 900
                         ? "text-orange-600"
                         : "text-gray-800"
-                    }`}>
+                    }`}
+                  >
                     {formatCountdown(countdown)}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Two Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Side: Accommodation Summary */}
-              <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl p-6 border border-blue-200 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-oceanic flex items-center justify-center">
-                    <LuUser className="w-6 h-6 text-white" />
+            {/* MUI Tabs */}
+            <Box sx={{ width: "100%" }}>
+              <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+                <Tabs
+                  value={tabValue}
+                  onChange={handleTabChange}
+                  variant="fullWidth"
+                  sx={{
+                    "& .MuiTabs-indicator": {
+                      backgroundColor: "#1e3a8a", // oceanic color
+                    },
+                    "& .MuiTab-root": {
+                      color: "#6b7280", // gray-500
+                      "&.Mui-selected": {
+                        color: "#1e3a8a", // oceanic color
+                        fontWeight: 600,
+                      },
+                    },
+                  }}
+                >
+                  <Tab label="Payment Details" />
+                  <Tab label="Payment Instructions" />
+                  <Tab label="Accommodation Form" />
+                </Tabs>
+              </Box>
+              {/* Tab 1: Payment Details */}
+              <TabPanel value={tabValue} index={0}>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left Side: Accommodation Summary */}
+                    <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl p-6 border border-blue-200 shadow-sm">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-full bg-oceanic flex items-center justify-center">
+                          <LuUser className="w-6 h-6 text-white" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-800">
+                          Accommodation Summary
+                        </h3>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                            Student Number
+                          </p>
+                          <p className="text-lg font-bold text-gray-900">
+                            {studentData?.Student_ID || studentId || "N/A"}
+                          </p>
+                        </div>
+
+                        <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                            Full Name
+                          </p>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {studentData?.Customer_Name || "N/A"}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                              Hostel
+                            </p>
+                            <p className="text-base font-semibold text-gray-900">
+                              {getDisplayData("hostel")}
+                            </p>
+                          </div>
+
+                          <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                              Block
+                            </p>
+                            <p className="text-base font-semibold text-gray-900">
+                              {getDisplayData("block")}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                              Floor
+                            </p>
+                            <p className="text-base font-semibold text-gray-900">
+                              {getDisplayData("floor")}
+                            </p>
+                          </div>
+
+                          <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                              Room
+                            </p>
+                            <p className="text-base font-semibold text-gray-900">
+                              {getDisplayData("room")}
+                            </p>
+                          </div>
+                        </div>
+
+                        {selectedRoomType && (
+                          <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                              Room Type
+                            </p>
+                            <p className="text-base font-semibold text-gray-900">
+                              {selectedRoomType.label || "N/A"}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right Side: Invoice Details */}
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div
+                          className={`w-10 h-10 rounded-full ${
+                            invoiceData?.Sangira_Status === "pending"
+                              ? "bg-yellow-400"
+                              : "bg-green-600"
+                          } flex items-center justify-center`}
+                        >
+                          {invoiceData?.Sangira_Status === "pending" ? (
+                            <LuCircleMinus className="w-6 h-6 text-white" />
+                          ) : (
+                            <LuCircleCheck className="w-6 h-6 text-white" />
+                          )}
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-800">
+                          {invoiceData?.Sangira_Status === "pending"
+                            ? "Payment Pending"
+                            : "Payment Completed"}
+                        </h3>
+                      </div>
+
+                      <div className="space-y-5">
+                        {/* Payment Number */}
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-5 border-2 border-green-200">
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                            Sangira Number
+                          </p>
+                          <p className="text-2xl font-bold text-green-700 font-mono break-all">
+                            {invoiceData.Sangira_Number}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-2">
+                            Use this number to complete your payment
+                          </p>
+                        </div>
+
+                        {/* Total Amount */}
+                        <div className="bg-blue-50 rounded-lg p-5 border-2 border-blue-200">
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                            Total Amount
+                          </p>
+                          <p className="text-3xl font-bold text-blue-700">
+                            {formatter.format(
+                              invoiceData.grand_total_price ||
+                                invoiceData.Grand_Total_Price
+                            )}{" "}
+                            {invoiceData.currency ||
+                              getPriceUnit(studentData?.Customer_Type)}
+                          </p>
+                        </div>
+
+                        {invoiceData?.Sangira_Status === "completed" ? (
+                          <>
+                            {/* Print Receipt */}
+                            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                              <p className="text-sm font-semibold text-gray-800 mb-3">
+                                Payment Confirmed! 🎉
+                              </p>
+                              <p className="text-sm text-gray-600 mb-4">
+                                Your payment has been successfully processed.
+                                You can now print a receipt of your records.
+                              </p>
+                              <button
+                                onClick={() => window.print()}
+                                className="w-full flex items-center justify-center gap-2 h-12 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                              >
+                                <LuPrinter className="w-5 h-5" />
+                                Print Receipt
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Payment Instructions */}
+                            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                              <p className="text-sm font-semibold text-gray-800 mb-2">
+                                Payment Instructions:
+                              </p>
+                              <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                                <li>
+                                  Use the payment number above to complete your
+                                  transaction
+                                </li>
+                                <li>This invoice is valid for 24 hours only</li>
+                                <li>
+                                  After payment, your accommodation will be
+                                  confirmed
+                                </li>
+                                <li>
+                                  Keep this payment number for your records
+                                </li>
+                              </ul>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Warning if time is running out */}
+                        {countdown < 300 && (
+                          <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                            <p className="text-sm font-semibold text-red-700">
+                              ⚠️ Time is running out! Please complete your
+                              payment soon.
+                            </p>
+                          </div>
+                        )}
+
+                        {countdown === 0 && (
+                          <div className="bg-red-100 rounded-lg p-4 border-2 border-red-300">
+                            <p className="text-sm font-bold text-red-800 mb-2">
+                              ⚠️ Invoice Expired!
+                            </p>
+                            <p className="text-xs text-red-700">
+                              This invoice is no longer valid. You will be
+                              redirected to start a new request in a few
+                              seconds.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-800">
-                    Accommodation Summary
+                </div>
+              </TabPanel>
+              {/* Tab 2: Payment Instructions */}
+              <TabPanel value={tabValue} index={1}>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                    How to Complete Your Payment via CRDB / NMB Banking
                   </h3>
+
+                  <div className="space-y-6">
+                    {/* Step 1: Sangira Number */}
+                    <div className="bg-white rounded-lg p-5 border border-blue-100 shadow-sm">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                          <span className="text-white font-bold">1</span>
+                        </div>
+                        <h4 className="font-semibold text-lg text-gray-700">
+                          Step 1: Your Sangira Number
+                        </h4>
+                      </div>
+                      <div className="ml-11">
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border-2 border-green-200">
+                          <p className="text-sm font-medium text-gray-600 mb-1">
+                            Sangira Number:
+                          </p>
+                          <p className="text-2xl font-bold text-green-700 font-mono break-all tracking-wider">
+                            {invoiceData.Sangira_Number}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Keep this number ready for payment
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-5 border border-blue-100 shadow-sm">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                          <span className="text-white font-bold">2</span>
+                        </div>
+                        <h4 className="font-semibold text-lg text-gray-700">
+                          Option A: CRDB / NMM Agent (Wakala)
+                        </h4>
+                      </div>
+                      <div className="ml-11">
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-3">
+                            <div>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Payment to KCMC Hospital
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Step 2: CRDB USSD Method */}
+                    <div className="bg-white rounded-lg p-5 border border-blue-100 shadow-sm">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                          <span className="text-white font-bold">3</span>
+                        </div>
+                        <h4 className="font-semibold text-lg text-gray-700">
+                          Option A: CRDB USSD Payment
+                        </h4>
+                      </div>
+                      <div className="ml-11">
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                a
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Dial USSD Code:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <code className="text-lg font-mono font-bold text-blue-700">
+                                  *150*03#
+                                </code>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                b
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Select Simbanking:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Press <span className="font-bold">1</span> for
+                                  Simbanking
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                c
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Enter PIN:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Enter your CRDB mobile banking PIN
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                d
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Select Pay Bill:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Press <span className="font-bold">4</span> for
+                                  Pay Bill
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                e
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Select Taasisi:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Press <span className="font-bold">6</span> for
+                                  Taasisi
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                f
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Select Hospital:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Press <span className="font-bold">4</span> for
+                                  Hospital
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                g
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Select KCMC Hospital:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Press <span className="font-bold">3</span> for
+                                  KCMC Hospital
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                h
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Choose Account:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Press <span className="font-bold">1</span> for
+                                  Chagua Account
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                i
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Enter Sangira Number:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Enter your Sangira Number:{" "}
+                                  <span className="font-bold text-green-700 font-mono">
+                                    {invoiceData.Sangira_Number}
+                                  </span>
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Step 3: CRDB Mobile App Method */}
+                    <div className="bg-white rounded-lg p-5 border border-blue-100 shadow-sm">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                          <span className="text-white font-bold">4</span>
+                        </div>
+                        <h4 className="font-semibold text-lg text-gray-700">
+                          Option B: CRDB Simbanking App
+                        </h4>
+                      </div>
+                      <div className="ml-11">
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                a
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Open Simbanking App:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Launch CRDB Simbanking app on your phone
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                b
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Select Hospital Service:
+                              </p>
+                              <div className="mt-1 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p className="text-gray-700">
+                                  Navigate to "Huduma ya Hospital" (Hospital
+                                  Services)
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                              <span className="text-blue-600 font-bold text-sm">
+                                c
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                Enter Sangira Number:
+                              </p>
+                              <div className="mt-1 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                                <p className="text-gray-700">
+                                  Enter your Sangira Number:{" "}
+                                  <span className="font-bold text-green-700 font-mono">
+                                    {invoiceData.Sangira_Number}
+                                  </span>
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  (Weha namba ya ankara)
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Important Notes */}
+                    <div className="bg-yellow-50 rounded-lg p-5 border-2 border-yellow-200">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center">
+                          <span className="text-white font-bold">!</span>
+                        </div>
+                        <h4 className="font-semibold text-lg text-yellow-700">
+                          Important Notes & Reminders
+                        </h4>
+                      </div>
+                      <div className="ml-11">
+                        <ul className="space-y-2 text-gray-700">
+                          <li className="flex items-start gap-2">
+                            <span className="text-yellow-600 mt-1">•</span>
+                            <span>
+                              Keep your Sangira Number safe for future reference
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-yellow-600 mt-1">•</span>
+                            <span>
+                              Payment must be completed within 24 hours
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-yellow-600 mt-1">•</span>
+                            <span>
+                              You will receive an SMS confirmation after
+                              successful payment
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-yellow-600 mt-1">•</span>
+                            <span>
+                              Contact KCMC Finance Office at{" "}
+                              <span className="font-bold">0788-326-688</span>{" "}
+                              for assistance
+                            </span>
+                          </li>
+                        </ul>
+
+                        <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-red-600 font-bold">
+                              ⚠️ TIME SENSITIVE:
+                            </span>
+                            <span className="text-red-700 font-semibold">
+                              Expires in:
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-gray-700">
+                              Complete your payment before time runs out
+                            </p>
+                            <div
+                              className={`text-2xl font-bold font-mono ${
+                                countdown < 300
+                                  ? "text-red-600 animate-pulse"
+                                  : countdown < 900
+                                  ? "text-orange-600"
+                                  : "text-gray-800"
+                              }`}
+                            >
+                              {formatCountdown(countdown)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              </TabPanel>
 
-                <div className="space-y-4">
-                  <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                      Student Number
-                    </p>
-                    <p className="text-lg font-bold text-gray-900">
-                      {studentData?.Student_ID || studentId || "N/A"}
-                    </p>
-                  </div>
-
-                  <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                      Full Name
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {studentData?.Customer_Name || "N/A"}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                        Hostel
-                      </p>
-                      <p className="text-base font-semibold text-gray-900">
-                        {getDisplayData("hostel")}
-                      </p>
-                    </div>
-
-                    <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                        Block
-                      </p>
-                      <p className="text-base font-semibold text-gray-900">
-                        {getDisplayData("block")}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                        Floor
-                      </p>
-                      <p className="text-base font-semibold text-gray-900">
-                        {getDisplayData("floor")}
-                      </p>
-                    </div>
-
-                    <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                        Room
-                      </p>
-                      <p className="text-base font-semibold text-gray-900">
-                        {getDisplayData("room")}
-                      </p>
-                    </div>
-                  </div>
-
-                  {selectedRoomType && (
-                    <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                        Room Type
-                      </p>
-                      <p className="text-base font-semibold text-gray-900">
-                        {selectedRoomType.label || "N/A"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Side: Invoice Details */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <div
-                    className={`w-10 h-10 rounded-full ${
-                      invoiceData?.Sangira_Status === "pending"
-                        ? "bg-yellow-400"
-                        : "bg-green-600"
-                    } flex items-center justify-center`}>
-                    {invoiceData?.Sangira_Status === "pending" ? (
-                      <LuCircleMinus className="w-6 h-6 text-white" />
-                    ) : (
-                      <LuCircleCheck className="w-6 h-6 text-white" />
-                    )}
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-800">
-                    {invoiceData?.Sangira_Status === "pending"
-                      ? "Payment Pending"
-                      : "Payment Completed"}
+              {/* Tab 3: Accommodation Form */}
+              <TabPanel value={tabValue} index={2}>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                    Accommodation Registration Form
                   </h3>
-                </div>
 
-                <div className="space-y-5">
-                  {/* Payment Number */}
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-5 border-2 border-green-200">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                      Sangira Number
-                    </p>
-                    <p className="text-2xl font-bold text-green-700 font-mono break-all">
-                      {invoiceData.Sangira_Number}
-                    </p>
-                    <p className="text-xs text-gray-600 mt-2">
-                      Use this number to complete your payment
-                    </p>
-                  </div>
+                  <div className="space-y-6">
+                    {/* Personal Information Section */}
+                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                      <h4 className="font-semibold text-lg text-gray-700 mb-4">
+                        Personal Information
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Student Number
+                          </label>
+                          <input
+                            type="text"
+                            value={studentData?.Student_ID || studentId || ""}
+                            readOnly
+                            className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Full Name
+                          </label>
+                          <input
+                            type="text"
+                            value={studentData?.Customer_Name || ""}
+                            readOnly
+                            className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Program of Study
+                          </label>
+                          <input
+                            type="text"
+                            value={studentData?.Program_Study || ""}
+                            readOnly
+                            className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Year of Study
+                          </label>
+                          <input
+                            type="text"
+                            value={studentData?.Year_Study || ""}
+                            readOnly
+                            className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-                  {/* Total Amount */}
-                  <div className="bg-blue-50 rounded-lg p-5 border-2 border-blue-200">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                      Total Amount
-                    </p>
-                    <p className="text-3xl font-bold text-blue-700">
-                      {invoiceData.grand_total_price ||
-                        invoiceData.Grand_Total_Price}{" "}
-                      {invoiceData.currency ||
-                        getPriceUnit(studentData?.Customer_Type)}
-                    </p>
-                  </div>
+                    {/* Accommodation Details Section */}
+                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                      <h4 className="font-semibold text-lg text-gray-700 mb-4">
+                        Accommodation Details
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Hostel
+                          </label>
+                          <input
+                            type="text"
+                            value={getDisplayData("hostel")}
+                            readOnly
+                            className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Block
+                          </label>
+                          <input
+                            type="text"
+                            value={getDisplayData("block")}
+                            readOnly
+                            className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Floor
+                          </label>
+                          <input
+                            type="text"
+                            value={getDisplayData("floor")}
+                            readOnly
+                            className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Room Number
+                          </label>
+                          <input
+                            type="text"
+                            value={getDisplayData("room")}
+                            readOnly
+                            className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-                  {invoiceData?.Sangira_Status === "completed" ? (
-                    <>
-                      {/* Print Receipt */}
-                      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                        <p className="text-sm font-semibold text-gray-800 mb-3">
-                          Payment Confirmed! 🎉
-                        </p>
-                        <p className="text-sm text-gray-600 mb-4">
-                          Your payment has been successfully processed. You can
-                          now print a receipt of your records.
-                        </p>
+                    {/* Payment Information Section */}
+                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                      <h4 className="font-semibold text-lg text-gray-700 mb-4">
+                        Payment Information
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Sangira Number
+                          </label>
+                          <input
+                            type="text"
+                            value={invoiceData?.Sangira_Number || ""}
+                            readOnly
+                            className="w-full p-2 border border-gray-300 rounded bg-gray-50 font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Total Amount
+                          </label>
+                          <input
+                            type="text"
+                            value={`${formatter.format(
+                              invoiceData?.grand_total_price ||
+                                invoiceData?.Grand_Total_Price
+                            )} ${
+                              invoiceData?.currency ||
+                              getPriceUnit(studentData?.Customer_Type)
+                            }`}
+                            readOnly
+                            className="w-full p-2 border border-gray-300 rounded bg-gray-50 font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Payment Status
+                          </label>
+                          <input
+                            type="text"
+                            value={
+                              invoiceData?.Sangira_Status === "pending"
+                                ? "Pending Payment"
+                                : "Paid"
+                            }
+                            readOnly
+                            className={`w-full p-2 border rounded ${
+                              invoiceData?.Sangira_Status === "pending"
+                                ? "border-yellow-300 bg-yellow-50 text-yellow-700"
+                                : "border-green-300 bg-green-50 text-green-700"
+                            }`}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Expiration Time
+                          </label>
+                          <input
+                            type="text"
+                            value={formatCountdown(countdown)}
+                            readOnly
+                            className={`w-full p-2 border rounded font-mono ${
+                              countdown < 300
+                                ? "border-red-300 bg-red-50 text-red-700"
+                                : "border-gray-300 bg-gray-50"
+                            }`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Print Section */}
+                    <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                      <h4 className="font-semibold text-lg text-gray-700 mb-2">
+                        Document Actions
+                      </h4>
+                      <p className="text-gray-600 mb-4">
+                        You can print this form for your records or to submit to
+                        the warden's office.
+                      </p>
+                      <div className="flex gap-4">
                         <button
                           onClick={() => window.print()}
-                          className="w-full flex items-center justify-center gap-2 h-12 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 transition-all duration-200 shadow-md hover:shadow-lg">
-                          <LuPrinter className="w-5 h-5" />
-                          Print Receipt
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <LuPrinter className="w-4 h-4" />
+                          Print Form
+                        </button>
+                        <button
+                          onClick={() => setTabValue(0)}
+                          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                        >
+                          Back to Payment Details
                         </button>
                       </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Payment Instructions */}
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p className="text-sm font-semibold text-gray-800 mb-2">
-                          Payment Instructions:
-                        </p>
-                        <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
-                          <li>
-                            Use the payment number above to complete your
-                            transaction
-                          </li>
-                          <li>
-                            This invoice is valid for{" "}
-                            {Math.ceil(countdown / 60)} minutes only
-                          </li>
-                          <li>
-                            After payment, your accommodation will be confirmed
-                          </li>
-                          <li>Keep this payment number for your records</li>
-                        </ul>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Warning if time is running out */}
-                  {countdown < 300 && (
-                    <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                      <p className="text-sm font-semibold text-red-700">
-                        ⚠️ Time is running out! Please complete your payment
-                        soon.
-                      </p>
                     </div>
-                  )}
-
-                  {countdown === 0 && (
-                    <div className="bg-red-100 rounded-lg p-4 border-2 border-red-300">
-                      <p className="text-sm font-bold text-red-800 mb-2">
-                        ⚠️ Invoice Expired!
-                      </p>
-                      <p className="text-xs text-red-700">
-                        This invoice is no longer valid. You will be redirected
-                        to start a new request in a few seconds.
-                      </p>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </div>
+              </TabPanel>
+            </Box>
           </div>
         )}
       </div>

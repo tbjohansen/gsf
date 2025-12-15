@@ -38,9 +38,13 @@ export default function Units() {
 
   const navigate = useNavigate();
 
-  // Fetch users from API
+  const hasFetchedData = React.useRef(false);
+
   React.useEffect(() => {
-    loadData();
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadData();
+    }
   }, []);
 
   const loadData = async () => {
@@ -87,7 +91,7 @@ export default function Units() {
 
   const handleRowClick = (row) => {
     setSelectedRow(row);
-    navigate(`/real-estates/units/${row?.id}/assigned-features`);
+    navigate(`/projects/real-estates/units/${row?.id}/assigned-features`);
   };
 
   // Inside the users component, replace the columns definition with:
@@ -118,6 +122,11 @@ export default function Units() {
             color={value === "active" ? "green" : "error"}
           />
         ),
+      },
+      {
+        id: "description",
+        label: "Description",
+        // format: (value) => <span>{capitalize(value)}</span>,
       },
       {
         id: "created_at",

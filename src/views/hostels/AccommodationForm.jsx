@@ -1,692 +1,764 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
+import {
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Checkbox,
+  Button,
+  Grid,
+  Divider,
+  Box,
+  Alert,
+  Autocomplete,
+} from "@mui/material";
+import moment from "moment";
+import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
+import Breadcrumb from "../../components/Breadcrumb";
+import { useParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import apiClient from "../../api/Client";
+import { capitalize, formatter } from "../../../helpers";
 
 const AccommodationForm = () => {
+  const { studentID, requestID } = useParams();
+
   const [formData, setFormData] = useState({
-    // Section A
-    fullName: '',
-    gender: '',
-    dateOfBirth: '',
-    nationality: '',
-    studentId: '',
-    programOfStudy: '',
-    yearOfStudy: '',
-    phoneNumber: '',
-    email: '',
-    emergencyContactName: '',
-    emergencyContactPhone: '',
-    
-    // Section B
-    applicantType: '',
-    preferredRoomType: '',
-    selectedHostelName: '',
-    roomType: '',
-    checkInDate: '',
-    durationOfStay: '',
-    specialNeeds: '',
-    specialNeedsDetails: '',
-    
-    // Section C
-    paymentMethod: 'bankDeposit',
-    bankName: '',
-    accountName: '',
-    accountNumber: '',
-    paymentReference: '',
-    amountPaid: '',
-    paymentDate: '',
-    
-    // Section D
+    // Section A: Applicant Information
+    fullName: "",
+    gender: "",
+    dateOfBirth: null,
+    nationality: "",
+    studentId: "",
+    program: "",
+    yearOfStudy: "",
+    phone: "",
+    email: "",
+    emergencyContact: "",
+    emergencyPhone: "",
+
+    // Section B: Accommodation Details
+    applicantType: "",
+    otherApplicantType: "",
+    selectedHostel: "",
+    roomType: "",
+    checkInDate: null,
+    duration: "",
+    shortTermDuration: "",
+    specialNeeds: false,
+    specialNeedsDetails: "",
+
+    // Section C: Payment Information
+    paymentBank: "",
+    paymentAccountName: "",
+    paymentAccountNumber: "",
+    paymentReference: "",
+    paymentAmount: "",
+    paymentDate: null,
+
+    // Section D: Inventory (simplified for form)
     inventory: {
-      mattress: { quantity: '', condition: '', handedOver: '', date: '', remarks: '' },
-      bedFrame: { quantity: '', condition: '', handedOver: '', date: '', remarks: '' },
-      chair: { quantity: '', condition: '', handedOver: '', date: '', remarks: '' },
-      studyTable: { quantity: '', condition: '', handedOver: '', date: '', remarks: '' },
-      wardrobe: { quantity: '', condition: '', handedOver: '', date: '', remarks: '' },
-      roomKey: { quantity: '', condition: '', handedOver: '', date: '', remarks: '' },
-      lightFixtures: { quantity: '', condition: '', handedOver: '', date: '', remarks: '' },
+      mattress: { quantity: "", condition: "", handedOver: false, remarks: "" },
+      bedFrame: { quantity: "", condition: "", handedOver: false, remarks: "" },
+      chair: { quantity: "", condition: "", handedOver: false, remarks: "" },
+      studyTable: {
+        quantity: "",
+        condition: "",
+        handedOver: false,
+        remarks: "",
+      },
+      wardrobe: { quantity: "", condition: "", handedOver: false, remarks: "" },
+      roomKey: { quantity: "", condition: "", handedOver: false, remarks: "" },
+      lightFixtures: {
+        quantity: "",
+        condition: "",
+        handedOver: false,
+        remarks: "",
+      },
     },
-    
-    // Section E
-    signature: '',
-    declarationDate: '',
+
+    // Declaration
+    agreed: false,
   });
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+  const [condition, setCondition] = useState("");
+  const [studentData, setStudentData] = useState("");
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [field]: value,
     }));
   };
 
   const handleInventoryChange = (item, field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       inventory: {
         ...prev.inventory,
         [item]: {
           ...prev.inventory[item],
-          [field]: value
-        }
-      }
+          [field]: value,
+        },
+      },
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Form submission logic would go here
-    console.log('Form submitted:', formData);
-    alert('Form submitted successfully! Please send the filled form with payment slip to dss@kcmcu.ac.tr');
+  const sortedConditions = [
+    {
+      id: "new",
+      label: "New",
+    },
+    {
+      id: "used",
+      label: "Used",
+    },
+  ];
+
+  const sortedConditionsOne = [
+    {
+      id: "good",
+      label: "Good",
+    },
+    {
+      id: "fair",
+      label: "Fair",
+    },
+  ];
+
+  const sortedConditionsTwo = [
+    {
+      id: "functional",
+      label: "Functional",
+    },
+  ];
+
+  const conditionOnChange = (e, value) => {
+    setCondition(value);
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log("Form submitted:", formData);
+    // Here you would typically send the data to your backend
+
+    try {
+      let url = `/customer/admit-student-to-room?&Customer_Status=paid&Room_Status=paid&Request_Type=hostel&Request_ID=${requestID}`;
+
+      const response = await apiClient.post(url);
+
+      if (!response.ok) {
+        // setLoading(false);
+        toast.error(response.data?.error || "Failed to assign hostel room");
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        // setLoading(false);
+        toast.error(response.data.error || "Failed to assign hostel room");
+        return;
+      }
+
+      toast.success("Room is assgned successfully");
+      // setLoading(false);
+    } catch (error) {
+      console.error("Assign room error:", error);
+      // setLoading(false);
+      toast.error("Failed to assign hostel room");
+    }
+  };
+
+  useEffect(() => {}, []);
+
+  React.useEffect(() => {
+    loadData();
+  }, [studentID, requestID]);
+
+  const loadData = async () => {
+    // setLoading(true);
+    try {
+      let url = `/customer/customer-request?&Customer_Status=paid&Room_Status=paid&Request_Type=hostel&Request_ID=${requestID}`;
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        // setLoading(false);
+        toast.error(response.data?.error || "Failed to fetch students");
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        // setLoading(false);
+        toast.error(response.data.error || "Failed to fetch students");
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const userData = response?.data?.data?.data[0];
+
+      // console.log(userData);
+      setStudentData(userData);
+      // setLoading(false);
+    } catch (error) {
+      console.error("Fetch customers error:", error);
+      // setLoading(false);
+      toast.error("Failed to fetch students");
+    }
+  };
+
+  console.log(studentData);
+
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
-      <header className="text-center mb-8 border-b pb-4">
-        <h1 className="text-xl font-bold">THE GOOD SAMARITAN FOUNDATION</h1>
-        <h2 className="text-lg font-semibold mt-2">ACCOMMODATION REQUEST FORM</h2>
-      </header>
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* SECTION A: APPLICANT INFORMATION */}
-        <section className="border rounded-lg p-6">
-          <h3 className="text-lg font-bold mb-4 border-b pb-2">SECTION A: APPLICANT INFORMATION</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Student's Full Name</label>
-              <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Gender</label>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="male"
-                    checked={formData.gender === 'male'}
-                    onChange={handleInputChange}
-                    className="mr-2"
-                  />
-                  Male
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="female"
-                    checked={formData.gender === 'female'}
-                    onChange={handleInputChange}
-                    className="mr-2"
-                  />
-                  Female
-                </label>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Date of Birth</label>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Nationality</label>
-              <input
-                type="text"
-                name="nationality"
-                value={formData.nationality}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Student/Staff ID Number</label>
-              <input
-                type="text"
-                name="studentId"
-                value={formData.studentId}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Program of Study / School</label>
-              <input
-                type="text"
-                name="programOfStudy"
-                value={formData.programOfStudy}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Year of Study</label>
-              <input
-                type="text"
-                name="yearOfStudy"
-                value={formData.yearOfStudy}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Phone Number</label>
-              <input
-                type="tel"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Email Address</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Emergency Contact Name & Relation</label>
-              <input
-                type="text"
-                name="emergencyContactName"
-                value={formData.emergencyContactName}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Emergency Contact Phone Number</label>
-              <input
-                type="tel"
-                name="emergencyContactPhone"
-                value={formData.emergencyContactPhone}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
+    <>
+      <Breadcrumb />
+      <Container maxWidth="lg" className="py-8">
+        <Paper elevation={3} className="p-6">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <Typography
+              variant="h4"
+              component="h2"
+              className="font-bold text-gray-800 mb-2"
+            >
+              THE GOOD SAMARITAN FOUNDATION
+            </Typography>
+            <Typography variant="h5" component="h3" className="text-gray-600">
+              ACCOMMODATION FORM
+            </Typography>
           </div>
-        </section>
 
-        {/* SECTION B: ACCOMMODATION DETAILS */}
-        <section className="border rounded-lg p-6">
-          <h3 className="text-lg font-bold mb-4 border-b pb-2">SECTION B: ACCOMMODATION DETAILS</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Type of Applicant</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {['Undergraduate Student', 'Postgraduate Student', 'Staff', 'Visiting Scholar', 'Other'].map(type => (
-                  <label key={type} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="applicantType"
-                      value={type}
-                      checked={formData.applicantType === type}
-                      onChange={handleInputChange}
-                      className="mr-2"
-                    />
-                    {type}
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Preferred Room Type</label>
-              <div className="space-y-2">
-                {[
-                  "BISHOP STEPHANO MOSHI HOSTEL= 240,000 per semester (2 Decker's)",
-                  "BISHOP STEPHANO MOSHI (Executive Rooms) = 100 USD per month for foreigners and 150,000 per month for Tanzanian students (Single rooms)",
-                  "BISHOP STEPHANO MOSHI HOSTEL= 540,000 per semester (1 Decker)",
-                  "BISHOP STEPHANO MOSHI HOSTEL= 600,000 per semester (2 separate beds)",
-                  "NURU HOSTEL: 240,000 per semester (shared room)",
-                  "NURU HOSTEL: 450,000 per semester (shared room)",
-                  "KILIMANJARO HOSTEL 300,000 per semester (shared room)",
-                  "CAUTION MONEY (Non Refundable) 30,000"
-                ].map((option, index) => (
-                  <label key={index} className="flex items-start">
-                    <input
-                      type="radio"
-                      name="preferredRoomType"
-                      value={option}
-                      checked={formData.preferredRoomType === option}
-                      onChange={handleInputChange}
-                      className="mt-1 mr-2"
-                    />
-                    <span>{option}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Selected Hostel Name</label>
-              <input
-                type="text"
-                name="selectedHostelName"
-                value={formData.selectedHostelName}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Room Type</label>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="roomType"
-                    value="single"
-                    checked={formData.roomType === 'single'}
-                    onChange={handleInputChange}
-                    className="mr-2"
-                  />
-                  Single Room
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="roomType"
-                    value="shared"
-                    checked={formData.roomType === 'shared'}
-                    onChange={handleInputChange}
-                    className="mr-2"
-                  />
-                  Shared Room
-                </label>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Requested Check-in Date</label>
-              <input
-                type="date"
-                name="checkInDate"
-                value={formData.checkInDate}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Expected Duration of Stay</label>
-              <div className="flex flex-wrap gap-4">
-                {['1 Semester', 'Full Academic Year', 'Short-Term'].map(duration => (
-                  <label key={duration} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="durationOfStay"
-                      value={duration}
-                      checked={formData.durationOfStay === duration}
-                      onChange={handleInputChange}
-                      className="mr-2"
-                    />
-                    {duration}
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Do you have any special needs or health conditions related to accommodation?
-              </label>
-              <div className="flex space-x-4 mb-2">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="specialNeeds"
-                    value="yes"
-                    checked={formData.specialNeeds === 'yes'}
-                    onChange={handleInputChange}
-                    className="mr-2"
-                  />
-                  Yes
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="specialNeeds"
-                    value="no"
-                    checked={formData.specialNeeds === 'no'}
-                    onChange={handleInputChange}
-                    className="mr-2"
-                  />
-                  No
-                </label>
-              </div>
-              {formData.specialNeeds === 'yes' && (
-                <textarea
-                  name="specialNeedsDetails"
-                  value={formData.specialNeedsDetails}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  placeholder="Please specify"
-                />
-              )}
-            </div>
-          </div>
-        </section>
+          <form onSubmit={handleSubmit}>
+            {/* Section A: Applicant Information */}
 
-        {/* SECTION C: PAYMENT INFORMATION */}
-        <section className="border rounded-lg p-6">
-          <h3 className="text-lg font-bold mb-4 border-b pb-2">SECTION C: PAYMENT INFORMATION</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Payment Method</label>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="bankDeposit"
-                    checked={formData.paymentMethod === 'bankDeposit'}
-                    onChange={handleInputChange}
-                    className="mr-2"
-                  />
-                  Bank Deposit
-                </label>
+            <div className="border border-gray-300 rounded-lg bg-white shadow-sm">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <p className="text-xl font-semibold text-gray-800">
+                  SECTION A: APPLICANT INFORMATION
+                </p>
               </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse border">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border p-2 text-left">HOSTEL NAME</th>
-                    <th className="border p-2 text-left">A/C NAME</th>
-                    <th className="border p-2 text-left">ACCO. NO</th>
-                    <th className="border p-2 text-left">BANK NAME AND ADDRESS</th>
-                    <th className="border p-2 text-left">SWIFT CODE</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border p-2" rowSpan="3">Bishop Stephano Moshi Hostel</td>
-                    <td className="border p-2">1: The GSF-KCMC</td>
-                    <td className="border p-2">0106038001(TSHS A/C)</td>
-                    <td className="border p-2">DTB Bank P.O.BOX 8395 MOSHI</td>
-                    <td className="border p-2">DTKETZTZ</td>
-                  </tr>
-                  <tr>
-                    <td className="border p-2">2: GSF House Rent</td>
-                    <td className="border p-2">017103005117 (TSHS A/C)</td>
-                    <td className="border p-2">NBC Ltd P.O.BOX 3030 MOSHI</td>
-                    <td className="border p-2"></td>
-                  </tr>
-                  <tr>
-                    <td className="border p-2">3: The GSF-KCMC</td>
-                    <td className="border p-2">0106038002 (USD A/C)</td>
-                    <td className="border p-2">NBC Ltd P.O.BOX 3030 MOSHI</td>
-                    <td className="border p-2"></td>
-                  </tr>
-                  <tr>
-                    <td className="border p-2">Kilimanjaro Hostel</td>
-                    <td className="border p-2">GSF Kilimanjaro Hall</td>
-                    <td className="border p-2">017101005242 (TSHS A/C)</td>
-                    <td className="border p-2">NBC Ltd P.O.BOX 3030 MOSHI</td>
-                    <td className="border p-2">NLCBTZTXOTM</td>
-                  </tr>
-                  <tr>
-                    <td className="border p-2">Nuru Hostel and Other Hostel</td>
-                    <td className="border p-2">GSF House Rent</td>
-                    <td className="border p-2">017103005117 (TSHS A/C)</td>
-                    <td className="border p-2">NBC Ltd P.O.BOX 3030 MOSHI</td>
-                    <td className="border p-2">NLCBTZTXOTM</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Bank Name</label>
-                <input
-                  type="text"
-                  name="bankName"
-                  value={formData.bankName}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Account Name</label>
-                <input
-                  type="text"
-                  name="accountName"
-                  value={formData.accountName}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Account Number</label>
-                <input
-                  type="text"
-                  name="accountNumber"
-                  value={formData.accountNumber}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Payment Reference Number</label>
-                <input
-                  type="text"
-                  name="paymentReference"
-                  value={formData.paymentReference}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Amount Paid (TZS)</label>
-                <input
-                  type="text"
-                  name="amountPaid"
-                  value={formData.amountPaid}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Date of Payment</label>
-                <input
-                  type="date"
-                  name="paymentDate"
-                  value={formData.paymentDate}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
 
-        {/* SECTION D: INVENTORY HANDOVER RECORD */}
-        <section className="border rounded-lg p-6">
-          <h3 className="text-lg font-bold mb-4 border-b pb-2">SECTION D: INVENTORY HANDOVER RECORD</h3>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse border">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border p-2 text-left">Item Description</th>
-                  <th className="border p-2 text-left">Quantity</th>
-                  <th className="border p-2 text-left">Condition</th>
-                  <th className="border p-2 text-left">Handed Over (Yes/No)</th>
-                  <th className="border p-2 text-left">Date of Handover</th>
-                  <th className="border p-2 text-left">Remarks</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(formData.inventory).map(([item, data]) => (
-                  <tr key={item}>
-                    <td className="border p-2 capitalize">{item.replace(/([A-Z])/g, ' $1')}</td>
-                    <td className="border p-2">
-                      <input
-                        type="text"
-                        value={data.quantity}
-                        onChange={(e) => handleInventoryChange(item, 'quantity', e.target.value)}
-                        className="w-full p-1 border rounded"
+              <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Column 1 */}
+                <div className="space-y-4">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Student's Full Name
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.customer?.Customer_Name}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Gender
+                    </span>
+                    <span className="text-gray-900">
+                      {capitalize(studentData?.customer?.Gender)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Date of Birth
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.customer?.Date_Birth}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Nationality
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.customer?.Nationality}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Column 2 */}
+                <div className="space-y-4">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Student/Staff ID
+                    </span>
+                    <span className="text-gray-900 text-sm">
+                      {studentData?.customer?.Student_ID ||
+                        studentData?.customer?.Admission_ID}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Program of Study
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.customer?.Program_Study}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Year of Study
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.customer?.Year_Study}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Semester
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.customer?.Semester}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Column 3 */}
+                <div className="space-y-4">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Phone Number
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.customer?.Phone_Number}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Email Address
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.customer?.Email}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Emergency Contact Name & Relation
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.customer?.Emergency_Contact_Name}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Emergency Contact Phone Number
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.customer?.Emergency_Contact_Phone}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section B: Accommodation Details */}
+            <div className="border border-gray-300 rounded-lg bg-white shadow-sm">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <p className="text-xl font-semibold text-gray-800">
+                  SECTION B: ACCOMMODATION DETAILS
+                </p>
+              </div>
+
+              <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Column 1 */}
+                <div className="space-y-4">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Applicant Type
+                    </span>
+                    <span className="text-gray-900">Undergraduate</span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Selected Hostel Name
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.room?.hostel?.Hostel_Name}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Selected Block
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.room?.block?.Block_Name}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Selected Floor
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.room?.flow?.Flow_Name}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Column 2 */}
+                <div className="space-y-4">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Selected Room
+                    </span>
+                    <span className="text-gray-900 text-sm">
+                      {studentData?.room?.Room_Name}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Room Type
+                    </span>
+                    <span className="text-gray-900">
+                      {capitalize(studentData?.room?.Room_Type)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Check-in Date
+                    </span>
+                    <span className="text-gray-900">28-11-2025</span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Duration of Stay
+                    </span>
+                    <span className="text-gray-900">{}</span>
+                  </div>
+                </div>
+
+                {/* Column 3 */}
+                <div className="space-y-4">
+                  <FormControlLabel
+                    componentsProps={{
+                      typography: {
+                        fontSize: "0.875rem",
+                      },
+                    }}
+                    control={
+                      <Checkbox
+                        checked={formData.specialNeeds}
+                        onChange={(e) =>
+                          handleInputChange("specialNeeds", e.target.checked)
+                        }
                       />
-                    </td>
-                    <td className="border p-2">
-                      <select
-                        value={data.condition}
-                        onChange={(e) => handleInventoryChange(item, 'condition', e.target.value)}
-                        className="w-full p-1 border rounded"
-                      >
-                        <option value="">Select</option>
-                        {item === 'mattress' ? (
-                          <>
-                            <option value="new">New</option>
-                            <option value="used">Used</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="good">Good</option>
-                            <option value="fair">Fair</option>
-                            <option value="functional">Functional</option>
-                          </>
-                        )}
-                      </select>
-                    </td>
-                    <td className="border p-2">
-                      <select
-                        value={data.handedOver}
-                        onChange={(e) => handleInventoryChange(item, 'handedOver', e.target.value)}
-                        className="w-full p-1 border rounded"
-                      >
-                        <option value="">Select</option>
-                        <option value="yes">Yes</option>
-                        <option value="no">No</option>
-                      </select>
-                    </td>
-                    <td className="border p-2">
-                      <input
-                        type="date"
-                        value={data.date}
-                        onChange={(e) => handleInventoryChange(item, 'date', e.target.value)}
-                        className="w-full p-1 border rounded"
-                      />
-                    </td>
-                    <td className="border p-2">
-                      <input
-                        type="text"
-                        value={data.remarks}
-                        onChange={(e) => handleInventoryChange(item, 'remarks', e.target.value)}
-                        className="w-full p-1 border rounded"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                    }
+                    label="Do you have any special needs or health conditions related to accommodation?"
+                  />
+                  {formData.specialNeeds && (
+                    <TextField
+                      fullWidth
+                      label="Please specify special needs or health conditions"
+                      InputLabelProps={{
+                        sx: { fontSize: "0.875rem" }, // text-sm
+                      }}
+                      value={formData.specialNeedsDetails}
+                      onChange={(e) =>
+                        handleInputChange("specialNeedsDetails", e.target.value)
+                      }
+                      className="mt-3"
+                      multiline
+                      rows={3}
+                      required
+                      size="small"
+                      variant="outlined"
+                      helperText="This information will help us provide appropriate accommodations"
+                      FormHelperTextProps={{
+                        sx: { fontSize: "0.75rem" },
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
 
-        {/* SECTION E: DECLARATION BY APPLICANT */}
-        <section className="border rounded-lg p-6">
-          <h3 className="text-lg font-bold mb-4 border-b pb-2">SECTION E: DECLARATION BY APPLICANT</h3>
-          
-          <p className="mb-4">
-            I undersigned declare that the information provided above is true and complete to the best of my knowledge. 
-            I accept to receive the listed items in the condition described and agree to take full responsibility for them 
-            during my stay. I understand that I will be required to return them in good condition upon vacating the accommodation.
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Applicant's Signature</label>
-              <input
-                type="text"
-                name="signature"
-                value={formData.signature}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
+            {/* Section C: Payment Information */}
+            <div className="border border-gray-300 rounded-lg bg-white shadow-sm">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <p className="text-xl font-semibold text-gray-800">
+                  SECTION C: PAYMENT INFORMATION
+                </p>
+              </div>
+
+              <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Column 1 */}
+                <div className="space-y-4">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Bank Name
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.Sangira?.Payment_Direction}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Sangira Number
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.Sangira?.Sangira_Number}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Column 2 */}
+                <div className="space-y-4">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Amount Paid (TZS)
+                    </span>
+                    <span className="text-gray-900">
+                      {formatter.format(
+                        studentData?.Sangira?.Grand_Total_Price || 0
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Receipt Number
+                    </span>
+                    <span className="text-gray-900">
+                      {studentData?.Sangira?.Receipt_Number}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Column 3 */}
+                <div className="space-y-4">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Payment Date
+                    </span>
+                    <span className="text-gray-900 text-sm">
+                      {studentData?.Sangira?.Completed_Date}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500 mb-1">
+                      Requested Date
+                    </span>
+                    <span className="text-gray-900 text-sm">
+                      {studentData?.Sangira?.Requested_Date}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section D: Inventory Handover Record */}
+            <div className="border border-gray-300 rounded-lg bg-white shadow-sm">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <p className="text-xl font-semibold text-gray-800">
+                  SECTION D: INVENTORY HANDOVER RECORD
+                </p>
+              </div>
+              <div className="border border-gray-300 rounded-lg overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Item Description
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Quantity
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Condition
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Handed Over
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Remarks
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {Object.entries(formData.inventory).map(([key, item]) => (
+                        <tr key={key} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-900 capitalize">
+                              {key.replace(/([A-Z])/g, " $1").trim()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <TextField
+                              size="small"
+                              id="outlined-basic"
+                              // label="Quantity"
+                              variant="outlined"
+                              className="w-24 px-3 py-2 text-sm"
+                              // value={name}
+                              // onChange={(e) => setName(e.target.value)}
+                              // disabled={loading}
+                              autoFocus
+                            />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Autocomplete
+                              id="combo-box-demo"
+                              options={
+                                key === "mattress"
+                                  ? sortedConditions
+                                  : key === "bedFrame" ||
+                                    key === "chair" ||
+                                    key === "studyTable" ||
+                                    key === "wardrobe"
+                                  ? sortedConditionsOne
+                                  : sortedConditionsTwo
+                              }
+                              size="small"
+                              freeSolo
+                              className="w-44 px-3 py-2 text-sm"
+                              value={condition}
+                              onChange={conditionOnChange}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  InputLabelProps={{
+                                    sx: { fontSize: "0.80rem" }, // text-xs equivalent
+                                  }}
+                                  label="Select Condition"
+                                />
+                              )}
+                            />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <Checkbox />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <TextField
+                              size="small"
+                              id="outlined-multiline-static"
+                              label="Remarks"
+                              multiline
+                              rows={2}
+                              InputLabelProps={{
+                                sx: { fontSize: "0.80rem" }, // text-xs equivalent
+                              }}
+                              className="w-48 px-3 py-2 text-sm"
+                              // value={name}
+                              // onChange={(e) => setName(e.target.value)}
+                              // disabled={loading}
+                              autoFocus
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Section E: Declaration */}
+            <div className="border border-gray-300 rounded-lg bg-white shadow-sm">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <p className="text-xl font-semibold text-gray-800">
+                  SECTION E: DECLARATION BY APPLICANT
+                </p>
+              </div>
+              <FormControlLabel
+                className="px-3"
+                control={
+                  <Checkbox
+                    checked={formData.agreed}
+                    onChange={(e) =>
+                      handleInputChange("agreed", e.target.checked)
+                    }
+                    required
+                  />
+                }
+                label="I undersigned declare that the information provided above is true and complete to the best of my knowledge. I accept to receive the listed items in the condition described and agree to take full responsibility for them during my stay. I understand that I will be required to return them in good condition upon vacating the accommodation."
               />
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Date</label>
-              <input
-                type="date"
-                name="declarationDate"
-                value={formData.declarationDate}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-          </div>
-        </section>
 
-        {/* Important Notes */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h4 className="font-bold mb-2">Important Notes:</h4>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Check-in services at the hostel will be available only during working hours Monday to Friday from 08:00 AM – 04:00 PM</li>
-            <li>No services will be provided on Saturdays and Sundays</li>
-            <li>Send a duly filled form with a scanned copy of the bank pay-in slip to email address: <strong>dss@kcmcu.ac.tr</strong></li>
-            <li className="font-bold text-red-600">REMEMBER: Do not make any payment before liaising with the warden's office</li>
-          </ul>
-        </div>
+            {/* Submit Button */}
+            <Box className="text-center mt-8">
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                disabled={!formData.agreed}
+                onChange={() => submitData()}
+                className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
+              >
+                Submit Applicant Accommodation Form
+              </Button>
+            </Box>
 
-        {/* Submit Button */}
-        <div className="text-center">
-          <button
-            type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded"
-          >
-            Submit Form
-          </button>
-        </div>
-      </form>
-    </div>
+            {/* Important Notes */}
+            <Alert severity="warning" className="mt-6">
+              <Typography variant="body2" className="font-semibold">
+                Important Notes:
+              </Typography>
+              <Typography variant="body2">
+                • Check-in services available Monday to Friday, 08:00 AM – 04:00
+                PM
+                <br />
+                • No services on Saturdays and Sundays
+                <br />• Caution Money (Non Refundable): 30,000 TZS
+              </Typography>
+            </Alert>
+          </form>
+        </Paper>
+      </Container>
+    </>
   );
 };
+
+// Reusable Section Component
+const Section = ({ title, children }) => (
+  <div className="mb-8">
+    <Typography
+      variant="h6"
+      component="h3"
+      className="font-bold text-gray-700 mb-4 pb-2 border-b-2 border-blue-500"
+    >
+      {title}
+    </Typography>
+    {children}
+    <Divider className="my-6" />
+  </div>
+);
 
 export default AccommodationForm;

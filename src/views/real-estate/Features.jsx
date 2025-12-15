@@ -38,9 +38,13 @@ export default function Features() {
 
   const navigate = useNavigate();
 
-  // Fetch users from API
+  const hasFetchedData = React.useRef(false);
+
   React.useEffect(() => {
-    loadData();
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadData();
+    }
   }, []);
 
   const loadData = async () => {
@@ -94,16 +98,6 @@ export default function Features() {
         label: "Feature Descrption",
         format: (value) => <span>{capitalize(value)}</span>,
       },
-      // {
-      //   id: "employee_status",
-      //   label: "Status",
-      //   format: (value) => (
-      //     <Badge
-      //       name={capitalize(value)}
-      //       color={value === "active" ? "green" : "error"}
-      //     />
-      //   ),
-      // },
       {
         id: "created_at",
         label: "Created At",
@@ -125,7 +119,7 @@ export default function Features() {
 
   return (
     <>
-    <Breadcrumb/>
+      <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <h4>Real Estate Unit Features</h4>

@@ -7,10 +7,11 @@ import { toast } from "react-hot-toast";
 import { MdAdd } from "react-icons/md";
 import apiClient from "../../api/Client";
 import { Autocomplete } from "@mui/material";
+import { formatter } from "../../../helpers";
 
 const style = {
   position: "absolute",
-  top: "40%",
+  top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 500,
@@ -25,12 +26,17 @@ const AddItem = ({ Item_Type, loadData }) => {
   const handleClose = () => {
     setOpen(false);
     setName("");
-    setPrice(0);
+    setPrice("");
+    setOutsidePrice("");
   };
 
   const [name, setName] = useState("");
-  const [price, setPrice] = useState(0);
+  const [price, setPrice] = useState("");
   const [itemType, setItemType] = useState("");
+  const [outsidePrice, setOutsidePrice] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const dispatch = useDispatch();
 
   const sortedItemType = [
     {
@@ -51,10 +57,6 @@ const AddItem = ({ Item_Type, loadData }) => {
     setItemType(value);
   };
 
-  const [loading, setLoading] = useState(false);
-
-  const dispatch = useDispatch();
-
   const submit = async (e) => {
     e.preventDefault();
 
@@ -62,13 +64,14 @@ const AddItem = ({ Item_Type, loadData }) => {
       toast.error("Please enter item name");
       return;
     }
-    if (Item_Type === "oxygen" && !price) {
-      toast.error("Please enter item price");
-      return;
-    }
 
     if (!Item_Type && !itemType) {
       toast.error("Please select item type");
+      return;
+    }
+
+    if (Item_Type === "oxygen" && !price && !outsidePrice) {
+      toast.error("Please enter item price");
       return;
     }
 
@@ -88,7 +91,8 @@ const AddItem = ({ Item_Type, loadData }) => {
         Item_Name: name.trim(),
         Employee_ID: employeeId,
         Item_Type: Item_Type ? Item_Type : itemType,
-        Item_Price: Item_Type === "oxygen" ? price : null,
+        Item_Price_Outside: Item_Type === "oxygen" ? outsidePrice : null,
+        Item_Price_Inside: Item_Type === "oxygen" ? price : null,
       };
 
       // Make API request - Bearer token is automatically included by apiClient
@@ -104,7 +108,8 @@ const AddItem = ({ Item_Type, loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to create item");
+          console.log("Error:", response.data?.error);
+          toast.error(response?.data?.error || "Failed to create item");
         }
         return;
       }
@@ -115,10 +120,11 @@ const AddItem = ({ Item_Type, loadData }) => {
 
         // Handle validation errors (nested error object)
         if (response.data?.error && typeof response.data.error === "object") {
+          console.log(response.data.error);
           toast.error("Failed to create item");
         } else {
           // Handle simple error string
-          const errorMessage = response.data.error || "Failed to create item";
+          const errorMessage = response?.data?.error || "Failed to create item";
           toast.error(errorMessage);
         }
         return;
@@ -194,21 +200,42 @@ const AddItem = ({ Item_Type, loadData }) => {
                 </div>
               )}
               {Item_Type === "oxygen" && (
-                <div className="w-full py-2 flex justify-center">
-                  <TextField
-                    type="number"
-                    label="Price (TZS)"
-                    value={price}
-                    onChange={(event) => {
-                      const parsed = parseFloat(event.target.value, 10);
-                      setPrice(Number.isNaN(parsed) ? 0 : Math.max(0, parsed));
-                    }}
-                    variant="outlined"
-                    size="small"
-                    className="w-[92%]"
-                    disabled={loading}
-                  />
-                </div>
+                <>
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      label="Inside Price (TZS)"
+                      value={price ? formatter.format(Number(price)) : ""}
+                      onChange={(e) => {
+                        // Remove any non-digit characters except decimal point
+                        const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                        setPrice(rawValue);
+                      }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      label="Outside Price (TZS)"
+                      value={
+                        outsidePrice
+                          ? formatter.format(Number(outsidePrice))
+                          : ""
+                      }
+                      onChange={(e) => {
+                        // Remove any non-digit characters except decimal point
+                        const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                        setOutsidePrice(rawValue);
+                      }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                </>
               )}
               <div className="w-full py-2 mt-5 flex justify-center">
                 <button

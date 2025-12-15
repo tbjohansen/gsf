@@ -6,10 +6,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { MdAdd } from "react-icons/md";
 import apiClient from "../../api/Client";
+import { validPhoneNumber } from "../../../helpers";
 
 const style = {
   position: "absolute",
-  top: "40%",
+  top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 500,
@@ -48,6 +49,11 @@ const AddUser = ({ loadData }) => {
       return;
     }
 
+    if (!validPhoneNumber(phone)) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+
     if (!phone || phone.trim() === "") {
       toast.error("Please enter phone number");
       return;
@@ -55,7 +61,6 @@ const AddUser = ({ loadData }) => {
 
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
-    const userName = localStorage.getItem("userName");
 
     if (!employeeId) {
       toast.error("User information not found. Please login again.");
@@ -76,7 +81,7 @@ const AddUser = ({ loadData }) => {
       // console.log("Submitting user data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.post("/register", data);
+      const response = await apiClient.post("/registerss", data);
 
       // console.log("Response:", response);
 
@@ -107,8 +112,7 @@ const AddUser = ({ loadData }) => {
           toast.error("Failed to create user");
         } else {
           // Handle simple error string
-          const errorMessage =
-            response.data.error || "Failed to create user";
+          const errorMessage = response.data.error || "Failed to create user";
           toast.error(errorMessage);
         }
         return;
@@ -187,12 +191,23 @@ const AddUser = ({ loadData }) => {
                   id="outlined-basic"
                   label="Phone Number"
                   variant="outlined"
-                  type="number"
+                  type="tel"
                   className="w-[92%]"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={loading}
-                  autoFocus
+                  error={phone?.length > 0 && !validPhoneNumber(phone)}
+                  helperText={
+                    phone?.length > 0 && !validPhoneNumber(phone)
+                      ? phone?.length !== 10
+                        ? "Phone number must be 10 digits"
+                        : "Phone number must start with 06, or 07"
+                      : ""
+                  }
+                  inputProps={{
+                    maxLength: 10,
+                    pattern: "0[567][0-9]{8}",
+                  }}
                 />
               </div>
               <div className="w-full py-2 mt-5 flex justify-center">
