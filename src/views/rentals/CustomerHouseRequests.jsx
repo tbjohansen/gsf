@@ -35,7 +35,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function CustomerOxygenOrders({ status }) {
+export default function CustomerHouseRequests({ status }) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [requests, setRequests] = React.useState([]);
@@ -109,7 +109,7 @@ export default function CustomerOxygenOrders({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/oxygen/oxygen-request?&Customer_ID=${customer?.Customer_ID}`;
+      let url = `/customer/customer-request?&Customer_ID=${customer?.Customer_ID}`;
 
       if (startDate) {
         url += `&Start_Date=${formatDateForDb(startDate)}`;
@@ -225,12 +225,12 @@ export default function CustomerOxygenOrders({ status }) {
       { id: "key", label: "S/N" },
       {
         id: "Request_Batch_ID",
-        label: "Order ID",
+        label: "Request ID",
         minWidth: 110,
       },
       {
         id: "request_items",
-        label: "Items",
+        label: "Unit",
         minWidth: 300,
         format: (value, row) => {
           if (!row.request || !Array.isArray(row.request)) {
@@ -326,7 +326,7 @@ export default function CustomerOxygenOrders({ status }) {
       },
       {
         id: "Request_Batch_Date",
-        label: "Order Date",
+        label: "Request Date",
         format: (value) => (
           <span>{value ? formatDateTimeForDb(value) : "N/A"}</span>
         ),
@@ -377,7 +377,7 @@ export default function CustomerOxygenOrders({ status }) {
       <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
-          <h4>Customer Orders List</h4>
+          <h4>Customer Requests List</h4>
         </div>
       </div>
 
@@ -386,28 +386,13 @@ export default function CustomerOxygenOrders({ status }) {
           label="Start Date"
           value={startDate}
           onChange={(newValue) => setStartDate(newValue)}
-          className="w-[33%]"
+          className="w-[50%]"
         />
         <DatePick
           label="End Date"
           value={endDate}
           onChange={(newValue) => setEndDate(newValue)}
-          className="w-[33%]"
-        />
-        <Autocomplete
-          id="item-select"
-          options={items}
-          size="small"
-          className={`w-[33%]`}
-          value={item}
-          onChange={itemOnChange}
-          getOptionLabel={(option) => option.label || option.Item_Name || ""}
-          isOptionEqualToValue={(option, value) =>
-            option.Item_ID === value?.Item_ID
-          }
-          renderInput={(params) => (
-            <TextField {...params} label="Select Item" />
-          )}
+          className="w-[50%]"
         />
       </div>
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -437,7 +422,7 @@ export default function CustomerOxygenOrders({ status }) {
               {!loading && requests.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={columns.length} align="center">
-                    No customer orders found
+                    No customer requests found
                   </TableCell>
                 </TableRow>
               )}

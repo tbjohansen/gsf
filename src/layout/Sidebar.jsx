@@ -44,7 +44,7 @@ const SideBar = ({
     { id: 1, name: "POS", icon: LuLayoutDashboard, url: "/pos" },
     { id: 2, name: "Orders", icon: MdOutlinePropaneTank, url: "/oxygen-customer/orders" },
     { id: 3, name: "Payments", icon: FcMoneyTransfer, url: "/oxygen-customer/payments" },
-    { id: 4, name: "Profile", icon: LuFileUser, url: "/oxygen-customer/profile" },
+    { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
   ];
 
   // Houses customer links

@@ -34,7 +34,7 @@ const Dashboard = () => {
       activeContracts: 68,
     },
     oxygen: {
-      productionCapacity: "500 Cylinders/Day",
+      productionCapacity: "500 units",
       inventory: 1250,
       clients: 45,
       revenue: 18900000,
@@ -227,7 +227,7 @@ const Dashboard = () => {
               <div className="p-3 rounded-lg bg-green-600">
                 <LuLeaf className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-black text-lg font-semibold">Oxygen Plant</h3>
+              <h3 className="text-black text-lg font-semibold">Oxygen & Nitrogen Plant</h3>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
@@ -239,7 +239,7 @@ const Dashboard = () => {
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Inventory</span>
                 <span className="text-black font-medium">
-                  {businessData.oxygen.inventory} Cylinders
+                  {businessData.oxygen.inventory} items
                 </span>
               </div>
               <div className="flex justify-between text-sm">
@@ -329,9 +329,9 @@ const Dashboard = () => {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Vegetables</span>
+                <span className="text-gray-400">Investor</span>
                 <span className="text-black font-medium">
-                  {businessData.spaceRenting.bookedSpaces}
+                  {1}
                 </span>
               </div>
               <div className="flex justify-between text-sm">

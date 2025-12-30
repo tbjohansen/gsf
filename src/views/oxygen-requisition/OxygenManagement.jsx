@@ -438,13 +438,15 @@ const OxygenManagement = () => {
             title="Point Of Sales"
             icon={FiPackage}
             items={[]}
+             tableHeader={"*"}
             route="/projects/oxygen/point-of-sales"
           />
           <ManagementCard
             title="Sales Orders"
             icon={FiPackage}
             items={productions}
-            header={"Status"}
+            tableHeader={"Date"}
+            headerValue={"Cache_Status"}
             route="/projects/oxygen/sales-orders"
           />
         </div>

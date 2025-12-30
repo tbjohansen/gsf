@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GiFarmTractor } from "react-icons/gi";
+import { GiFarmTractor, GiMedicines } from "react-icons/gi";
 import { BiBuildingHouse } from "react-icons/bi";
 import { BsHouses } from "react-icons/bs";
 import { MdOutlinePropaneTank } from "react-icons/md";
@@ -136,7 +136,24 @@ const Projects = () => {
             <GiFarmTractor className="w-7 h-7 text-gray-400" />
           </div>
           <div className="mt-3">
-            <h3 className="text-gray-400 text-xl font-semibold">2</h3>
+            <h3 className="text-gray-400 text-xl font-semibold">1</h3>
+          </div>
+        </div>
+
+        <div
+          onClick={() =>
+            toast("Sorry! This feature is under maintenance", { icon: "ℹ️" })
+          }
+          className="rounded-lg p-4 bg-gray-300 cursor-not-allowed shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
+        >
+          <div className="flex flex-row justify-between items-start mb-2">
+            <h4 className="text-black text-xs font-light opacity-90">
+              GSF PHARMACY
+            </h4>
+            <GiMedicines className="w-7 h-7 text-gray-400" />
+          </div>
+          <div className="mt-3">
+            <h3 className="text-gray-400 text-xl font-semibold">1</h3>
           </div>
         </div>
       </div>

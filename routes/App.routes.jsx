@@ -36,6 +36,11 @@ import PendingTransfers from "../src/views/oxygen-requisition/PendingTransfers";
 import ReceiveTransferredItems from "../src/views/oxygen-requisition/ReceiveTransferredItems";
 import SalesPOS from "../src/views/oxygen-requisition/SalesPOS";
 import SalesOrders from "../src/views/oxygen-requisition/SalesOrders";
+import CustomerOxygenOrders from "../src/views/oxygen-sales-management/CustomerOxygenOrders";
+import CustomerOxygenPayments from "../src/views/oxygen-sales-management/CustomerOxygenPayments";
+import HouseRentals from "../src/views/rentals/HouseRentals";
+import CustomerHouseRequests from "../src/views/rentals/CustomerHouseRequests";
+import CustomerHousePayments from "../src/views/rentals/CustomerHousePayments";
 
 const LoginElement = () => <Login />;
 
@@ -165,12 +170,42 @@ const POSElement = () => (
   </AppLayout>
 );
 
+const RentalUnitsElement = () => (
+  <AppLayout>
+    <HouseRentals />
+  </AppLayout>
+);
+
+const HouseRequestsElement = () => (
+  <AppLayout>
+    <HouseRentals />
+  </AppLayout>
+);
+
+const HousePaymentsElement = () => (
+  <AppLayout>
+    <HouseRentals />
+  </AppLayout>
+);
+
+
+const CustomerHouseRequestsElement = () => (
+  <AppLayout>
+    <CustomerHouseRequests />
+  </AppLayout>
+);
+
+const CustomerHousePaymentsElement = () => (
+  <AppLayout>
+    <CustomerHousePayments />
+  </AppLayout>
+);
+
 const gasOrdersElement = () => (
   <AppLayout>
     <PointOfSale />
   </AppLayout>
 );
-
 
 const gasPaymentsElement = () => (
   <AppLayout>
@@ -214,6 +249,18 @@ const SalesOrdersElement = (props) => (
   </AppLayout>
 );
 
+const OxygenCustomerOrdersElement = (props) => (
+  <AppLayout>
+    <CustomerOxygenOrders {...props} />
+  </AppLayout>
+);
+
+const OxygenCustomerPaymentsElement = (props) => (
+  <AppLayout>
+    <CustomerOxygenPayments {...props} />
+  </AppLayout>
+);
+
 const EstatesElement = () => (
   <AppLayout>
     <EstateDashboard />
@@ -250,7 +297,6 @@ const PendingRoomAssignmentElement = () => (
   </AppLayout>
 );
 
-
 const HouseRentalsElement = () => (
   <AppLayout>
     <HouseRentals />
@@ -274,6 +320,8 @@ const AppRoutes = () => {
   const employee = JSON.parse(employeeData);
   const customer = employee?.customer;
 
+  console.log(customer);
+
   return (
     <React.Fragment>
       <Routes>
@@ -288,7 +336,9 @@ const AppRoutes = () => {
               <Navigate to="/pos" />
             ) : customer?.Customer_Nature === "house_rent" ? (
               <Navigate to="/units" />
-            ) : <Navigate to="/home" />
+            ) : (
+              <Navigate to="/home" />
+            )
           }
         />
         <Route path="/projects" element={<ProjectsElement />} />
@@ -300,6 +350,7 @@ const AppRoutes = () => {
         <Route path="/customers" element={<CustomersElement />} />
 
         <Route path="/pos" element={<POSElement />} />
+        <Route path="/units" element={<RentalUnitsElement />} />
 
         <Route
           path="/items/:itemID/mapped-items"
@@ -355,6 +406,16 @@ const AppRoutes = () => {
           element={<SalesOrdersElement status="oxygen" />}
         />
 
+        <Route
+          path="/oxygen-customer/orders"
+          element={<OxygenCustomerOrdersElement status="oxygen" />}
+        />
+
+        <Route
+          path="/oxygen-customer/payments"
+          element={<OxygenCustomerPaymentsElement status="oxygen" />}
+        />
+
         {/* <Route path="/setups" element={<PaymentCategoriesElement />} /> */}
 
         {/* real estates */}
@@ -391,6 +452,27 @@ const AppRoutes = () => {
         <Route
           path="/projects/real-estates/payments"
           element={<PaymentsElement status="real_estate" />}
+        />
+
+        <Route
+          path="/rentals/requests"
+          element={<PaymentsElement status="real_estate" />}
+        />
+
+        <Route
+          path="/rentals/payments"
+          element={<PaymentsElement status="real_estate" />}
+        />
+
+         <Route
+          path="/houses-customer/requests"
+          element={<CustomerHouseRequestsElement status="real_estate" />}
+        />
+
+        
+         <Route
+          path="/houses-customer/payments"
+          element={<CustomerHousePaymentsElement status="real_estate" />}
         />
 
         {/* //hostels */}
