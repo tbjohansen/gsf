@@ -41,6 +41,9 @@ import CustomerOxygenPayments from "../src/views/oxygen-sales-management/Custome
 import HouseRentals from "../src/views/rentals/HouseRentals";
 import CustomerHouseRequests from "../src/views/rentals/CustomerHouseRequests";
 import CustomerHousePayments from "../src/views/rentals/CustomerHousePayments";
+import Locations from "../src/views/real-estate/Locations";
+import HouseRequestLetter from "../src/views/real-estate/HouseRequestLetter";
+import ReceiveHouseRequest from "../src/views/real-estate/ReceiveHouseRequest";
 
 const LoginElement = () => <Login />;
 
@@ -134,9 +137,26 @@ const FeaturesElement = () => (
   </AppLayout>
 );
 
+const LocationsElement = () => (
+  <AppLayout>
+    <Locations />
+  </AppLayout>
+);
+
+const LetterElement = () => (
+  <AppLayout>
+    <HouseRequestLetter />
+  </AppLayout>
+);
+
 const RequestsListElement = () => (
   <AppLayout>
     <RealEsatesRequests />
+  </AppLayout>
+);
+const ReceiveRequestListElement = () => (
+  <AppLayout>
+    <ReceiveHouseRequest />
   </AppLayout>
 );
 
@@ -187,7 +207,6 @@ const HousePaymentsElement = () => (
     <HouseRentals />
   </AppLayout>
 );
-
 
 const CustomerHouseRequestsElement = () => (
   <AppLayout>
@@ -430,7 +449,19 @@ const AppRoutes = () => {
           element={<FeaturesElement />}
         />
         <Route
-          path="/projects/real-estates/requests"
+          path="/projects/real-estates/locations"
+          element={<LocationsElement />}
+        />
+        <Route
+          path="/projects/real-estates/house-requests"
+          element={<RequestsListElement />}
+        />
+        <Route
+          path="/projects/real-estates/house-requests/:requestID/receive"
+          element={<ReceiveRequestListElement />}
+        />
+         <Route
+          path="/projects/real-estates/space-requests"
           element={<RequestsListElement />}
         />
         <Route
@@ -464,14 +495,15 @@ const AppRoutes = () => {
           element={<PaymentsElement status="real_estate" />}
         />
 
-         <Route
-          path="/houses-customer/requests"
+        <Route
+          path="/customer-requests"
           element={<CustomerHouseRequestsElement status="real_estate" />}
         />
 
-        
-         <Route
-          path="/houses-customer/payments"
+         <Route path="/units/:unitID/request-letter" element={<LetterElement />} />
+
+        <Route
+          path="/customer-payments"
           element={<CustomerHousePaymentsElement status="real_estate" />}
         />
 

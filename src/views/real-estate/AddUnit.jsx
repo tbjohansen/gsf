@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
@@ -28,15 +28,49 @@ const AddUnit = ({ loadData }) => {
     setPrice("");
     setUnitType("");
     setDescription("");
+    setLocation("");
   };
 
   const [name, setName] = useState("");
   const [unitType, setUnitType] = useState("");
   const [price, setPrice] = useState("");
+  const [location, setLocation] = useState("");
+  const [locations, setLocations] = useState([]);
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
+  const hasFetchedData = useRef(false);
+
+  useEffect(() => {
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadLocations();
+    }
+  }, []);
+
+  const loadLocations = async () => {
+    // Get employee info from localStorage
+    const employeeId = localStorage.getItem("employeeId");
+    const data = {
+      Employee_ID: employeeId,
+    };
+
+    try {
+      const response = await apiClient.get("/settings/unit-location", data);
+
+      // Adjust based on your API response structure
+      const featuresData = response?.data?.data;
+      const newData = featuresData?.map((feature, index) => ({
+        ...feature,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setLocations(Array.isArray(newData) ? newData : []);
+    } catch (error) {
+      console.error("Fetch locations error:", error);
+    }
+  };
 
   const sortedTypes = [
     {
@@ -51,6 +85,15 @@ const AddUnit = ({ loadData }) => {
 
   const typesOnChange = (e, value) => {
     setUnitType(value);
+  };
+
+  const sortedLocations = locations?.map((location) => ({
+    id: location?.Unit_Location_ID,
+    label: location?.Unit_Location,
+  }));
+
+  const locationOnChange = (e, value) => {
+    setLocation(value);
   };
 
   const submit = async (e) => {
@@ -71,6 +114,11 @@ const AddUnit = ({ loadData }) => {
       return;
     }
 
+    if (!location) {
+      toast.error("Please select unit location");
+      return;
+    }
+
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
 
@@ -88,6 +136,7 @@ const AddUnit = ({ loadData }) => {
         real_estate_type: unitType?.id,
         price,
         description,
+        Unit_Location_ID: location?.id,
         Employee_ID: employeeId,
       };
 
@@ -204,6 +253,20 @@ const AddUnit = ({ loadData }) => {
                   onChange={typesOnChange}
                   renderInput={(params) => (
                     <TextField {...params} label="Select Unit Type" />
+                  )}
+                />
+              </div>
+              <div className="w-full py-2 flex justify-center">
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedLocations}
+                  size="small"
+                  freeSolo
+                  className="w-[92%]"
+                  value={location}
+                  onChange={locationOnChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Unit Location" />
                   )}
                 />
               </div>

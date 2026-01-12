@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
@@ -38,7 +38,44 @@ const EditUnit = ({ unit, loadData }) => {
   });
   const [price, setPrice] = useState(unit?.price);
   const [description, setDescription] = useState(unit?.description);
+  const [location, setLocation] = useState({
+    id: unit?.Unit_Location_ID,
+    label: capitalize(unit?.location?.Unit_Location),
+  });
   const [loading, setLoading] = useState(false);
+  const [locations, setLocations] = useState([]);
+
+  const hasFetchedData = useRef(false);
+
+  useEffect(() => {
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadLocations();
+    }
+  }, []);
+
+  const loadLocations = async () => {
+    // Get employee info from localStorage
+    const employeeId = localStorage.getItem("employeeId");
+    const data = {
+      Employee_ID: employeeId,
+    };
+
+    try {
+      const response = await apiClient.get("/settings/unit-location", data);
+
+      // Adjust based on your API response structure
+      const featuresData = response?.data?.data;
+      const newData = featuresData?.map((feature, index) => ({
+        ...feature,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setLocations(Array.isArray(newData) ? newData : []);
+    } catch (error) {
+      console.error("Fetch locations error:", error);
+    }
+  };
 
   const sortedTypes = [
     {
@@ -70,6 +107,15 @@ const EditUnit = ({ unit, loadData }) => {
     setStatus(value);
   };
 
+  const sortedLocations = locations?.map((location) => ({
+    id: location?.Unit_Location_ID,
+    label: location?.Unit_Location,
+  }));
+
+  const locationOnChange = (e, value) => {
+    setLocation(value);
+  };
+
   const dispatch = useDispatch();
 
   const submit = async (e) => {
@@ -95,6 +141,11 @@ const EditUnit = ({ unit, loadData }) => {
       return;
     }
 
+    if (!location) {
+      toast.error("Please select unit location");
+      return;
+    }
+
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
 
@@ -113,6 +164,7 @@ const EditUnit = ({ unit, loadData }) => {
         status: status?.id,
         price,
         description,
+        Unit_Location_ID: location?.id,
         Employee_ID: employeeId,
       };
 
@@ -235,6 +287,20 @@ const EditUnit = ({ unit, loadData }) => {
                   onChange={typesOnChange}
                   renderInput={(params) => (
                     <TextField {...params} label="Select Unit Type" />
+                  )}
+                />
+              </div>
+              <div className="w-full py-2 flex justify-center">
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedLocations}
+                  size="small"
+                  freeSolo
+                  className="w-[92%]"
+                  value={location}
+                  onChange={locationOnChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Unit Location" />
                   )}
                 />
               </div>

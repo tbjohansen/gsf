@@ -109,7 +109,7 @@ export default function CustomerHouseRequests({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Customer_ID=${customer?.Customer_ID}`;
+      let url = `/customer/customer-request?&Customer_ID=${customer?.Customer_ID}&Request_Type=real_estate&Customer_Status=active`;
 
       if (startDate) {
         url += `&Start_Date=${formatDateForDb(startDate)}`;
@@ -127,13 +127,13 @@ export default function CustomerHouseRequests({ status }) {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch customer orders");
+        toast.error(response.data?.error || "Failed to fetch customer requests");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch customer orders");
+        toast.error(response.data.error || "Failed to fetch customer requests");
         return;
       }
 
@@ -145,9 +145,9 @@ export default function CustomerHouseRequests({ status }) {
       setRequests(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch sales orders error:", error);
+      console.error("Fetch customer requests error:", error);
       setLoading(false);
-      toast.error("Failed to load customer orders");
+      toast.error("Failed to load customer requests");
     }
   };
 

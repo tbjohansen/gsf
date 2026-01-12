@@ -1,0 +1,191 @@
+import React, { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { BsHouseAdd } from "react-icons/bs";
+import Breadcrumb from "../../components/Breadcrumb";
+import { useParams } from "react-router-dom";
+import apiClient from "../../api/Client";
+
+const SpaceRequestLetter = () => {
+  const [letterContent, setLetterContent] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+
+  const { unitID } = useParams();
+
+    const hasFetchedData = useRef(false);
+  
+    useEffect(() => {
+      if (!hasFetchedData.current) {
+        hasFetchedData.current = true;
+        loadData();
+      }
+    }, []);
+  
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const response = await apiClient.get("/settings/real-estate", {ID: unitID});
+  
+        if (!response.ok) {
+          setLoading(false);
+          toast.error(response.data?.error || "Failed to fetch units");
+          return;
+        }
+  
+        if (response.data?.error || response.data?.code >= 400) {
+          setLoading(false);
+          toast.error(response.data.error || "Failed to fetch units");
+          return;
+        }
+  
+        const userData = response?.data?.data?.data;
+        const newData = userData?.map((user, index) => ({
+          ...user,
+          key: index + 1,
+        }));
+        setUnits(Array.isArray(newData) ? newData : []);
+        setLoading(false);
+      } catch (error) {
+        console.error("Fetch units error:", error);
+        setLoading(false);
+        toast.error("Failed to load units");
+      }
+    };
+
+  const handleSendRequest = async (e) => {
+    e.preventDefault();
+
+    if (!letterContent.trim()) {
+      toast.error("Please write your letter first");
+      return;
+    }
+
+    // Get employee info from localStorage
+    const employeeId = localStorage.getItem("employeeId");
+
+    if (!employeeId) {
+      toast.error("User information not found. Please login again.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Prepare the data to send (match your API field names)
+      const data = {
+        Customer_ID: employeeId,
+        Description: letterContent.trim(),
+        real_estate_id: unitID,
+        Phone_Number: "",
+        Price: "",
+        Request_Type: "house_rent",
+      };
+
+      // Make API request - Bearer token is automatically included by apiClient
+      const response = await apiClient.post(
+        "/estate/real-estate-request",
+        data
+      );
+
+      // Check if request was successful
+      if (!response.ok) {
+        setLoading(false);
+
+        // Handle apisauce errors
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          toast.error(response.data?.error || "Failed to submit request");
+        }
+        return;
+      }
+
+      // Check if response contains an error (your API pattern)
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+
+        // Handle validation errors (nested error object)
+        if (response.data?.error && typeof response.data.error === "object") {
+          // Extract first validation error message
+          const firstErrorKey = Object.keys(response.data.error)[0];
+          const firstErrorMessage = response.data.error[firstErrorKey][0];
+          toast.error("Failed to submit request");
+        } else {
+          // Handle simple error string
+          const errorMessage =
+            response.data.error || "Failed to submit request";
+          toast.error(errorMessage);
+        }
+        return;
+      }
+
+      // Success
+      setLoading(false);
+      toast.success("Request is sent successfully");
+    } catch (error) {
+      console.error("Send request error:", error);
+      setLoading(false);
+      toast.error("An unexpected error occurred. Please try again");
+    }
+  };
+
+  return (
+    <>
+      <Breadcrumb />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="inline-flex text-black items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full">
+                  <BsHouseAdd className="w-8 h-8" />
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold text-center mb-2">
+                Space Allocation Request Letter
+              </h1>
+              <p className="text-center text-blue-100">
+                Write your formal request to the Managing Director
+              </p>
+            </div>
+
+            {/* Writing Area */}
+            <div className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <label className="block text-lg font-semibold text-gray-800">
+                  Write Your Letter
+                </label>
+                <div className="text-sm text-gray-500">
+                  {letterContent.length} characters
+                </div>
+              </div>
+
+              <textarea
+                value={letterContent}
+                onChange={(e) => setLetterContent(e.target.value)}
+                className="w-full h-[500px] p-6 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm leading-relaxed resize-none"
+                placeholder="Start writing your space rental request letter here..."
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleSendRequest}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                >
+                  Submit Request Letter
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default SpaceRequestLetter;

@@ -8,13 +8,16 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import Badge from "../../components/Badge";
-import { capitalize, currencyFormatter, formatter } from "../../../helpers";
+import { formatDateTimeForDb, formatter } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
+import { capitalize } from "lodash";
+import Badge from "../../components/Badge";
+import AddLocation from "./AddLocation";
+import EditLocation from "./EditLocation";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -26,10 +29,10 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function RealEsatesRequests() {
+export default function Locations() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [requestsList, setList] = React.useState([]);
+  const [locations, setLocations] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
@@ -46,36 +49,41 @@ export default function RealEsatesRequests() {
 
   const loadData = async () => {
     setLoading(true);
+
+    // Get employee info from localStorage
+    const employeeId = localStorage.getItem("employeeId");
+    const data = {
+      Employee_ID: employeeId,
+    };
+
     try {
-      const response = await apiClient.get(
-        "/customer/customer-request?&Request_Type=real_estate"
-      );
+      const response = await apiClient.get("/settings/unit-location", data);
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch requests");
+        toast.error(response?.data?.error || "Failed to fetch locations");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch requests");
+        toast.error(response?.data?.error || "Failed to fetch locations");
         return;
       }
 
       // Adjust based on your API response structure
-      const paymentsData = response?.data?.data?.data;
-      const newData = paymentsData?.map((payment, index) => ({
-        ...payment,
+      const featuresData = response?.data?.data;
+      const newData = featuresData?.map((feature, index) => ({
+        ...feature,
         key: index + 1,
       }));
-      console.log(newData);
-      setList(Array.isArray(newData) ? newData : []);
+      // console.log(newData);
+      setLocations(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch requests error:", error);
+      console.error("Fetch locations error:", error);
       setLoading(false);
-      toast.error("Failed to load requests");
+      toast.error("Failed to load locations");
     }
   };
 
@@ -88,146 +96,41 @@ export default function RealEsatesRequests() {
     setPage(0);
   };
 
-  // Inside the Hostels component, replace the columns definition with:
+  // Inside the users component, replace the columns definition with:
   const columns = React.useMemo(
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "name",
-        label: "Full Name",
-        minWidth: 170,
-        format: (row, value) => (
-          <span>{capitalize(value?.customer?.Customer_Name)}</span>
-        ),
+        id: "Unit_Location",
+        label: "Location Name",
+        format: (value) => <span>{capitalize(value)}</span>,
       },
       {
-        id: "gender",
-        label: "Gender",
-        format: (row, value) => (
-          <span>{capitalize(value?.customer?.Gender)}</span>
-        ),
+        id: "created_at",
+        label: "Created At",
+        format: (value) => <span>{formatDateTimeForDb(value)}</span>,
       },
       {
-        id: "student_id",
-        label: "Customer ID",
-        format: (row, value) => (
-          <span>{capitalize(value?.customer?.Student_ID)}</span>
-        ),
-      },
-      {
-        id: "Customer_Status",
-        label: "Request Status",
-        minWidth: 170,
+        id: "actions",
+        label: "Actions",
         align: "center",
-        format: (row, value) => (
-          <Badge
-            name={
-              value?.Customer_Status === "active"
-                ? "Pending"
-                : capitalize(value?.Customer_Status)
-            }
-            color={
-              value?.Customer_Status === "served" ||
-              value?.Customer_Status === "assign"
-                ? "green"
-                : value?.Customer_Status === "active"
-                ? "yellow"
-                : value?.Customer_Status === "received"
-                ? "blue"
-                : "red"
-            }
-          />
+        format: (value, row) => (
+          <div className="flex gap-2 justify-center">
+            <EditLocation location={row} loadData={loadData} />
+          </div>
         ),
-      },
-      {
-        id: "estate",
-        label: "Unit Type",
-        minWidth: 170,
-        format: (row, value) => (
-          <span>{capitalize(value?.estate?.real_estate_type)}</span>
-        ),
-      },
-      {
-        id: "requested_room",
-        label: "Unit Name",
-        minWidth: 170,
-        format: (row, value) => <span>{value?.estate?.name}</span>,
-      },
-      {
-        id: "price",
-        label: "Monthly Price",
-        minWidth: 170,
-        format: (row, value) => (
-          <span>{currencyFormatter?.format(value?.estate?.price)}</span>
-        ),
-      },
-      {
-        id: "total_amount",
-        label: "Amount",
-        format: (row, value) => (
-          <span>
-            {formatter.format(value?.Sangira?.Grand_Total_Price || 0)}
-          </span>
-        ),
-      },
-      {
-        id: "status",
-        label: "Payment Status",
-        minWidth: 170,
-        align: "center",
-        format: (row, value) => (
-          <Badge
-            name={capitalize(value?.Sangira?.Sangira_Status)}
-            color={
-              value?.Sangira?.Sangira_Status === "completed"
-                ? "green"
-                : value?.Sangira?.Sangira_Status === "pending"
-                ? "blue"
-                : "red"
-            }
-          />
-        ),
-      },
-      {
-        id: "sangira_number",
-        label: "Sangira",
-        format: (row, value) => (
-          <span>{value?.Sangira?.Sangira_Number || ""}</span>
-        ),
-      },
-      {
-        id: "completed_date",
-        label: "Payment Date",
-        minWidth: 170,
-        format: (row, value) => <span>{value?.Sangira?.Completed_Date}</span>,
-      },
-      {
-        id: "payment_receipt",
-        label: "Receipt",
-        format: (row, value) => <span>{value?.Sangira?.Receipt_Number}</span>,
-      },
-      {
-        id: "requested_at",
-        label: "Requested Date",
-        minWidth: 170,
-        format: (row, value) => <span>{value?.Sangira?.Requested_Date}</span>,
       },
     ],
-    []
-  );
-
-  const handleRowClick = (row) => {
-    navigate(
-      `/projects/real-estates/house-requests/${row?.Request_ID}/receive`
-    );
-  };
+    [loadData]
+  ); // Add loadData as dependency
 
   return (
     <>
       <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
-          <h4>Requests List</h4>
+          <h4>Real Estate Unit Locations</h4>
+          <AddLocation loadData={loadData} />
         </div>
       </div>
 
@@ -255,7 +158,7 @@ export default function RealEsatesRequests() {
                   </TableCell>
                 </TableRow>
               )}
-              {requestsList
+              {locations
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -264,7 +167,6 @@ export default function RealEsatesRequests() {
                       role="checkbox"
                       tabIndex={-1}
                       key={row.key || row.id}
-                      onClick={() => handleRowClick(row)}
                       sx={{
                         backgroundColor:
                           selectedRow?.key === row.key
@@ -302,7 +204,7 @@ export default function RealEsatesRequests() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={requestsList?.length}
+          count={locations?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

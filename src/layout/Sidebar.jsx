@@ -50,8 +50,8 @@ const SideBar = ({
   // Houses customer links
   const housesCustomerLinks = [
     { id: 1, name: "Units", icon: LuLayoutDashboard, url: "/units" },
-    { id: 82, name: "Requests", icon: HiOutlineInboxArrowDown, url: "/houses-customer/requests" },
-    { id: 83, name: "Payments", icon: FcMoneyTransfer, url: "/houses-customer/payments" },
+    { id: 82, name: "Requests", icon: HiOutlineInboxArrowDown, url: "/customer-requests" },
+    { id: 83, name: "Payments", icon: FcMoneyTransfer, url: "/customer-payments" },
     { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
   ];
 

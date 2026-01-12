@@ -4,18 +4,16 @@ import {
   MdPeople,
   MdTrendingUp,
 } from "react-icons/md";
-import { BiBuildingHouse } from "react-icons/bi";
 import { FaHome } from "react-icons/fa";
 import { useEffect, useState } from "react";
-import { PiStudent } from "react-icons/pi";
-import { RiListSettingsLine } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { FiArrowRight } from "react-icons/fi";
+import { FiMapPin } from "react-icons/fi";
 import apiClient from "./api/Client";
 import { capitalize, formatter } from "../helpers";
 import ManagementCard from "./components/ManagementCard";
 import { LuLandPlot } from "react-icons/lu";
-import { BsBoxes, BsClipboard2Plus, BsPeople } from "react-icons/bs";
+import { BsBoxes, BsClipboard2Plus, BsHouseCheck, BsPeople } from "react-icons/bs";
 import { HiOutlineInboxArrowDown } from "react-icons/hi2";
 
 const EstateDashboard = () => {
@@ -24,8 +22,10 @@ const EstateDashboard = () => {
   const [payments, setPayments] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [units, setUnits] = useState([]);
   const [items, setItems] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [features, setFeatures] = useState([]);
   const [stats, setStatistics] = useState("");
   const [loading, setLoading] = useState(false);
@@ -155,6 +155,36 @@ const EstateDashboard = () => {
     }
   };
 
+  const loadLocations = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get("/settings/unit-location");
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const locationsData = response?.data?.data;
+      const newData = locationsData?.map((location, index) => ({
+        ...location,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setLocations(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch locations error:", error);
+      setLoading(false);
+    }
+  };
+
   const loadCustomers = async () => {
     setLoading(true);
     try {
@@ -187,45 +217,43 @@ const EstateDashboard = () => {
     }
   };
 
- const loadEmployees = async () => {
-  setLoading(true);
-  try {
-    const url = `/customer/customer?&Customer_Nature=house_rent`;
-    const response = await apiClient.get(url);
+  const loadEmployees = async () => {
+    setLoading(true);
+    try {
+      const url = `/customer/customer?&Customer_Nature=house_rent`;
+      const response = await apiClient.get(url);
 
-    if (!response.ok || response.data?.error || response.data?.code >= 400) {
-      setLoading(false);
-      return;
-    }
-
-    const userData = response?.data?.data?.data || [];
-
-    const employeesArray = [];
-    const customersArray = [];
-
-    userData.forEach((user, index) => {
-      const mappedUser = {
-        ...user,
-        key: index + 1,
-      };
-
-      if (user?.Student_ID != null) {
-        employeesArray.push(mappedUser);
-      } else {
-        customersArray.push(mappedUser);
+      if (!response.ok || response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        return;
       }
-    });
 
-    setEmployees(employeesArray);
-    setCustomers(customersArray);
+      const userData = response?.data?.data?.data || [];
 
-  } catch (error) {
-    console.error("Fetch customers error:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+      const employeesArray = [];
+      const customersArray = [];
 
+      userData.forEach((user, index) => {
+        const mappedUser = {
+          ...user,
+          key: index + 1,
+        };
+
+        if (user?.Student_ID != null) {
+          employeesArray.push(mappedUser);
+        } else {
+          customersArray.push(mappedUser);
+        }
+      });
+
+      setEmployees(employeesArray);
+      setCustomers(customersArray);
+    } catch (error) {
+      console.error("Fetch customers error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadItems = async () => {
     setLoading(true);
@@ -259,6 +287,70 @@ const EstateDashboard = () => {
     }
   };
 
+  const loadHouseRequests = async () => {
+    setLoading(true);
+    try {
+      let url = `/customer/customer-request?&Request_Type=real_estate`;
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const itemData = response?.data?.data?.data;
+      const newData = itemData?.map((item, index) => ({
+        ...item,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setRequests(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch items error:", error);
+      setLoading(false);
+    }
+  };
+
+   const loadSpaceRequests = async () => {
+    setLoading(true);
+    try {
+      let url = `/customer/customer-request?&Request_Type=real_estate`;
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const itemData = response?.data?.data?.data;
+      const newData = itemData?.map((item, index) => ({
+        ...item,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setRequests(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch items error:", error);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadPaymentsData();
     loadHostelStats();
@@ -267,6 +359,9 @@ const EstateDashboard = () => {
     loadCustomers();
     loadItems();
     loadEmployees();
+    loadLocations();
+    loadHouseRequests();
+    loadSpaceRequests();
   }, []);
 
   return (
@@ -432,13 +527,38 @@ const EstateDashboard = () => {
               items={features}
               route="/projects/real-estates/features"
             />
+
             <ManagementCard
-              title="Rental Requests"
+              title="Rental House Requests"
               icon={HiOutlineInboxArrowDown}
-              items={[]}
-              route="/projects/real-estates/requests"
+              items={requests}
+              route="/projects/real-estates/house-requests"
               header={"Status"}
-              headerValue={"status"}
+              headerValue={"Customer_Status"}
+            />
+            <ManagementCard
+              title="Rental Space Requests"
+              icon={HiOutlineInboxArrowDown}
+              items={requests}
+              route="/projects/real-estates/space-requests"
+              header={"Status"}
+              headerValue={"Customer_Status"}
+            />
+            <ManagementCard
+              title="Rented Houses"
+              icon={BsHouseCheck}
+              items={requests}
+              route="/projects/real-estates/house-requests"
+              header={"Status"}
+              headerValue={"Room_Status"}
+            />
+            <ManagementCard
+              title="Rented Spaces"
+              icon={LuLandPlot}
+              items={requests}
+              route="/projects/real-estates/space-requests"
+              header={"Status"}
+              headerValue={"Room_Status"}
             />
             <ManagementCard
               title="Employees"
@@ -448,7 +568,6 @@ const EstateDashboard = () => {
               header={"Status"}
               headerValue={"Customer_Status"}
             />
-
             <ManagementCard
               title="Customers"
               icon={BsPeople}
@@ -456,6 +575,14 @@ const EstateDashboard = () => {
               route="/projects/real-estates/customers"
               header={"Status"}
               headerValue={"Customer_Status"}
+            />
+            <ManagementCard
+              title="Unit Locations"
+              icon={FiMapPin}
+              items={locations}
+              route="/projects/real-estates/locations"
+              header={"Status"}
+              headerValue={"Location_Status"}
             />
           </div>
         </div>

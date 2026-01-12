@@ -91,4 +91,6 @@ export const clearAuthToken = () => {
   apiClient.deleteHeader("Authorization");
 };
 
+export const baseURL = "http://41.188.172.117";
+
 export default apiClient;

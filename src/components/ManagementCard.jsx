@@ -56,6 +56,7 @@ const ManagementCard = ({
       item?.customer?.Customer_Name ||
       item?.Production_Date ||
       item?.Transaction_Date ||
+      item?.Unit_Location ||
       ""
     );
   };
