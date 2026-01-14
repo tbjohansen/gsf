@@ -28,6 +28,8 @@ const EstateDashboard = () => {
   const [requests, setRequests] = useState([]);
   const [features, setFeatures] = useState([]);
   const [stats, setStatistics] = useState("");
+  const [availableHouses, setAvailableHouses] = useState("");
+  const [availableSpace, setAvailableSpaces] = useState("");
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
 

@@ -48,7 +48,7 @@ export default function RealEsatesRequests() {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        "/customer/customer-request?&Request_Type=real_estate"
+        "/customer/customer-request?&Request_Type=house_rent"
       );
 
       if (!response.ok) {
@@ -132,7 +132,8 @@ export default function RealEsatesRequests() {
                 ? "green"
                 : value?.Customer_Status === "active"
                 ? "yellow"
-                : value?.Customer_Status === "received"
+                : value?.Customer_Status === "received" ||
+                  value?.Customer_Status === "requested"
                 ? "blue"
                 : "red"
             }
@@ -166,26 +167,12 @@ export default function RealEsatesRequests() {
         label: "Amount",
         format: (row, value) => (
           <span>
-            {formatter.format(value?.Sangira?.Grand_Total_Price || 0)}
+            {value?.Sangira
+              ? currencyFormatter?.format(
+                  value?.Sangira?.Grand_Total_Price || 0
+                )
+              : null}
           </span>
-        ),
-      },
-      {
-        id: "status",
-        label: "Payment Status",
-        minWidth: 170,
-        align: "center",
-        format: (row, value) => (
-          <Badge
-            name={capitalize(value?.Sangira?.Sangira_Status)}
-            color={
-              value?.Sangira?.Sangira_Status === "completed"
-                ? "green"
-                : value?.Sangira?.Sangira_Status === "pending"
-                ? "blue"
-                : "red"
-            }
-          />
         ),
       },
       {
@@ -193,6 +180,34 @@ export default function RealEsatesRequests() {
         label: "Sangira",
         format: (row, value) => (
           <span>{value?.Sangira?.Sangira_Number || ""}</span>
+        ),
+      },
+      {
+        id: "requested_at",
+        label: "Requested Date",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.Sangira?.Requested_Date}</span>,
+      },
+      {
+        id: "status",
+        label: "Payment Status",
+        minWidth: 170,
+        align: "center",
+        format: (row, value) => (
+          <>
+            {value?.Sangira ? (
+              <Badge
+                name={capitalize(value?.Sangira?.Sangira_Status)}
+                color={
+                  value?.Sangira?.Sangira_Status === "completed"
+                    ? "green"
+                    : value?.Sangira?.Sangira_Status === "pending"
+                    ? "blue"
+                    : "red"
+                }
+              />
+            ) : null}
+          </>
         ),
       },
       {
@@ -205,12 +220,6 @@ export default function RealEsatesRequests() {
         id: "payment_receipt",
         label: "Receipt",
         format: (row, value) => <span>{value?.Sangira?.Receipt_Number}</span>,
-      },
-      {
-        id: "requested_at",
-        label: "Requested Date",
-        minWidth: 170,
-        format: (row, value) => <span>{value?.Sangira?.Requested_Date}</span>,
       },
     ],
     []
@@ -266,6 +275,7 @@ export default function RealEsatesRequests() {
                       key={row.key || row.id}
                       onClick={() => handleRowClick(row)}
                       sx={{
+                        cursor: "pointer",
                         backgroundColor:
                           selectedRow?.key === row.key
                             ? "rgba(0, 0, 0, 0.04)"

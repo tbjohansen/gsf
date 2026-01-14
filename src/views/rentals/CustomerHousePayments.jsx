@@ -130,17 +130,16 @@ export default function CustomerHousePayments({ status }) {
   const columns = useMemo(
     () => [
       { id: "key", label: "S/N" },
-      {
-        id: "name",
-        label: `${"Employee Name"}`,
-        minWidth: 170,
+       {
+        id: "sangira_number",
+        label: "Sangira",
         format: (row, value) => (
-          <span>{capitalize(value?.customer?.Customer_Name)}</span>
+          <span>{value?.Sangira?.Sangira_Number || ""}</span>
         ),
       },
       {
         id: "total_amount",
-        label: "Amount (TZS)",
+        label: "Amount",
         minWidth: 150,
         format: (row, value) => (
           <span>
@@ -167,13 +166,7 @@ export default function CustomerHousePayments({ status }) {
           />
         ),
       },
-      {
-        id: "sangira_number",
-        label: "Sangira",
-        format: (row, value) => (
-          <span>{value?.Sangira?.Sangira_Number || ""}</span>
-        ),
-      },
+     
       {
         id: "Request_Type",
         label: "Payment Type",
@@ -211,7 +204,6 @@ export default function CustomerHousePayments({ status }) {
 
   return (
     <>
-      {status ? <Breadcrumb /> : null}
       <div className="w-full h-12">
         <h4>Payments List</h4>
       </div>

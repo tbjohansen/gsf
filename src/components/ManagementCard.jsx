@@ -65,12 +65,13 @@ const ManagementCard = ({
   const getStatusColor = (status) => {
     const statusValue = String(status).toLowerCase();
 
-    if (statusValue === "inactive" || statusValue === "expired") {
+    if (statusValue === "inactive" || statusValue === "expired" || statusValue === "rejected") {
       return "text-red-600 bg-red-50";
     } else if (
       statusValue === "completed" ||
       statusValue === "active" ||
       statusValue === "received" ||
+      statusValue === "served" ||
       statusValue === "paid"
     ) {
       return "text-green-600 bg-green-50";
