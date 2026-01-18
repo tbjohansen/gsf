@@ -416,7 +416,7 @@ const AppRoutes = () => {
   const employee = JSON.parse(employeeData);
   const customer = employee?.customer;
 
-  console.log(customer);
+  console.log(employee);
 
   return (
     <React.Fragment>

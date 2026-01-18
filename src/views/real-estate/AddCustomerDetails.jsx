@@ -247,6 +247,11 @@ const AddCustomerDetails = ({ loadData, status }) => {
     { id: "Zimbabwean", label: "Zimbabwean" },
   ];
 
+  const sortedGender = [
+    { id: "male", label: "Male" },
+    { id: "femal", label: "Female" },
+  ];
+
   const [loading, setLoading] = useState(false);
 
   const handleChange = (field) => (e, newValue) => {
@@ -269,8 +274,6 @@ const AddCustomerDetails = ({ loadData, status }) => {
 
   const submit = async (e) => {
     e.preventDefault();
-
-    console.log("yess");
 
     if (!formData.Customer_Name || formData.Customer_Name.trim() === "") {
       toast.error("Please enter customer name");
@@ -421,6 +424,20 @@ const AddCustomerDetails = ({ loadData, status }) => {
                 disabled={loading}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedGender}
+                  size="small"
+                  freeSolo
+                  className="w-full"
+                  value={sortedNationalities?.find(
+                    (option) => option.id === formData?.Gender,
+                  )}
+                  onChange={handleChange("Gender")}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Gender" />
+                  )}
+                />
                 <TextField
                   size="small"
                   label="Phone Number"
@@ -457,8 +474,7 @@ const AddCustomerDetails = ({ loadData, status }) => {
                   onChange={handleChange("Email")}
                   disabled={loading}
                 />
-              </div>
-              <Autocomplete
+                 <Autocomplete
                 id="combo-box-demo"
                 options={sortedNationalities}
                 size="small"
@@ -466,13 +482,15 @@ const AddCustomerDetails = ({ loadData, status }) => {
                 freeSolo
                 fullWidth
                 value={sortedNationalities.find(
-                  (option) => option.id === formData?.Nationality
+                  (option) => option.id === formData?.Nationality,
                 )}
                 onChange={handleChange("Nationality")}
                 renderInput={(params) => (
                   <TextField {...params} label="Select Nationality" />
                 )}
               />
+              </div>
+             
               <div className="pt-2">
                 <button
                   type="submit"

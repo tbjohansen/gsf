@@ -271,7 +271,7 @@ const EstateDashboard = () => {
         };
 
         // Use strict equality
-        if (user?.Student_ID === null) {
+        if (user?.Student_ID !== null) {
           employeesArray.push(mappedUser);
         } else {
           customersArray.push(mappedUser);
@@ -408,6 +408,22 @@ const EstateDashboard = () => {
     return date.toLocaleDateString();
   };
 
+  // Function to get total occupants (occupied units)
+function getTotalOccupants(realEstateData) {
+  return realEstateData?.filter(unit => unit?.available === "no")?.length;
+}
+
+// Function to calculate occupancy rate
+function getOccupancyRate(realEstateData) {
+  const totalUnits = realEstateData?.length;
+  const occupiedUnits = getTotalOccupants(realEstateData);
+  
+  if (totalUnits === 0) return 0;
+  
+  const rate = (occupiedUnits / totalUnits) * 100;
+  return parseFloat(rate.toFixed(2));
+}
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -465,10 +481,10 @@ const EstateDashboard = () => {
               <MdPeople className="w-5 h-5 text-purple-600" />
             </div>
             <p className="text-3xl font-bold text-gray-800">
-              {formatter.format(stats?.occupants || 0)}
+              {formatter.format(getTotalOccupants(units) || 0)}
             </p>
             <p className="text-xs text-purple-600 mt-2">
-              {formatter.format(stats?.rates || 0)}% occupancy rate
+              {getOccupancyRate(units)}% occupancy rate
             </p>
           </div>
         </div>
