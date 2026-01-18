@@ -153,7 +153,7 @@ const AddUnit = ({ loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to create unit");
+          toast.error("Failed to create unit");
         }
         return;
       }
@@ -170,7 +170,7 @@ const AddUnit = ({ loadData }) => {
           toast.error("Failed to create unit");
         } else {
           // Handle simple error string
-          const errorMessage = response.data.error || "Failed to create unit";
+          const errorMessage = "Failed to create unit";
           toast.error(errorMessage);
         }
         return;

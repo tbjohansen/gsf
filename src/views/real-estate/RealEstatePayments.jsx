@@ -8,16 +8,19 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import { capitalize, currencyFormatter, formatter, removeUnderscore } from "../../../helpers";
+import {
+  capitalize,
+  currencyFormatter,
+  formatter,
+  removeUnderscore,
+} from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
 import { Autocomplete, TextField } from "@mui/material";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { values } from "lodash";
-import DatePick from "../../components/DatePicker";
+import { useEffect, useMemo, useState } from "react";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -29,23 +32,34 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function CustomerHousePayments({ status }) {
+export default function RealEstatePayments() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [payments, setPayments] = useState([]);
+  const [paymentType, setPaymentType] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const [customerID, setCustomerID] = useState("");
+  const [name, setName] = useState("");
   const [sangiraNumber, setSangiraNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
 
   const navigate = useNavigate();
-  const hasFetchedData = useRef(false);
 
-  const employeeData = localStorage.getItem("userInfo");
-  const employee = JSON.parse(employeeData);
-  const customer = employee?.customer;
+  const sortedPaymentTypes = [
+    {
+      id: "house",
+      label: "Rental House",
+    },
+    {
+      id: "business_land",
+      label: "Rental Space",
+    },
+  ];
+
+  const paymentTypeOnChange = (e, value) => {
+    setPaymentType(value);
+  };
 
   const sortedPaymentStatus = [
     {
@@ -68,28 +82,29 @@ export default function CustomerHousePayments({ status }) {
 
   // Fetch payments from API
   useEffect(() => {
-    if (!hasFetchedData.current) {
-      hasFetchedData.current = true;
-      loadData();
-    }
-  }, [startDate, endDate, sangiraNumber, paymentStatus]);
+    loadData();
+  }, [name, customerID, sangiraNumber, paymentType, paymentStatus]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Request_Type=house_rent&Customer_ID=${customer?.Customer_ID}`;
+      let url = `/customer/customer-request?&Request_Type=house_rent`;
 
-      if (startDate) {
-        url += `&Start_Date=${formatDateForDb(startDate)}`;
-      }
-
-      if (endDate) {
-        url += `&End_Date=${formatDateForDb(endDate)}`;
+      if (name) {
+        url += `Customer_Name=${name}`;
       }
 
       if (sangiraNumber) {
-        url += `&Sangira_Number=${sangiraNumber}`;
+        url += `Sangira_Number=${sangiraNumber}`;
       }
+
+      if (paymentType) {
+        url += `Request_Type=${paymentType?.value}`;
+      }
+
+    //   if (paymentStatus) {
+    //     url += `Sangira_Number=${paymentStatus}`;
+    //   }
 
       const response = await apiClient.get(url);
 
@@ -107,13 +122,10 @@ export default function CustomerHousePayments({ status }) {
 
       // Adjust based on your API response structure
       const paymentsData = response?.data?.data?.data;
-
-      const newData = paymentsData
-        ?.filter((payment) => payment?.Sangira_ID) // keep only items with Sangira_ID
-        ?.map((payment, index) => ({
-          ...payment,
-          key: index + 1,
-        }));
+      const newData = paymentsData?.map((payment, index) => ({
+        ...payment,
+        key: index + 1,
+      }));
       // console.log(newData);
       setPayments(Array.isArray(newData) ? newData : []);
       setLoading(false);
@@ -138,16 +150,18 @@ export default function CustomerHousePayments({ status }) {
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "Request_Type",
-        label: "Payment Type",
+        id: "name",
+        label: "Customer Name",
         minWidth: 170,
-        format: (row, value) => <span>{capitalize(removeUnderscore(value?.Request_Type))}</span>,
+        format: (row, value) => (
+          <span>{capitalize(value?.customer?.Customer_Name)}</span>
+        ),
       },
       {
-        id: "sangira_number",
-        label: "Sangira",
+        id: "gender",
+        label: "Gender",
         format: (row, value) => (
-          <span>{value?.Sangira?.Sangira_Number || ""}</span>
+          <span>{capitalize(value?.customer?.Gender)}</span>
         ),
       },
       {
@@ -163,22 +177,54 @@ export default function CustomerHousePayments({ status }) {
         ),
       },
       {
+        id: "Request_Type",
+        label: "Payment Type",
+        minWidth: 170,
+        format: (row, value) => (
+          <span>{capitalize(removeUnderscore(value?.Request_Type))}</span>
+        ),
+      },
+      {
+        id: "Request_Type",
+        label: "Payment Mode",
+        minWidth: 170,
+        format: (row, value) => (
+          <span>
+            {value?.Sangira?.Sangira_Number
+              ? "SANGIRA NUMBER"
+              : "SALARY DEDUCTION"}
+          </span>
+        ),
+      },
+      {
+        id: "sangira_number",
+        label: "Sangira",
+        format: (row, value) => (
+          <span>{value?.Sangira?.Sangira_Number || ""}</span>
+        ),
+      },
+      {
         id: "status",
         label: "Status",
         align: "center",
         format: (row, value) => (
-          <Badge
-            name={capitalize(value?.Sangira?.Sangira_Status || "Expired")}
-            color={
-              value?.Sangira?.Sangira_Status === "completed"
-                ? "green"
-                : value?.Sangira?.Sangira_Status === "pending"
-                ? "blue"
-                : "red"
-            }
-          />
+          <>
+            {value?.Sangira?.Sangira_Status ? (
+              <Badge
+                name={capitalize(value?.Sangira?.Sangira_Status)}
+                color={
+                  value?.Sangira?.Sangira_Status === "completed"
+                    ? "green"
+                    : value?.Sangira?.Sangira_Status === "pending"
+                    ? "blue"
+                    : "red"
+                }
+              />
+            ) : null}
+          </>
         ),
       },
+
       {
         id: "requested_at",
         label: "Requested Date",
@@ -204,28 +250,51 @@ export default function CustomerHousePayments({ status }) {
           <span>{value?.Sangira?.Payment_Direction}</span>
         ),
       },
+      {
+        id: "requested_room",
+        label: "Unit Name",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.estate?.name}</span>,
+      },
+      {
+        id: "price",
+        label: "Monthly Price",
+        minWidth: 170,
+        format: (row, value) => (
+          <span>{currencyFormatter?.format(value?.estate?.price)}</span>
+        ),
+      },
     ],
     []
   );
 
   return (
     <>
+      <Breadcrumb />
       <div className="w-full h-12">
         <h4>Payments List</h4>
       </div>
 
       <div className="w-full py-2 flex gap-2 mb-1">
-        <DatePick
-          label="Start Date"
-          value={startDate}
-          onChange={(newValue) => setStartDate(newValue)}
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label={"Customer Name"}
+          variant="outlined"
           className="w-[25%]"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
         />
-        <DatePick
-          label="End Date"
-          value={endDate}
-          onChange={(newValue) => setEndDate(newValue)}
+        <TextField
+          size="small"
+          id="outlined-basic"
+          label={"Customer ID"}
+          variant="outlined"
           className="w-[25%]"
+          value={customerID}
+          onChange={(e) => setCustomerID(e.target.value)}
+          autoFocus
         />
         <TextField
           size="small"
@@ -236,6 +305,18 @@ export default function CustomerHousePayments({ status }) {
           value={sangiraNumber}
           onChange={(e) => setSangiraNumber(e.target.value)}
           autoFocus
+        />
+        <Autocomplete
+          id="combo-box-demo"
+          options={sortedPaymentTypes}
+          size="small"
+          freeSolo
+          className="w-[25%]"
+          value={paymentType}
+          onChange={paymentTypeOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Payment Type" />
+          )}
         />
         <Autocomplete
           id="combo-box-demo"

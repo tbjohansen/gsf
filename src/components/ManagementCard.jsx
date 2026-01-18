@@ -13,6 +13,7 @@ const ManagementCard = ({
   headerValue,
   header1Value,
   tableHeader,
+  rental,
 }) => {
   const navigate = useNavigate();
 
@@ -54,6 +55,7 @@ const ManagementCard = ({
       item?.Item_Name ||
       item?.Category_Name ||
       item?.customer?.Customer_Name ||
+      item?.estate?.name ||
       item?.Production_Date ||
       item?.Transaction_Date ||
       item?.Unit_Location ||
@@ -65,7 +67,11 @@ const ManagementCard = ({
   const getStatusColor = (status) => {
     const statusValue = String(status).toLowerCase();
 
-    if (statusValue === "inactive" || statusValue === "expired" || statusValue === "rejected") {
+    if (
+      statusValue === "inactive" ||
+      statusValue === "expired" ||
+      statusValue === "rejected"
+    ) {
       return "text-red-600 bg-red-50";
     } else if (
       statusValue === "completed" ||
@@ -121,21 +127,22 @@ const ManagementCard = ({
                 className="border-t border-slate-100 last:border-b-0"
               >
                 <td className="py-3 font-medium text-slate-700">
-                  {getItemName(item)}
+
+                  {rental ? item?.estate?.name : getItemName(item)}
                 </td>
                 {header1 && (
                   <td className="py-3 font-medium text-slate-700 text-right">
                     {header1 === "Status" ? (
                       <span
                         className={`text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(
-                          getItemValue(item, header1Value)
+                          getItemValue(item, header1Value),
                         )}`}
                       >
                         {formatDisplayValue(getItemValue(item, header1Value))}
                       </span>
                     ) : header1 === "Price" || header1 === "Amount" ? (
                       currencyFormatter.format(
-                        getItemValue(item, header1Value) || 0
+                        getItemValue(item, header1Value) || 0,
                       )
                     ) : (
                       getItemValue(item, header1Value)
@@ -146,14 +153,14 @@ const ManagementCard = ({
                   {header === "Status" ? (
                     <span
                       className={`text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(
-                        getItemValue(item, headerValue)
+                        getItemValue(item, headerValue),
                       )}`}
                     >
                       {formatDisplayValue(getItemValue(item, headerValue))}
                     </span>
                   ) : header === "Price" || header === "Amount" ? (
                     currencyFormatter.format(
-                      getItemValue(item, headerValue) || 0
+                      getItemValue(item, headerValue) || 0,
                     )
                   ) : (
                     getItemValue(item, headerValue)

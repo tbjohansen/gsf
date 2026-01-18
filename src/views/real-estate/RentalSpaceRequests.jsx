@@ -1,3 +1,4 @@
+import * as React from "react";
 import { styled } from "@mui/material/styles";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
@@ -8,16 +9,12 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import { capitalize, currencyFormatter, formatter, removeUnderscore } from "../../../helpers";
+import { capitalize, currencyFormatter, formatter } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
-import { Autocomplete, TextField } from "@mui/material";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { values } from "lodash";
-import DatePick from "../../components/DatePicker";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -29,98 +26,56 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function CustomerHousePayments({ status }) {
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [payments, setPayments] = useState([]);
-  const [paymentStatus, setPaymentStatus] = useState("");
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [sangiraNumber, setSangiraNumber] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [selectedRow, setSelectedRow] = useState(null);
+export default function RentalSpaceRequests() {
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [requestsList, setList] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [selectedRow, setSelectedRow] = React.useState(null);
 
   const navigate = useNavigate();
-  const hasFetchedData = useRef(false);
 
-  const employeeData = localStorage.getItem("userInfo");
-  const employee = JSON.parse(employeeData);
-  const customer = employee?.customer;
+  const hasFetchedData = React.useRef(false);
 
-  const sortedPaymentStatus = [
-    {
-      id: "pending",
-      label: "Pending",
-    },
-    {
-      id: "expired",
-      label: "Expired",
-    },
-    {
-      id: "completed",
-      label: "Completed",
-    },
-  ];
-
-  const paymentStatuOnChange = (e, value) => {
-    setPaymentStatus(value);
-  };
-
-  // Fetch payments from API
-  useEffect(() => {
+  React.useEffect(() => {
     if (!hasFetchedData.current) {
       hasFetchedData.current = true;
       loadData();
     }
-  }, [startDate, endDate, sangiraNumber, paymentStatus]);
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Request_Type=house_rent&Customer_ID=${customer?.Customer_ID}`;
-
-      if (startDate) {
-        url += `&Start_Date=${formatDateForDb(startDate)}`;
-      }
-
-      if (endDate) {
-        url += `&End_Date=${formatDateForDb(endDate)}`;
-      }
-
-      if (sangiraNumber) {
-        url += `&Sangira_Number=${sangiraNumber}`;
-      }
-
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(
+        "/customer/customer-request?&Request_Type=business_land"
+      );
 
       if (!response.ok) {
         setLoading(false);
-        toast.error("Failed to fetch payments");
+        toast.error(response.data?.error || "Failed to fetch requests");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error("Failed to fetch payments");
+        toast.error(response.data.error || "Failed to fetch requests");
         return;
       }
 
       // Adjust based on your API response structure
       const paymentsData = response?.data?.data?.data;
-
-      const newData = paymentsData
-        ?.filter((payment) => payment?.Sangira_ID) // keep only items with Sangira_ID
-        ?.map((payment, index) => ({
-          ...payment,
-          key: index + 1,
-        }));
-      // console.log(newData);
-      setPayments(Array.isArray(newData) ? newData : []);
+      const newData = paymentsData?.map((payment, index) => ({
+        ...payment,
+        key: index + 1,
+      }));
+      console.log(newData);
+      setList(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch payments error:", error);
+      console.error("Fetch requests error:", error);
       setLoading(false);
-      toast.error("Failed to load payments");
+      toast.error("Failed to load requests");
     }
   };
 
@@ -134,14 +89,92 @@ export default function CustomerHousePayments({ status }) {
   };
 
   // Inside the Hostels component, replace the columns definition with:
-  const columns = useMemo(
+  const columns = React.useMemo(
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "Request_Type",
-        label: "Payment Type",
+        id: "name",
+        label: "Full Name",
         minWidth: 170,
-        format: (row, value) => <span>{capitalize(removeUnderscore(value?.Request_Type))}</span>,
+        format: (row, value) => (
+          <span>{capitalize(value?.customer?.Customer_Name)}</span>
+        ),
+      },
+      {
+        id: "gender",
+        label: "Gender",
+        format: (row, value) => (
+          <span>{capitalize(value?.customer?.Gender)}</span>
+        ),
+      },
+      {
+        id: "student_id",
+        label: "Customer ID",
+        minWidth: 140,
+        format: (row, value) => (
+          <span>{value?.customer?.Customer_ID}</span>
+        ),
+      },
+      {
+        id: "Customer_Status",
+        label: "Request Status",
+        minWidth: 170,
+        align: "center",
+        format: (row, value) => (
+          <Badge
+            name={
+              value?.Customer_Status === "active"
+                ? "Pending"
+                : capitalize(value?.Customer_Status)
+            }
+            color={
+              value?.Customer_Status === "served" ||
+              value?.Customer_Status === "assign"
+                ? "green"
+                : value?.Customer_Status === "active"
+                ? "yellow"
+                : value?.Customer_Status === "received" ||
+                  value?.Customer_Status === "requested"
+                ? "blue"
+                : "red"
+            }
+          />
+        ),
+      },
+      {
+        id: "estate",
+        label: "Unit Type",
+        minWidth: 170,
+        format: (row, value) => (
+          <span>{capitalize(value?.estate?.real_estate_type)}</span>
+        ),
+      },
+      {
+        id: "requested_room",
+        label: "Unit Name",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.estate?.name}</span>,
+      },
+      {
+        id: "price",
+        label: "Monthly Price",
+        minWidth: 170,
+        format: (row, value) => (
+          <span>{currencyFormatter?.format(value?.estate?.price)}</span>
+        ),
+      },
+      {
+        id: "total_amount",
+        label: "Amount",
+        format: (row, value) => (
+          <span>
+            {value?.Sangira
+              ? currencyFormatter?.format(
+                  value?.Sangira?.Grand_Total_Price || 0
+                )
+              : null}
+          </span>
+        ),
       },
       {
         id: "sangira_number",
@@ -151,39 +184,32 @@ export default function CustomerHousePayments({ status }) {
         ),
       },
       {
-        id: "total_amount",
-        label: "Amount",
-        minWidth: 150,
-        format: (row, value) => (
-          <span>
-            {currencyFormatter.format(
-              value?.Sangira?.Grand_Total_Price || value?.Price
-            )}
-          </span>
-        ),
+        id: "requested_at",
+        label: "Requested Date",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.Sangira?.Requested_Date}</span>,
       },
       {
         id: "status",
-        label: "Status",
+        label: "Payment Status",
+        minWidth: 170,
         align: "center",
         format: (row, value) => (
-          <Badge
-            name={capitalize(value?.Sangira?.Sangira_Status || "Expired")}
-            color={
-              value?.Sangira?.Sangira_Status === "completed"
-                ? "green"
-                : value?.Sangira?.Sangira_Status === "pending"
-                ? "blue"
-                : "red"
-            }
-          />
+          <>
+            {value?.Sangira ? (
+              <Badge
+                name={capitalize(value?.Sangira?.Sangira_Status)}
+                color={
+                  value?.Sangira?.Sangira_Status === "completed"
+                    ? "green"
+                    : value?.Sangira?.Sangira_Status === "pending"
+                    ? "blue"
+                    : "red"
+                }
+              />
+            ) : null}
+          </>
         ),
-      },
-      {
-        id: "requested_at",
-        label: "Requested Date",
-        minWidth: 180,
-        format: (row, value) => <span>{value?.Sangira?.Requested_Date}</span>,
       },
       {
         id: "completed_date",
@@ -196,60 +222,25 @@ export default function CustomerHousePayments({ status }) {
         label: "Receipt",
         format: (row, value) => <span>{value?.Sangira?.Receipt_Number}</span>,
       },
-      {
-        id: "bank",
-        label: "Bank Name",
-        minWidth: 170,
-        format: (row, value) => (
-          <span>{value?.Sangira?.Payment_Direction}</span>
-        ),
-      },
     ],
     []
   );
 
+  const handleRowClick = (row) => {
+    navigate(
+      `/projects/real-estates/space-requests/${row?.Request_ID}/receive`
+    );
+  };
+
   return (
     <>
+      <Breadcrumb />
       <div className="w-full h-12">
-        <h4>Payments List</h4>
+        <div className="w-full my-2 flex justify-between">
+          <h4>Requests List</h4>
+        </div>
       </div>
 
-      <div className="w-full py-2 flex gap-2 mb-1">
-        <DatePick
-          label="Start Date"
-          value={startDate}
-          onChange={(newValue) => setStartDate(newValue)}
-          className="w-[25%]"
-        />
-        <DatePick
-          label="End Date"
-          value={endDate}
-          onChange={(newValue) => setEndDate(newValue)}
-          className="w-[25%]"
-        />
-        <TextField
-          size="small"
-          id="outlined-basic"
-          label="Sangira Number"
-          variant="outlined"
-          className="w-[25%]"
-          value={sangiraNumber}
-          onChange={(e) => setSangiraNumber(e.target.value)}
-          autoFocus
-        />
-        <Autocomplete
-          id="combo-box-demo"
-          options={sortedPaymentStatus}
-          size="small"
-          freeSolo
-          className="w-[25%]"
-          value={paymentStatus}
-          onChange={paymentStatuOnChange}
-          renderInput={(params) => (
-            <TextField {...params} label="Payment Status" />
-          )}
-        />
-      </div>
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
         <TableContainer sx={{ maxHeight: 440 }}>
           <Table stickyHeader aria-label="sticky table">
@@ -274,7 +265,7 @@ export default function CustomerHousePayments({ status }) {
                   </TableCell>
                 </TableRow>
               )}
-              {payments
+              {requestsList
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -283,7 +274,9 @@ export default function CustomerHousePayments({ status }) {
                       role="checkbox"
                       tabIndex={-1}
                       key={row.key || row.id}
+                      onClick={() => handleRowClick(row)}
                       sx={{
+                        cursor: "pointer",
                         backgroundColor:
                           selectedRow?.key === row.key
                             ? "rgba(0, 0, 0, 0.04)"
@@ -318,9 +311,9 @@ export default function CustomerHousePayments({ status }) {
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[25, 100]}
+          rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={payments?.length}
+          count={requestsList?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

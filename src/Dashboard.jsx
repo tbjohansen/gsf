@@ -311,7 +311,7 @@ const Dashboard = () => {
           </div>
 
           {/* Nuru Farm */}
-          <div
+          {/* <div
             onClick={() => setSelectedModule("spaceRenting")}
             className="bg-white rounded-lg p-5 border border-white shadow-xl hover:border-gray-100 transition-all duration-300 cursor-pointer hover:shadow-lg"
           >
@@ -351,7 +351,7 @@ const Dashboard = () => {
                 </span>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 

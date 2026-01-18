@@ -44,6 +44,17 @@ import CustomerHousePayments from "../src/views/rentals/CustomerHousePayments";
 import Locations from "../src/views/real-estate/Locations";
 import HouseRequestLetter from "../src/views/real-estate/HouseRequestLetter";
 import ReceiveHouseRequest from "../src/views/real-estate/ReceiveHouseRequest";
+import RealEstatePayments from "../src/views/real-estate/RealEstatePayments";
+import SpaceRentals from "../src/views/rentals/SpaceRentals";
+import SpaceRequestLetter from "../src/views/real-estate/SpaceRequestLetter";
+import CustomerSpaceRequests from "../src/views/rentals/CustomerSpaceRequests";
+import CustomerSpacePayments from "../src/views/rentals/CustomerSpacePayments";
+import RentalSpaceRequests from "../src/views/real-estate/RentalSpaceRequests";
+import ReceiveSpaceRequest from "../src/views/real-estate/ReceiveSpaceRequest";
+import SpaceRequestDetails from "../src/views/rentals/SpaceRequestDetails";
+import HouseRequestDetails from "../src/views/rentals/HouseRequestDetails";
+import RentedHouses from "../src/views/real-estate/RentedHouses";
+import RentedSpaces from "../src/views/real-estate/RentedSpaces";
 
 const LoginElement = () => <Login />;
 
@@ -119,6 +130,12 @@ const PaymentsElement = (props) => (
   </AppLayout>
 );
 
+const RentalsPaymentsElement = () => (
+  <AppLayout>
+    <RealEstatePayments />
+  </AppLayout>
+);
+
 const ProfileElement = () => (
   <AppLayout>
     <Profile />
@@ -149,6 +166,18 @@ const LetterElement = () => (
   </AppLayout>
 );
 
+const SpaceLetterElement = () => (
+  <AppLayout>
+    <SpaceRequestLetter />
+  </AppLayout>
+);
+
+const RentedHousesListElement = () => (
+  <AppLayout>
+    <RentedHouses />
+  </AppLayout>
+);
+
 const RequestsListElement = () => (
   <AppLayout>
     <RealEsatesRequests />
@@ -157,6 +186,24 @@ const RequestsListElement = () => (
 const ReceiveRequestListElement = () => (
   <AppLayout>
     <ReceiveHouseRequest />
+  </AppLayout>
+);
+
+const RentedSpacesListElement = () => (
+  <AppLayout>
+    <RentedSpaces />
+  </AppLayout>
+);
+
+const SpaceRequestsListElement = () => (
+  <AppLayout>
+    <RentalSpaceRequests />
+  </AppLayout>
+);
+
+const ReceiveSpaceRequestListElement = () => (
+  <AppLayout>
+    <ReceiveSpaceRequest />
   </AppLayout>
 );
 
@@ -196,6 +243,12 @@ const RentalUnitsElement = () => (
   </AppLayout>
 );
 
+const SpaceRentalUnitsElement = () => (
+  <AppLayout>
+    <SpaceRentals />
+  </AppLayout>
+);
+
 const HouseRequestsElement = () => (
   <AppLayout>
     <HouseRentals />
@@ -214,9 +267,33 @@ const CustomerHouseRequestsElement = () => (
   </AppLayout>
 );
 
+const CustomerHouseRequestDetailsElement = () => (
+  <AppLayout>
+    <HouseRequestDetails />
+  </AppLayout>
+);
+
 const CustomerHousePaymentsElement = () => (
   <AppLayout>
     <CustomerHousePayments />
+  </AppLayout>
+);
+
+const CustomerSpaceRequestsElement = () => (
+  <AppLayout>
+    <CustomerSpaceRequests />
+  </AppLayout>
+);
+
+const CustomerSpaceRequestDetailsElement = () => (
+  <AppLayout>
+    <SpaceRequestDetails />
+  </AppLayout>
+);
+
+const CustomerSpacePaymentsElement = () => (
+  <AppLayout>
+    <CustomerSpacePayments />
   </AppLayout>
 );
 
@@ -353,8 +430,12 @@ const AppRoutes = () => {
               <Navigate to="/home" />
             ) : customer?.Customer_Nature === "oxygen" ? (
               <Navigate to="/pos" />
-            ) : customer?.Customer_Nature === "house_rent" ? (
+            ) : customer?.Customer_Nature === "house_rent" &&
+              customer?.Student_ID ? (
               <Navigate to="/units" />
+            ) : customer?.Customer_Nature === "house_rent" &&
+              !customer?.Student_ID ? (
+              <Navigate to="/space-units" />
             ) : (
               <Navigate to="/home" />
             )
@@ -370,6 +451,7 @@ const AppRoutes = () => {
 
         <Route path="/pos" element={<POSElement />} />
         <Route path="/units" element={<RentalUnitsElement />} />
+        <Route path="/space-units" element={<SpaceRentalUnitsElement />} />
 
         <Route
           path="/items/:itemID/mapped-items"
@@ -453,6 +535,14 @@ const AppRoutes = () => {
           element={<LocationsElement />}
         />
         <Route
+          path="/projects/real-estates/rented-houses"
+          element={<RentedHousesListElement />}
+        />
+        <Route
+          path="/projects/real-estates/rented-houses/:requestID/details"
+          element={<ReceiveRequestListElement />}
+        />
+        <Route
           path="/projects/real-estates/house-requests"
           element={<RequestsListElement />}
         />
@@ -460,9 +550,21 @@ const AppRoutes = () => {
           path="/projects/real-estates/house-requests/:requestID/receive"
           element={<ReceiveRequestListElement />}
         />
-         <Route
+        <Route
+          path="/projects/real-estates/rented-spaces"
+          element={<RentedSpacesListElement />}
+        />
+        <Route
+          path="/projects/real-estates/rented-spaces/:requestID/details"
+          element={<ReceiveSpaceRequestListElement />}
+        />
+        <Route
           path="/projects/real-estates/space-requests"
-          element={<RequestsListElement />}
+          element={<SpaceRequestsListElement />}
+        />
+        <Route
+          path="/projects/real-estates/space-requests/:requestID/receive"
+          element={<ReceiveSpaceRequestListElement />}
         />
         <Route
           path="/projects/real-estates/customers"
@@ -482,7 +584,7 @@ const AppRoutes = () => {
         />
         <Route
           path="/projects/real-estates/payments"
-          element={<PaymentsElement status="real_estate" />}
+          element={<RentalsPaymentsElement />}
         />
 
         <Route
@@ -497,14 +599,44 @@ const AppRoutes = () => {
 
         <Route
           path="/customer-requests"
-          element={<CustomerHouseRequestsElement status="real_estate" />}
+          element={<CustomerHouseRequestsElement status="house_rent" />}
         />
 
-         <Route path="/units/:unitID/request-letter" element={<LetterElement />} />
+        <Route
+          path="/customer-requests/:requestID/details"
+          element={<CustomerHouseRequestDetailsElement status="house_rent" />}
+        />
+
+        <Route
+          path="/space-customer-requests"
+          element={<CustomerSpaceRequestsElement status="business_land" />}
+        />
+
+        <Route
+          path="/space-customer-requests/:requestID/details"
+          element={
+            <CustomerSpaceRequestDetailsElement status="business_land" />
+          }
+        />
+
+        <Route
+          path="/units/:unitID/request-letter"
+          element={<LetterElement />}
+        />
+
+        <Route
+          path="/space-units/:unitID/request-letter"
+          element={<SpaceLetterElement />}
+        />
 
         <Route
           path="/customer-payments"
-          element={<CustomerHousePaymentsElement status="real_estate" />}
+          element={<CustomerHousePaymentsElement status="house_rent" />}
+        />
+
+        <Route
+          path="/space-customer-payments"
+          element={<CustomerSpacePaymentsElement status="business_land" />}
         />
 
         {/* //hostels */}

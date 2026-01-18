@@ -10,14 +10,13 @@ import {
   LuDownload,
   LuReceipt,
 } from "react-icons/lu";
+import { CgFileRemove } from "react-icons/cg";
 import { GrDocumentUpdate } from "react-icons/gr";
-import { IoArrowUndoCircleOutline } from "react-icons/io5";
 import { capitalize, currencyFormatter, removeUnderscore } from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import apiClient, { baseURL } from "../../api/Client";
-import { CgFileRemove } from "react-icons/cg";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -26,9 +25,10 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { IconButton } from "@mui/material";
 import { MdClose } from "react-icons/md";
+import { IoArrowUndoCircleOutline } from "react-icons/io5";
 import { FcMoneyTransfer } from "react-icons/fc";
 
-export default function ReceiveHouseRequest() {
+export default function ReceiveSpaceRequest() {
   const { requestID } = useParams();
 
   const [requestData, setRequestData] = useState("");
@@ -37,6 +37,7 @@ export default function ReceiveHouseRequest() {
   const [declineReason, setDeclineReason] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [numberOfMonths, setNumberOfMonths] = useState(1);
+  const [numberOfYears, setNumberOfYears] = useState(1);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
 
@@ -140,8 +141,13 @@ export default function ReceiveHouseRequest() {
 
   // Calculate grand total
   const calculateGrandTotal = () => {
-    if (paymentMethod === "cash" && numberOfMonths && requestData?.Price) {
-      return numberOfMonths * requestData.Price;
+    if (paymentMethod === "monthly" && numberOfMonths && requestData?.Price) {
+      return numberOfMonths * requestData?.Price;
+    }
+
+    if (paymentMethod === "yearly" && numberOfYears && requestData?.Price) {
+      const convertedMonths = numberOfYears * 12;
+      return convertedMonths * requestData?.Price;
     }
     return 0;
   };
@@ -250,20 +256,20 @@ export default function ReceiveHouseRequest() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to receive house request");
+          toast.error("Failed to receive rental space request");
         }
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to receive house request";
+        const errorMessage = "Failed to receive rental space request";
         toast.error(errorMessage);
         return;
       }
 
       setLoading(false);
-      toast.success("House request is received successfully");
+      toast.success("Rental space request is received successfully");
       loadData();
     } catch (error) {
       console.error("Update unit error:", error);
@@ -282,13 +288,16 @@ export default function ReceiveHouseRequest() {
       return;
     }
 
-    if (!paymentMethod) {
-      toast.error("Please select payment method");
+    if (
+      paymentMethod === "monthly" &&
+      (!numberOfMonths || numberOfMonths < 1)
+    ) {
+      toast.error("Please enter a valid number of months");
       return;
     }
 
-    if (paymentMethod === "cash" && (!numberOfMonths || numberOfMonths < 1)) {
-      toast.error("Please enter a valid number of months");
+    if (paymentMethod === "yearly" && (!numberOfYears || numberOfYears < 1)) {
+      toast.error("Please enter a valid number of years");
       return;
     }
 
@@ -303,9 +312,8 @@ export default function ReceiveHouseRequest() {
 
     try {
       const data = {
-        // Customer_Status: paymentMethod === "cash" ? "assign" : "served",
         Customer_Status: "assign",
-        Payment_Mode: paymentMethod,
+        Payment_Mode: "cash",
         real_estate_id: requestData?.real_estate_id,
         Request_Batch_ID: requestData?.Request_Batch_ID,
         Customer_ID: requestData?.Customer_ID,
@@ -313,10 +321,13 @@ export default function ReceiveHouseRequest() {
         Employee_ID: employeeId,
       };
 
-      if (paymentMethod === "cash") {
+      if (paymentMethod === "yearly") {
+        const convertedMonths = numberOfYears * 12;
+        data.months = convertedMonths;
+      } else {
         data.months = numberOfMonths;
-        data.Grand_Total_Price = calculateGrandTotal();
       }
+      data.Grand_Total_Price = calculateGrandTotal();
 
       const response = await apiClient.put(`/estate/real-estate-request`, data);
 
@@ -327,20 +338,20 @@ export default function ReceiveHouseRequest() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to accept house request");
+          toast.error("Failed to accept rental space request");
         }
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to accept house request";
+        const errorMessage = "Failed to accept rental space request";
         toast.error(errorMessage);
         return;
       }
 
       setLoading(false);
-      toast.success("House request is accepted successfully");
+      toast.success("Rental space request is accepted successfully");
       loadData();
       setPaymentMethod("");
       setNumberOfMonths(1);
@@ -396,20 +407,20 @@ export default function ReceiveHouseRequest() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to decline house request");
+          toast.error("Failed to decline rental space request");
         }
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to decline house request";
+        const errorMessage = "Failed to decline rental space request";
         toast.error(errorMessage);
         return;
       }
 
       setLoading(false);
-      toast.success("House request is declined successfully");
+      toast.success("Rental space request is declined successfully");
       loadData();
       setDeclineReason("");
       setShowDeclineModal(false);
@@ -444,18 +455,18 @@ export default function ReceiveHouseRequest() {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        `/customer/customer-request?&&Request_ID=${requestID}Request_Type=house_rent`,
+        `/customer/customer-request?&Request_ID=${requestID}Request_Type=business_land`,
       );
 
       if (!response.ok) {
         setLoading(false);
-        toast.error("Failed to fetch request data");
+        toast.error(response.data?.error || "Failed to fetch request data");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error("Failed to fetch request data");
+        toast.error(response.data.error || "Failed to fetch request data");
         return;
       }
 
@@ -503,7 +514,7 @@ export default function ReceiveHouseRequest() {
           <div>
             <p className="text-sm text-gray-600">Customer ID</p>
             <p className="font-semibold text-gray-900">
-              {requestData?.customer?.Student_ID}
+              {requestData?.customer?.Customer_ID}
             </p>
           </div>
           <div>
@@ -588,7 +599,7 @@ export default function ReceiveHouseRequest() {
               {requestData?.Request_Type?.replace("_", " ")}
             </p>
           </div>
-          {requestData.Received_Time && (
+          {requestData?.Received_Time && (
             <>
               <div>
                 <p className="text-sm text-gray-600">Received Time</p>
@@ -657,15 +668,16 @@ export default function ReceiveHouseRequest() {
 
         {(requestData?.Customer_Status === "served" ||
           requestData?.Customer_Status === "requested") && (
-          // <div className="text-center py-4">
-          //   <LuCircleCheckBig
-          //     className="mx-auto text-green-600 mb-2"
-          //     size={48}
-          //   />
-          //   <p className="text-xl font-semibold text-green-600">
-          //     Request Accepted
-          //   </p>
-          // </div>
+          //   <div className="text-center py-4">
+          //     <LuCircleCheckBig
+          //       className="mx-auto text-green-600 mb-2"
+          //       size={48}
+          //     />
+          //     <p className="text-xl font-semibold text-green-600">
+          //       Request Accepted
+          //     </p>
+          //   </div>
+
           <div>
             <button
               onClick={handleConfirmOpen}
@@ -701,8 +713,8 @@ export default function ReceiveHouseRequest() {
               </IconButton>
               <DialogContent>
                 <DialogContentText id="alert-dialog-slide-description">
-                  Are you sure you want to revoke this house request allocation
-                  ?
+                  Are you sure you want to revoke this space rental request
+                  allocation ?
                 </DialogContentText>
               </DialogContent>
               <DialogActions>
@@ -745,31 +757,35 @@ export default function ReceiveHouseRequest() {
       {requestData?.Contract_attachment &&
       requestData?.previos_contract?.length > 0 &&
       !isUpdating ? (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <LuCircleCheckBig className="text-green-600 mr-3" size={32} />
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Left section */}
+            <div className="flex items-start sm:items-center">
+              <LuCircleCheckBig
+                className="text-green-600 mr-3 mt-1 sm:mt-0"
+                size={32}
+              />
               <div>
                 <p className="font-semibold text-gray-900">Contract Uploaded</p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 break-all">
                   Uploaded on: {requestData?.Contract_Attached_Time}
                 </p>
-                {/* <p className="text-sm text-gray-600">
-                  Uploaded by: {capitalize(requestData?.contract?.name)}
-                </p> */}
               </div>
             </div>
-            <div className="flex gap-3">
+
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               <button
                 onClick={handleDownloadContract}
-                className="flex items-center cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
+                className="flex items-center justify-center w-full sm:w-auto cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
               >
                 <LuDownload className="mr-2" size={18} />
                 Download Contract
               </button>
+
               <button
                 onClick={handleUpdateContract}
-                className="flex items-center cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
+                className="flex items-center justify-center w-full sm:w-auto cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
               >
                 <GrDocumentUpdate className="mr-2" size={18} />
                 Update Contract
@@ -962,7 +978,9 @@ export default function ReceiveHouseRequest() {
                 Payment Method
               </label>
               <p className="text-black font-semibold">
-                {capitalize(removeUnderscore(requestData?.payment?.Payment_Channel))}
+                {capitalize(
+                  removeUnderscore(requestData?.payment?.Payment_Channel),
+                )}
               </p>
             </div>
 
@@ -1058,20 +1076,20 @@ export default function ReceiveHouseRequest() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to revoke house allocation");
+          toast.error("Failed to revoke rental space allocation");
         }
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to revoke house allocation";
+        const errorMessage = "Failed to revoke rental space allocation";
         toast.error(errorMessage);
         return;
       }
 
       setLoading(false);
-      toast.success("House allocation is revoked successfully");
+      toast.success("Rental space allocation is revoked successfully");
       loadData();
     } catch (error) {
       console.error("Update unit error:", error);
@@ -1091,7 +1109,7 @@ export default function ReceiveHouseRequest() {
               <div className="flex justify-between items-start">
                 <div>
                   <h1 className="text-3xl font-bold text-white mb-2">
-                    House Request Details
+                    Rental Space Request Details
                   </h1>
                   <p className="text-blue-100">
                     Request ID: #{requestData?.Request_ID}
@@ -1107,7 +1125,7 @@ export default function ReceiveHouseRequest() {
                         ? "bg-blue-100 text-blue-800"
                         : requestData?.Customer_Status === "assign" ||
                             requestData?.Customer_Status === "requested"
-                          ? "bg-blue-100 text-blue-600"
+                          ? "bg-blue-100 text-green-800"
                           : requestData?.Customer_Status === "served" ||
                               requestData?.Customer_Status === "paid"
                             ? "bg-green-100 text-green-800"
@@ -1251,60 +1269,28 @@ export default function ReceiveHouseRequest() {
                 Accept Request
               </h3>
               <p className="text-gray-600 mb-4">
-                Please select a payment method:
+                Please select a payment duration:
               </p>
               <div className="space-y-2 mb-4">
-                <label className="flex items-center p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="free"
-                    checked={paymentMethod === "free"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mr-3 w-4 h-4 text-green-600"
-                  />
-                  <div>
-                    <p className="font-semibold text-gray-900">Free</p>
-                    <p className="text-sm text-gray-600">No payment required</p>
-                  </div>
-                </label>
-                <label className="flex items-center p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="salary_deduction"
-                    checked={paymentMethod === "salary_deduction"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mr-3 w-4 h-4 text-green-600"
-                  />
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      Salary Deduction
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Deduct from monthly salary
-                    </p>
-                  </div>
-                </label>
                 <label className="block p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
                   <div className="flex items-center mb-3">
                     <input
                       type="radio"
                       name="payment"
-                      value="cash"
-                      checked={paymentMethod === "cash"}
+                      value="monthly"
+                      checked={paymentMethod === "monthly"}
                       onChange={(e) => setPaymentMethod(e.target.value)}
                       className="mr-3 w-4 h-4 text-green-600"
                     />
                     <div>
-                      <p className="font-semibold text-gray-900">
-                        Cash Payment
+                      <p className="font-semibold text-gray-900">Monthly</p>
+                      <p className="text-sm text-gray-600">
+                        Pay in cash using month(s) structure
                       </p>
-                      <p className="text-sm text-gray-600">Pay in cash</p>
                     </div>
                   </div>
 
-                  {paymentMethod === "cash" && (
+                  {paymentMethod === "monthly" && (
                     <div className="ml-7 space-y-2 mt-3 pt-3 border-t border-gray-200">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1319,6 +1305,58 @@ export default function ReceiveHouseRequest() {
                           }
                           className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                           placeholder="Enter number of months"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Grand Total Amount
+                        </label>
+                        <input
+                          type="text"
+                          value={currencyFormatter.format(
+                            calculateGrandTotal(),
+                          )}
+                          disabled
+                          className="w-full border border-gray-300 rounded-lg p-2 bg-gray-100 text-gray-700 font-semibold cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </label>
+
+                <label className="block p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                  <div className="flex items-center mb-3">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="yearly"
+                      checked={paymentMethod === "yearly"}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="mr-3 w-4 h-4 text-green-600"
+                    />
+                    <div>
+                      <p className="font-semibold text-gray-900">Yearly</p>
+                      <p className="text-sm text-gray-600">
+                        Pay in cash using year(s) structure
+                      </p>
+                    </div>
+                  </div>
+
+                  {paymentMethod === "yearly" && (
+                    <div className="ml-7 space-y-2 mt-3 pt-3 border-t border-gray-200">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Number of Years
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={numberOfYears}
+                          onChange={(e) =>
+                            setNumberOfYears(parseInt(e.target.value) || 1)
+                          }
+                          className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="Enter number of years"
                         />
                       </div>
                       <div>

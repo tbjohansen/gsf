@@ -2,54 +2,57 @@ import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { BsHouseAdd } from "react-icons/bs";
 import Breadcrumb from "../../components/Breadcrumb";
-import { useParams } from "react-router-dom";
 import apiClient from "../../api/Client";
+import { useNavigate, useParams } from "react-router-dom";
 
 const SpaceRequestLetter = () => {
   const [letterContent, setLetterContent] = useState("");
-  const [showPreview, setShowPreview] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [applicantName, setApplicantName] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [department, setDepartment] = useState("");
+  const [unit, setUnit] = useState("");
 
   const { unitID } = useParams();
+  const navigate = useNavigate();
 
-    const hasFetchedData = useRef(false);
-  
-    useEffect(() => {
-      if (!hasFetchedData.current) {
-        hasFetchedData.current = true;
-        loadData();
-      }
-    }, []);
-  
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const response = await apiClient.get("/settings/real-estate", {ID: unitID});
-  
-        if (!response.ok) {
-          setLoading(false);
-          toast.error(response.data?.error || "Failed to fetch units");
-          return;
-        }
-  
-        if (response.data?.error || response.data?.code >= 400) {
-          setLoading(false);
-          toast.error(response.data.error || "Failed to fetch units");
-          return;
-        }
-  
-        const userData = response?.data?.data?.data;
-        const newData = userData?.map((user, index) => ({
-          ...user,
-          key: index + 1,
-        }));
-        setUnits(Array.isArray(newData) ? newData : []);
+  const hasFetchedData = useRef(false);
+
+  useEffect(() => {
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadData();
+    }
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get("/settings/real-estate", {
+        id: unitID,
+      });
+
+      if (!response.ok) {
         setLoading(false);
-      } catch (error) {
-        console.error("Fetch units error:", error);
-        setLoading(false);
-        toast.error("Failed to load units");
+        toast.error(response.data?.error || "Failed to fetch space unit");
+        return;
       }
-    };
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        toast.error(response.data.error || "Failed to fetch space unit");
+        return;
+      }
+
+      const userData = response?.data?.data?.data;
+      setUnit(userData[0]);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch space unit error:", error);
+      setLoading(false);
+      toast.error("Failed to load space unit");
+    }
+  };
 
   const handleSendRequest = async (e) => {
     e.preventDefault();
@@ -59,10 +62,16 @@ const SpaceRequestLetter = () => {
       return;
     }
 
-    // Get employee info from localStorage
-    const employeeId = localStorage.getItem("employeeId");
+    if (!unit) {
+      toast.error("Please select rental space to request");
+      return;
+    }
 
-    if (!employeeId) {
+    // Get employee info from localStorage
+    const customerData = localStorage.getItem("userInfo");
+    const customer = JSON?.parse(customerData);
+
+    if (!customer) {
       toast.error("User information not found. Please login again.");
       return;
     }
@@ -72,12 +81,12 @@ const SpaceRequestLetter = () => {
     try {
       // Prepare the data to send (match your API field names)
       const data = {
-        Customer_ID: employeeId,
+        Customer_ID: customer?.Customer_ID,
         Description: letterContent.trim(),
         real_estate_id: unitID,
-        Phone_Number: "",
-        Price: "",
-        Request_Type: "house_rent",
+        Phone_Number: customer?.phone,
+        Price: unit?.price,
+        Request_Type: "business_land",
       };
 
       // Make API request - Bearer token is automatically included by apiClient
@@ -96,7 +105,7 @@ const SpaceRequestLetter = () => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to submit request");
+          toast.error("Failed to submit request");
         }
         return;
       }
@@ -113,8 +122,7 @@ const SpaceRequestLetter = () => {
           toast.error("Failed to submit request");
         } else {
           // Handle simple error string
-          const errorMessage =
-            response.data.error || "Failed to submit request";
+          const errorMessage = "Failed to submit request";
           toast.error(errorMessage);
         }
         return;
@@ -123,6 +131,11 @@ const SpaceRequestLetter = () => {
       // Success
       setLoading(false);
       toast.success("Request is sent successfully");
+      setLetterContent("");
+
+      setTimeout(() => {
+        navigate(-1);
+      }, 1500);
     } catch (error) {
       console.error("Send request error:", error);
       setLoading(false);
@@ -144,7 +157,7 @@ const SpaceRequestLetter = () => {
                 </div>
               </div>
               <h1 className="text-3xl font-bold text-center mb-2">
-                Space Allocation Request Letter
+                Rental Space Allocation Request Letter
               </h1>
               <p className="text-center text-blue-100">
                 Write your formal request to the Managing Director
@@ -166,7 +179,7 @@ const SpaceRequestLetter = () => {
                 value={letterContent}
                 onChange={(e) => setLetterContent(e.target.value)}
                 className="w-full h-[500px] p-6 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm leading-relaxed resize-none"
-                placeholder="Start writing your space rental request letter here..."
+                placeholder="Start writing your rental space allocation request letter here..."
               />
             </div>
 
@@ -175,9 +188,36 @@ const SpaceRequestLetter = () => {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={handleSendRequest}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className="flex-1 cursor-pointer bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
                 >
-                  Submit Request Letter
+                  {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Request Letter"
+                )}
                 </button>
               </div>
             </div>

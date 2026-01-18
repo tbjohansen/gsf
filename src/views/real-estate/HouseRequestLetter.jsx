@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { BsHouseAdd } from "react-icons/bs";
 import Breadcrumb from "../../components/Breadcrumb";
 import apiClient from "../../api/Client";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 const HouseRequestLetter = () => {
   const [letterContent, setLetterContent] = useState("");
@@ -14,6 +14,7 @@ const HouseRequestLetter = () => {
   const [unit, setUnit] = useState("");
 
   const { unitID } = useParams();
+  const navigate = useNavigate();
 
   const hasFetchedData = useRef(false);
 
@@ -69,8 +70,6 @@ const HouseRequestLetter = () => {
     // Get employee info from localStorage
     const customerData = localStorage.getItem("userInfo");
     const customer = JSON?.parse(customerData);
-
-    console.log(customer);
 
     if (!customer) {
       toast.error("User information not found. Please login again.");
@@ -133,6 +132,11 @@ const HouseRequestLetter = () => {
       // Success
       setLoading(false);
       toast.success("Request is sent successfully");
+      setLetterContent("");
+
+      setTimeout(() => {
+        navigate(-1);
+      }, 1500);
     } catch (error) {
       console.error("Send request error:", error);
       setLoading(false);
@@ -185,9 +189,36 @@ const HouseRequestLetter = () => {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={handleSendRequest}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className="flex-1 cursor-pointer bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
                 >
-                  Submit Request Letter
+                  {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Request Letter"
+                )}
                 </button>
               </div>
             </div>

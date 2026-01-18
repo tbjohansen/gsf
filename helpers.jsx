@@ -155,3 +155,8 @@ export const validPhoneNumber = (phoneNumber) => {
   return phoneNumber.length === 10 && 
     ["05", "06", "07"].includes(phoneNumber.slice(0, 2));
 }
+
+export function removeUnderscore(str) {
+  if (!str) return "";
+  return str.replace(/_/g, " ");
+}

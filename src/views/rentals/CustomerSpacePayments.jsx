@@ -29,7 +29,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function CustomerHousePayments({ status }) {
+export default function CustomerSpacePayments({ status }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [payments, setPayments] = useState([]);
@@ -77,7 +77,7 @@ export default function CustomerHousePayments({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Request_Type=house_rent&Customer_ID=${customer?.Customer_ID}`;
+      let url = `/customer/customer-request?&Request_Type=business_land&Customer_ID=${customer?.Customer_ID}`;
 
       if (startDate) {
         url += `&Start_Date=${formatDateForDb(startDate)}`;

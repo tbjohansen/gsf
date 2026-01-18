@@ -55,6 +55,15 @@ const SideBar = ({
     { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
   ];
 
+
+    // Spaces customer links
+  const spacesCustomerLinks = [
+    { id: 1, name: "Units", icon: LuLayoutDashboard, url: "/space-units" },
+    { id: 82, name: "Requests", icon: HiOutlineInboxArrowDown, url: "/space-customer-requests" },
+    { id: 83, name: "Payments", icon: FcMoneyTransfer, url: "/space-customer-payments" },
+    { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
+  ];
+
   // Check employee data and set appropriate links
   useEffect(() => {
     const employeeData = localStorage.getItem('userInfo');
@@ -66,13 +75,15 @@ const SideBar = ({
         const employee = JSON.parse(employeeData);
         const customer = employee?.customer;
         
-        if (customer && customer.Customer_Nature) {
-          const customerNature = customer.Customer_Nature.toLowerCase();
+        if (customer && customer?.Customer_Nature) {
+          const customerNature = customer?.Customer_Nature.toLowerCase();
           
           if (customerNature === "oxygen") {
             setCurrentLinks(oxygenCustomerLinks);
-          } else if (customerNature === "house_rent") {
+          } else if (customerNature === "house_rent" && customer?.Student_ID) {
             setCurrentLinks(housesCustomerLinks);
+          } else if (customerNature === "house_rent" && !customer?.Student_ID) {
+            setCurrentLinks(spacesCustomerLinks);
           } else {
             setCurrentLinks(mainLinks);
           }

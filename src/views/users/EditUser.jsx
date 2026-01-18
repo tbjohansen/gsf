@@ -100,7 +100,7 @@ const EditUser = ({ employee, loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to update user");
+          toast.error("Failed to update user");
         }
         return;
       }
@@ -108,7 +108,7 @@ const EditUser = ({ employee, loadData }) => {
       // Check if response contains an error (your API pattern)
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = response.data.error || "Failed to update user";
+        const errorMessage = "Failed to update user";
         toast.error(errorMessage);
         return;
       }

@@ -21,7 +21,7 @@ const style = {
   p: 4,
 };
 
-const AddCustomer = ({ loadData, status }) => {
+const AddCustomerDetails = ({ loadData, status }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -36,8 +36,8 @@ const AddCustomer = ({ loadData, status }) => {
       Program_Study: "",
       Year_Study: "",
       Customer_Status: "active",
-      Customer_Nature: status || "student",
-      customer_origin: "",
+      Customer_Nature: "house_rent",
+      customer_origin: "inside",
       Customer_Type: "",
       Admission_ID: "",
       Semester: "",
@@ -54,93 +54,13 @@ const AddCustomer = ({ loadData, status }) => {
     Program_Study: "",
     Year_Study: "",
     Customer_Status: "active",
-    Customer_Nature: status || "student",
-    customer_origin: "",
+    Customer_Nature: "house_rent",
+    customer_origin: "inside",
     Customer_Type: "",
     Admission_ID: "",
     Semester: "",
     Date_Birth: null,
   });
-
-  const sortedPrograms = [
-    {
-      id: "Diploma in Medical Laboratory Sciences",
-      label: "Diploma in Medical Laboratory Sciences",
-    },
-    {
-      id: "BSc in Prosthetics and Orthotics",
-      label: "BSc in Prosthetics and Orthotics",
-    },
-    { id: "BSc in Physiotherapy", label: "BSc in Physiotherapy" },
-    { id: "BSc in Occupational Therapy", label: "BSc in Occupational Therapy" },
-    { id: "BSc in Nursing", label: "BSc in Nursing" },
-    {
-      id: "BSc in Health Laboratory Sciences",
-      label: "BSc in Health Laboratory Sciences",
-    },
-    { id: "Doctor of Medicine", label: "Doctor of Medicine" },
-    {
-      id: "Master of Public Health (MPH)",
-      label: "Master of Public Health (MPH)",
-    },
-    {
-      id: "MSc in Monitoring and Evaluation",
-      label: "MSc in Monitoring and Evaluation",
-    },
-    { id: "MSc in Clinical Research", label: "MSc in Clinical Research" },
-    {
-      id: "MSc in Medical Microbiology, Immunology with Molecular Biology",
-      label: "MSc in Medical Microbiology, Immunology with Molecular Biology",
-    },
-    {
-      id: "MSc in Epidemiology & Applied Biostatistics",
-      label: "MSc in Epidemiology & Applied Biostatistics",
-    },
-    { id: "MMed in Anaesthesia", label: "MMed in Anaesthesia" },
-    { id: "MMed in Emergency Medicine", label: "MMed in Emergency Medicine" },
-    { id: "MMed in Anatomic Pathology", label: "MMed in Anatomic Pathology" },
-    { id: "MMed in Urology", label: "MMed in Urology" },
-    {
-      id: "MMed in Obstetrics and Gynaecology",
-      label: "MMed in Obstetrics and Gynaecology",
-    },
-    { id: "MMed in Ophthalmology", label: "MMed in Ophthalmology" },
-    {
-      id: "MMed in Radiology & Medical Imaging",
-      label: "MMed in Radiology & Medical Imaging",
-    },
-    { id: "MMed in Dermatology", label: "MMed in Dermatology" },
-    { id: "MMed in Internal Medicine", label: "MMed in Internal Medicine" },
-    {
-      id: "MMed in Otorynolaryngology (ENT)",
-      label: "MMed in Otorynolaryngology (ENT)",
-    },
-    { id: "MMed General Surgery", label: "MMed General Surgery" },
-    { id: "PhD in Bio-medical Sciences", label: "PhD in Bio-medical Sciences" },
-    { id: "PhD in Clinical Medicine", label: "PhD in Clinical Medicine" },
-    {
-      id: "PhD in Public Health and Health Systems",
-      label: "PhD in Public Health and Health Systems",
-    },
-  ];
-
-  const sortedYear = [
-    { id: 1, label: 1 },
-    { id: 2, label: 2 },
-    { id: 3, label: 3 },
-    { id: 4, label: 4 },
-    { id: 5, label: 5 },
-  ];
-
-  const sortedGender = [
-    { id: "male", label: "Male" },
-    { id: "femal", label: "Female" },
-  ];
-
-  const sortedOrigin = [
-    { id: "inside", label: "Inside" },
-    { id: "outside", label: "Outside" },
-  ];
 
   const sortedNationalities = [
     { id: "Tanzanian", label: "Tanzanian" },
@@ -367,14 +287,6 @@ const AddCustomer = ({ loadData, status }) => {
       return;
     }
 
-    if (
-      (status === "student" && !formData.Student_ID) ||
-      formData.Admission_ID
-    ) {
-      toast.error("Please enter student ID or Admission ID");
-      return;
-    }
-
     if (!validPhoneNumber(formData?.Phone_Number)) {
       toast.error("Please enter a valid phone number");
       return;
@@ -395,12 +307,7 @@ const AddCustomer = ({ loadData, status }) => {
       const data = {
         ...formData,
         Customer_Name: formData.Customer_Name.trim(),
-        Customer_Type:
-          status === "student"
-            ? formData?.Nationality === "Tanzanian"
-              ? "local"
-              : "foreigner"
-            : "",
+        Customer_Type: "",
         Phone_Number: formData.Phone_Number.startsWith("0")
           ? formData.Phone_Number
           : `0${formData.Phone_Number}`,
@@ -450,9 +357,9 @@ const AddCustomer = ({ loadData, status }) => {
         Program_Study: "",
         Year_Study: "",
         Customer_Status: "active",
-        Customer_Nature: status || "student",
+        Customer_Nature: "house_rent",
         Customer_Type: "",
-        customer_origin: "",
+        customer_origin: "inside",
         Admission_ID: "",
         Semester: "",
         Date_Birth: null,
@@ -485,10 +392,7 @@ const AddCustomer = ({ loadData, status }) => {
         onClick={handleOpen}
         className="h-10 w-60 bg-oceanic cursor-pointer rounded-xl flex flex-row gap-1 justify-center text-white"
       >
-        <MdAdd className="my-3" />{" "}
-        <p className="py-2">
-          Create New {status === "student" ? status : "Customer"}
-        </p>
+        <MdAdd className="my-3" /> <p className="py-2">Create New Customer</p>
       </div>
 
       <Modal
@@ -500,14 +404,12 @@ const AddCustomer = ({ loadData, status }) => {
         <Box sx={style} className="rounded-md">
           <div>
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Add {status === "student" ? status : "Customer"}
+              Add Customer
             </h3>
             <form onSubmit={submit} className="space-y-4">
               <TextField
                 size="small"
-                label={`${
-                  status === "student" ? "Student Name" : "Customer Name"
-                }`}
+                label={"Customer Name"}
                 variant="outlined"
                 fullWidth
                 className="w-full"
@@ -555,127 +457,29 @@ const AddCustomer = ({ loadData, status }) => {
                   onChange={handleChange("Email")}
                   disabled={loading}
                 />
-
-                {status !== "oxygen" && status === "student" && (
-                  <>
-                    <Autocomplete
-                      id="combo-box-demo"
-                      options={sortedGender}
-                      size="small"
-                      freeSolo
-                      fullWidth
-                      value={sortedGender.find(
-                        (option) => option.id === formData?.Gender
-                      )}
-                      onChange={handleChange("Gender")}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Select Gender" />
-                      )}
-                    />
-
-                    <TextField
-                      size="small"
-                      label={`${
-                        status === "student" ? "Student ID" : "Customer ID"
-                      }`}
-                      variant="outlined"
-                      fullWidth
-                      value={formData.Student_ID}
-                      onChange={handleChange("Student_ID")}
-                      disabled={loading}
-                    />
-                  </>
-                )}
-
-                {status === "oxygen" && (
-                  <Autocomplete
-                    id="combo-box-demo"
-                    options={sortedOrigin}
-                    size="small"
-                    freeSolo
-                    fullWidth
-                    value={sortedOrigin.find(
-                      (option) => option.id === formData?.customer_origin
-                    )}
-                    onChange={handleChange("customer_origin")}
-                    renderInput={(params) => (
-                      <TextField {...params} label="Select Customer Origin" />
-                    )}
-                  />
-                )}
-
-                {status === "student" && (
-                  <>
-                    <Autocomplete
-                      id="combo-box-demo"
-                      options={sortedNationalities}
-                      size="small"
-                      freeSolo
-                      fullWidth
-                      value={sortedNationalities.find(
-                        (option) => option.id === formData?.Nationality
-                      )}
-                      onChange={handleChange("Nationality")}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Select Nationality" />
-                      )}
-                    />
-
-                    <Autocomplete
-                      id="combo-box-demo"
-                      options={sortedPrograms}
-                      size="small"
-                      freeSolo
-                      fullWidth
-                      value={sortedPrograms.find(
-                        (option) => option.id === formData?.Program_Study
-                      )}
-                      onChange={handleChange("Program_Study")}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Select Program of Study"
-                        />
-                      )}
-                    />
-                    <Autocomplete
-                      id="combo-box-demo"
-                      options={sortedYear}
-                      size="small"
-                      freeSolo
-                      fullWidth
-                      value={sortedYear.find(
-                        (option) => option.id === formData?.Year_Study
-                      )}
-                      onChange={handleChange("Year_Study")}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Select Year of Study" />
-                      )}
-                    />
-
-                    <TextField
-                      size="small"
-                      label="Admission ID"
-                      variant="outlined"
-                      fullWidth
-                      value={formData?.Admission_ID}
-                      onChange={handleChange("Admission_ID")}
-                      disabled={loading}
-                    />
-                  </>
-                )}
               </div>
+              <Autocomplete
+                id="combo-box-demo"
+                options={sortedNationalities}
+                size="small"
+                className="w-full"
+                freeSolo
+                fullWidth
+                value={sortedNationalities.find(
+                  (option) => option.id === formData?.Nationality
+                )}
+                onChange={handleChange("Nationality")}
+                renderInput={(params) => (
+                  <TextField {...params} label="Select Nationality" />
+                )}
+              />
               <div className="pt-2">
                 <button
                   type="submit"
                   disabled={loading}
                   className="w-full h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading
-                    ? "Creating..."
-                    : `Create ${
-                        status === "student" ? capitalize(status) : "Customer"
-                      }`}
+                  {loading ? "Creating..." : `Create Customer`}
                 </button>
               </div>
             </form>
@@ -686,4 +490,4 @@ const AddCustomer = ({ loadData, status }) => {
   );
 };
 
-export default AddCustomer;
+export default AddCustomerDetails;

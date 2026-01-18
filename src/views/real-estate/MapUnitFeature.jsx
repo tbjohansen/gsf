@@ -21,6 +21,7 @@ const style = {
 };
 
 const MapUnitFeature = ({ loadData }) => {
+
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -141,6 +142,8 @@ const MapUnitFeature = ({ loadData }) => {
       console.error("Fetch features error:", error);
     }
   };
+
+  
 
   useEffect(() => {
     loadFeatures();

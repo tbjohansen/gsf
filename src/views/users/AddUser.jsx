@@ -81,7 +81,7 @@ const AddUser = ({ loadData }) => {
       // console.log("Submitting user data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.post("/registerss", data);
+      const response = await apiClient.post("/register", data);
 
       // console.log("Response:", response);
 
@@ -95,7 +95,7 @@ const AddUser = ({ loadData }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to create user");
+          toast.error("Failed to create user");
         }
         return;
       }
@@ -112,7 +112,7 @@ const AddUser = ({ loadData }) => {
           toast.error("Failed to create user");
         } else {
           // Handle simple error string
-          const errorMessage = response.data.error || "Failed to create user";
+          const errorMessage = "Failed to create user";
           toast.error(errorMessage);
         }
         return;

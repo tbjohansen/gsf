@@ -1,70 +1,93 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GiFarmTractor, GiMedicines } from "react-icons/gi";
 import { BiBuildingHouse } from "react-icons/bi";
 import { BsHouses } from "react-icons/bs";
 import { MdOutlinePropaneTank } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import apiClient from "../api/Client";
 
 const Projects = () => {
   const [selectedModule, setSelectedModule] = useState("overview");
+  const [hostels, setHostels] = useState([]);
+  const [rentals, setRentals] = useState([]);
+  const [plants, setPlants] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  // Sample data
-  const businessData = {
-    hostels: {
-      totalBuildings: 12,
-      totalRooms: 450,
-      occupiedRooms: 385,
-      students: 385,
-      revenue: 45500000,
-    },
-    houseRenting: {
-      totalProperties: 35,
-      totalUnits: 150,
-      occupiedUnits: 132,
-      tenants: 132,
-      revenue: 125750000,
-    },
-    farmPlots: {
-      totalPlots: 85,
-      occupiedPlots: 72,
-      owners: 72,
-      revenue: 32400000,
-      activeContracts: 68,
-    },
-    oxygen: {
-      productionCapacity: "500 Cylinders/Day",
-      inventory: 1250,
-      clients: 45,
-      revenue: 18900000,
-      pendingOrders: 12,
-    },
-    spaceRenting: {
-      totalSpaces: 25,
-      bookedSpaces: 18,
-      customers: 52,
-      revenue: 15600000,
-      upcomingBookings: 14,
-    },
+  const hasFetchedData = useRef(false);
+
+  useEffect(() => {
+    if (!hasFetchedData.current) {
+      hasFetchedData.current = true;
+      loadHostelData();
+      loadRentalsData();
+    }
+  }, []);
+
+  const loadHostelData = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get("/settings/hostel");
+
+      if (!response.ok) {
+        setLoading(false);
+        // toast.error("Failed to fetch hostels");
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        // toast.error("Failed to fetch hostels");
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const hostelData = response?.data?.data;
+      const newData = hostelData?.map((hostel, index) => ({
+        ...hostel,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setHostels(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch hostels error:", error);
+      setLoading(false);
+      // toast.error("Failed to load hostels");
+    }
   };
 
-  const formatter = new Intl.NumberFormat("en-US");
+  const loadRentalsData = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get("/settings/real-estate");
 
-  const totalRevenue =
-    businessData.hostels.revenue +
-    businessData.houseRenting.revenue +
-    businessData.farmPlots.revenue +
-    businessData.oxygen.revenue +
-    businessData.spaceRenting.revenue;
+      if (!response.ok) {
+        setLoading(false);
+        // toast.error(response.data?.error || "Failed to fetch units");
+        return;
+      }
 
-  const totalCustomers =
-    businessData.hostels.students +
-    businessData.houseRenting.tenants +
-    businessData.farmPlots.owners +
-    businessData.oxygen.clients +
-    businessData.spaceRenting.customers;
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        // toast.error(response.data.error || "Failed to fetch units");
+        return;
+      }
+
+      const userData = response?.data?.data?.data;
+      const newData = userData?.map((user, index) => ({
+        ...user,
+        key: index + 1,
+      }));
+      setRentals(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch units error:", error);
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white-900 p-6">
@@ -87,7 +110,7 @@ const Projects = () => {
             <BiBuildingHouse className="w-7 h-7 text-gray-400" />
           </div>
           <div className="mt-3">
-            <h3 className="text-white text-xl font-semibold">3</h3>
+            <h3 className="text-white text-xl font-semibold">{hostels?.length}</h3>
           </div>
         </div>
 
@@ -117,8 +140,8 @@ const Projects = () => {
             <BsHouses className="w-7 h-7 text-gray-400" />
           </div>
           <div className="mt-3">
-            <h3 className="text-gray-400 text-xl font-semibold">
-              {businessData.houseRenting.totalProperties}
+            <h3 className="text-white text-xl font-semibold">
+              {rentals?.length}
             </h3>
           </div>
         </div>

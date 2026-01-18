@@ -34,7 +34,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function CustomerHouseRequests({ status }) {
+export default function CustomerSpaceRequests({ status }) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [requests, setRequests] = React.useState([]);
@@ -91,7 +91,7 @@ export default function CustomerHouseRequests({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Customer_ID=${customer?.Customer_ID}&Request_Type=house_rent`;
+      let url = `/customer/customer-request?&Customer_ID=${customer?.Customer_ID}&Request_Type=business_land`;
 
       if (startDate) {
         url += `&Start_Date=${formatDateForDb(startDate)}`;
@@ -150,7 +150,7 @@ export default function CustomerHouseRequests({ status }) {
 
   const handleRowClick = (row) => {
     setSelectedRow(row);
-    navigate(`/customer-requests/${row?.Request_ID}/details`);
+    navigate(`/space-customer-requests/${row?.Request_ID}/details`);
   };
 
   const columns = React.useMemo(() => {
@@ -159,7 +159,7 @@ export default function CustomerHouseRequests({ status }) {
       {
         id: "Request_Batch_ID",
         label: "Request ID",
-           minWidth: 110,
+        minWidth: 110,
       },
       {
         id: "Customer_Status",
@@ -200,11 +200,13 @@ export default function CustomerHouseRequests({ status }) {
         minWidth: 170,
         format: (row, value) => <span>{value?.estate?.name}</span>,
       },
-       {
+      {
         id: "requested_room",
         label: "Location",
         minWidth: 170,
-        format: (row, value) => <span>{value?.estate?.location?.Unit_Location}</span>,
+        format: (row, value) => (
+          <span>{value?.estate?.location?.Unit_Location}</span>
+        ),
       },
       {
         id: "price",
@@ -214,7 +216,7 @@ export default function CustomerHouseRequests({ status }) {
           <span>{currencyFormatter?.format(value?.estate?.price)}</span>
         ),
       },
-       {
+      {
         id: "requested_room",
         label: "Request Date",
         minWidth: 170,

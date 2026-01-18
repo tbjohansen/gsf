@@ -11,13 +11,15 @@ import {
   LuMail,
   LuCircleAlert,
   LuHouse,
+  LuBox,
 } from "react-icons/lu";
 import apiClient, { baseURL } from "../../api/Client";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { currencyFormatter } from "../../../helpers";
+import { BsHouse } from "react-icons/bs";
 
-const HouseRentals = () => {
+const SpaceRentals = () => {
   const [selectedHouse, setSelectedHouse] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,7 +46,7 @@ const HouseRentals = () => {
     setLoading(true);
     try {
       const response = await apiClient.get("/settings/real-estate", {
-        real_estate_type: "house",
+        real_estate_type: "business land",
       });
 
       if (
@@ -53,7 +55,7 @@ const HouseRentals = () => {
         response?.data?.code >= 400
       ) {
         setLoading(false);
-        toast.error(response?.data?.error || "Failed to fetch house units");
+        toast.error(response?.data?.error || "Failed to fetch space units");
         return;
       }
 
@@ -65,9 +67,9 @@ const HouseRentals = () => {
         feature:
           house.feature?.map((f) => ({
             ...f,
-            feature: {
-              description: getFeatureDescription(f.real_estate_feature_id),
-            },
+            // feature: {
+            //   description: getFeatureDescription(f.real_estate_feature_id),
+            // },
           })) || [],
       }));
 
@@ -76,7 +78,7 @@ const HouseRentals = () => {
     } catch (error) {
       console.error("Fetch units error:", error);
       setLoading(false);
-      toast.error("Failed to load house units");
+      toast.error("Failed to load space units");
     }
   };
 
@@ -146,12 +148,12 @@ const HouseRentals = () => {
 
   const filteredHouses = houses.filter(
     (house) =>
-      house.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      house.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      house?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      house?.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getFeatureIcon = (description) => {
-    if (!description) return <LuHouse className="w-5 h-5" />;
+    if (!description) return <LuBox className="w-5 h-5" />;
     const normalizedDesc = description.toLowerCase();
 
     if (normalizedDesc.includes("bedroom"))
@@ -162,7 +164,7 @@ const HouseRentals = () => {
       return <LuCar className="w-5 h-5" />;
     if (normalizedDesc.includes("square") || normalizedDesc.includes("meter"))
       return <LuMaximize className="w-5 h-5" />;
-    return <LuHouse className="w-5 h-5" />;
+    return <LuBox className="w-5 h-5" />;
   };
 
   const getFeatureDisplayInfo = (feature) => {
@@ -200,7 +202,7 @@ const HouseRentals = () => {
       };
     } else {
       return {
-        icon: <LuHouse className="w-5 h-5 text-gray-600" />,
+        icon: <LuBox className="w-5 h-5 text-gray-600" />,
         label: feature?.feature?.description || "Feature",
         value: feature?.quantity || "N/A",
       };
@@ -227,7 +229,7 @@ const HouseRentals = () => {
             <div className="flex items-start">
               <LuCircleAlert className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
               <p className="text-sm text-amber-800">
-                Please note: Submitting a request for an available house does
+                Please note: Submitting a request for an available rental space does
                 not guarantee approval. All requests are subject to review and
                 final approval by management.
               </p>
@@ -235,7 +237,7 @@ const HouseRentals = () => {
           </div>
 
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-blue-600">House Rentals</h1>
+            <h1 className="text-2xl font-bold text-blue-600">Space Rentals</h1>
           </div>
 
           <div className="relative">
@@ -358,7 +360,7 @@ const HouseRentals = () => {
 
         {filteredHouses?.length === 0 && (
           <div className="text-center py-12">
-            <LuHouse className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <BsHouse className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">
               No properties found matching your search.
             </p>
@@ -498,7 +500,7 @@ const HouseRentals = () => {
                       Property Features
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {selectedHouse?.feature.map((feature) => {
+                      {selectedHouse?.feature?.map((feature) => {
                         const displayInfo = getFeatureDisplayInfo(feature);
                         return (
                           <div
@@ -550,7 +552,7 @@ const HouseRentals = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() =>
-                    navigate(`/units/${selectedHouse?.id}/request-letter`)
+                    navigate(`/space-units/${selectedHouse?.id}/request-letter`)
                   }
                   className="flex-1 cursor-pointer bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
                 >
@@ -565,4 +567,4 @@ const HouseRentals = () => {
   );
 };
 
-export default HouseRentals;
+export default SpaceRentals;

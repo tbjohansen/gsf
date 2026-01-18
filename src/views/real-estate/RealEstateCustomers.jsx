@@ -18,6 +18,7 @@ import Badge from "../../components/Badge";
 import UploadEstatesCustomers from "./UploadEstatesCustomers";
 import { TextField } from "@mui/material";
 import Breadcrumb from "../../components/Breadcrumb";
+import AddCustomerDetails from "./AddCustomerDetails";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -165,6 +166,11 @@ export default function RealEstateCustomers() {
       <Breadcrumb />
       <div className="w-full flex my-2 justify-center">
         <UploadEstatesCustomers />
+      </div>
+      <div className="w-full mb-2">
+        <div className="flex gap-4 justify-end">
+          <AddCustomerDetails loadData={loadData} />
+        </div>
       </div>
 
       <div className="w-full py-2 flex gap-2 mb-1">
