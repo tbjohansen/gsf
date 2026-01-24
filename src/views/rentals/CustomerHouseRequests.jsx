@@ -13,8 +13,6 @@ import {
   capitalize,
   currencyFormatter,
   formatDateForDb,
-  formatDateTimeForDb,
-  formatter,
 } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
@@ -44,11 +42,11 @@ export default function CustomerHouseRequests({ status }) {
 
   const [startDate, setStartDate] = React.useState(null);
   const [endDate, setEndDate] = React.useState(null);
-  const [item, setItem] = React.useState("");
+  const [requestType, setRequestType] = React.useState({
+    id: "house_rent,farm",
+    label: "All",
+  });
   const [requestStatus, setRequestStatus] = React.useState("");
-
-  const [customers, setCustomers] = React.useState([]);
-  const [items, setItems] = React.useState([]);
 
   const employeeData = localStorage.getItem("userInfo");
   const employee = JSON.parse(employeeData);
@@ -59,11 +57,27 @@ export default function CustomerHouseRequests({ status }) {
 
   // Fetch requests from API
   React.useEffect(() => {
-    if (!hasFetchedData.current) {
-      hasFetchedData.current = true;
-      loadData();
-    }
-  }, [startDate, endDate]);
+    // if (!hasFetchedData.current) {
+    //   hasFetchedData.current = true;
+     
+    // }
+     loadData();
+  }, [startDate, endDate, requestType]);
+
+  const sortedRequestTypes = [
+    {
+      id: "house_rent,farm",
+      label: "All",
+    },
+    {
+      id: "farm",
+      label: "Farm",
+    },
+    {
+      id: "house_rent",
+      label: "House",
+    },
+  ];
 
   const sortedRequestStatus = [
     {
@@ -91,7 +105,7 @@ export default function CustomerHouseRequests({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Customer_ID=${customer?.Customer_ID}&Request_Type=house_rent`;
+      let url = `/customer/customer-request?&Customer_ID=${customer?.Customer_ID}`;
 
       if (startDate) {
         url += `&Start_Date=${formatDateForDb(startDate)}`;
@@ -101,23 +115,22 @@ export default function CustomerHouseRequests({ status }) {
         url += `&End_Date=${formatDateForDb(endDate)}`;
       }
 
-      if (item) {
-        url += `&Item_ID=${item?.Item_ID}`;
+      if (requestType) {
+        url += `&Request_Type=${requestType?.id}`;
       }
 
       const response = await apiClient.get(url);
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(
-          response.data?.error || "Failed to fetch customer requests"
+        toast.error("Failed to fetch customer requests",
         );
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch customer requests");
+        toast.error( "Failed to fetch customer requests");
         return;
       }
 
@@ -135,8 +148,8 @@ export default function CustomerHouseRequests({ status }) {
     }
   };
 
-  const itemOnChange = (e, value) => {
-    setItem(value);
+  const typeOnChange = (e, value) => {
+    setRequestType(value);
   };
 
   const handleChangePage = (event, newPage) => {
@@ -150,7 +163,12 @@ export default function CustomerHouseRequests({ status }) {
 
   const handleRowClick = (row) => {
     setSelectedRow(row);
-    navigate(`/customer-requests/${row?.Request_ID}/details`);
+
+    if (row?.Request_Type === "farm") {
+      navigate(`/customer-requests/${row?.Request_ID}/farm-details`);
+    } else {
+      navigate(`/customer-requests/${row?.Request_ID}/details`);
+    }
   };
 
   const columns = React.useMemo(() => {
@@ -159,7 +177,7 @@ export default function CustomerHouseRequests({ status }) {
       {
         id: "Request_Batch_ID",
         label: "Request ID",
-           minWidth: 110,
+        minWidth: 110,
       },
       {
         id: "Customer_Status",
@@ -177,44 +195,52 @@ export default function CustomerHouseRequests({ status }) {
               value?.Customer_Status === "assign"
                 ? "green"
                 : value?.Customer_Status === "active"
-                ? "yellow"
-                : value?.Customer_Status === "received" ||
-                  value?.Customer_Status === "requested"
-                ? "blue"
-                : "red"
+                  ? "yellow"
+                  : value?.Customer_Status === "received" ||
+                      value?.Customer_Status === "requested"
+                    ? "blue"
+                    : "red"
             }
           />
         ),
       },
       {
         id: "estate",
-        label: "Unit Type",
+        label: "Request Type",
         minWidth: 150,
         format: (row, value) => (
-          <span>{capitalize(value?.estate?.real_estate_type)}</span>
+          <span>
+            {capitalize(value?.estate?.real_estate_type || value?.Request_Type)}
+          </span>
         ),
       },
       {
         id: "requested_room",
         label: "Unit Name",
         minWidth: 170,
-        format: (row, value) => <span>{value?.estate?.name}</span>,
+        format: (row, value) => (
+          <span>{value?.estate?.name || value?.item?.Item_Name}</span>
+        ),
       },
-       {
+      {
         id: "requested_room",
         label: "Location",
         minWidth: 170,
-        format: (row, value) => <span>{value?.estate?.location?.Unit_Location}</span>,
+        format: (row, value) => (
+          <span>{value?.estate?.location?.Unit_Location}</span>
+        ),
       },
       {
         id: "price",
-        label: "Monthly Price",
+        label: "Price",
         minWidth: 170,
         format: (row, value) => (
-          <span>{currencyFormatter?.format(value?.estate?.price)}</span>
+          <span>
+            {currencyFormatter?.format(value?.estate?.price || value?.Price)}
+          </span>
         ),
       },
-       {
+      {
         id: "requested_room",
         label: "Request Date",
         minWidth: 170,
@@ -237,20 +263,32 @@ export default function CustomerHouseRequests({ status }) {
           label="Start Date"
           value={startDate}
           onChange={(newValue) => setStartDate(newValue)}
-          className="w-[33%]"
+          className="w-[25%]"
         />
         <DatePick
           label="End Date"
           value={endDate}
           onChange={(newValue) => setEndDate(newValue)}
-          className="w-[33%]"
+          className="w-[25%]"
+        />
+        <Autocomplete
+          id="combo-box-demo"
+          options={sortedRequestTypes}
+          size="small"
+          disableClearable={true}
+          className="w-[25%]"
+          value={requestType}
+          onChange={typeOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Request Type" />
+          )}
         />
         <Autocomplete
           id="combo-box-demo"
           options={sortedRequestStatus}
           size="small"
           freeSolo
-          className="w-[34%]"
+          className="w-[25%]"
           value={requestStatus}
           onChange={statuOnChange}
           renderInput={(params) => (
@@ -312,7 +350,7 @@ export default function CustomerHouseRequests({ status }) {
                     >
                       {columns
                         .filter(
-                          (e) => typeof e.show === "undefined" || !!e.show
+                          (e) => typeof e.show === "undefined" || !!e.show,
                         )
                         .map((column) => {
                           const value = row[column.id];

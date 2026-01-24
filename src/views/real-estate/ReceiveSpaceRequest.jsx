@@ -913,7 +913,7 @@ export default function ReceiveSpaceRequest() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Sangila Number
+                Sangira Number
               </label>
               <p className="text-black font-semibold">
                 {requestData?.sangira?.Sangira_Number}

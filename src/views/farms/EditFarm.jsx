@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { toast } from "react-hot-toast";
 import { MdEdit } from "react-icons/md";
 import apiClient from "../../api/Client";
 import Autocomplete from "@mui/material/Autocomplete";
-import { capitalize, formatter } from "../../../helpers";
+import { capitalize } from "../../../helpers";
 
 const style = {
   position: "absolute",
@@ -20,21 +20,21 @@ const style = {
   p: 4,
 };
 
-const EditItem = ({ item, loadData, Item_Type }) => {
+const EditFarm = ({ farm, loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
   };
 
-  const [name, setName] = useState(item?.Item_Name);
-  const [price, setPrice] = useState(item?.Item_Price);
-  const [outsidePrice, setOutsidePrice] = useState(item?.Item_Price_Outside);
-
+  const [name, setName] = useState(farm?.Item_Name);
   const [status, setStatus] = useState({
-    id: item?.Item_Status,
-    label: capitalize(item?.Item_Status),
+    id: farm?.Item_Status,
+    label: capitalize(farm?.Item_Status),
   });
+  const [size, setSize] = useState(farm?.Farm_Size);
+  const [price, setPrice] = useState(farm?.Item_Price);
+
   const [loading, setLoading] = useState(false);
 
   const sortedStatus = [
@@ -58,17 +58,22 @@ const EditItem = ({ item, loadData, Item_Type }) => {
     e.preventDefault();
 
     if (!name || name.trim() === "") {
-      toast.error("Please enter item name");
+      toast.error("Please enter farm name");
+      return;
+    }
+
+    if (!size) {
+      toast.error("Please enter total hectares");
+      return;
+    }
+
+    if (!price || price < 0) {
+      toast.error("Please enter valid price per hectare");
       return;
     }
 
     if (!status) {
       toast.error("Please select status");
-      return;
-    }
-
-    if (Item_Type === "oxygen" && !price && !outsidePrice) {
-      toast.error("Please enter item price");
       return;
     }
 
@@ -86,12 +91,12 @@ const EditItem = ({ item, loadData, Item_Type }) => {
       // Prepare the data to send
       const data = {
         Item_Name: name.trim(),
+        Item_Type: "farm",
+        Item_ID: farm?.Item_ID,
+        Item_Price: price,
+        Farm_Size: size,
         Item_Status: status?.id,
-        Item_ID: item?.Item_ID,
         Employee_ID: employeeId,
-        Item_Type: Item_Type,
-        Item_Price_Outside: Item_Type === "oxygen" ? outsidePrice : null,
-        Item_Price_Inside: Item_Type === "oxygen" ? price : null,
       };
 
       // Make API request - Bearer token is automatically included by apiClient
@@ -107,7 +112,7 @@ const EditItem = ({ item, loadData, Item_Type }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to update item");
+          toast.error("Failed to update farm details");
         }
         return;
       }
@@ -115,14 +120,14 @@ const EditItem = ({ item, loadData, Item_Type }) => {
       // Check if response contains an error (your API pattern)
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to update item";
+        const errorMessage = "Failed to update farm details";
         toast.error(errorMessage);
         return;
       }
 
       // Success
       setLoading(false);
-      toast.success("Item updated successfully");
+      toast.success("Farm details are updated successfully");
       // Close modal and reset form
       handleClose();
 
@@ -134,7 +139,7 @@ const EditItem = ({ item, loadData, Item_Type }) => {
       // TODO: Dispatch action to update Redux store if needed
       // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
-      console.error("Update item error:", error);
+      console.error("Update farm details error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
@@ -157,13 +162,13 @@ const EditItem = ({ item, loadData, Item_Type }) => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Edit Item Details</h3>
+            <h3 className="text-center text-xl py-4">Edit Farm Details</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
                   id="outlined-basic"
-                  label="Item Name"
+                  label="Farm Name"
                   variant="outlined"
                   className="w-[92%]"
                   value={name}
@@ -186,51 +191,40 @@ const EditItem = ({ item, loadData, Item_Type }) => {
                   )}
                 />
               </div>
-              {Item_Type === "oxygen" && (
-                <>
-                  <div className="w-full py-2 flex justify-center">
-                    <TextField
-                      label="Inside Price (TZS)"
-                      value={price ? formatter.format(Number(price)) : ""}
-                      onChange={(e) => {
-                        // Remove any non-digit characters except decimal point
-                        const rawValue = e.target.value.replace(/[^\d.]/g, "");
-                        setPrice(rawValue);
-                      }}
-                      variant="outlined"
-                      size="small"
-                      className="w-[92%]"
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="w-full py-2 flex justify-center">
-                    <TextField
-                      label="Outside Price (TZS)"
-                      value={
-                        outsidePrice
-                          ? formatter.format(Number(outsidePrice))
-                          : ""
-                      }
-                      onChange={(e) => {
-                        // Remove any non-digit characters except decimal point
-                        const rawValue = e.target.value.replace(/[^\d.]/g, "");
-                        setOutsidePrice(rawValue);
-                      }}
-                      variant="outlined"
-                      size="small"
-                      className="w-[92%]"
-                      disabled={loading}
-                    />
-                  </div>
-                </>
-              )}
+              <div className="w-full py-2 flex justify-center">
+                <TextField
+                  size="small"
+                  id="outlined-basic"
+                  label="Total Hectares"
+                  variant="outlined"
+                  className="w-[92%]"
+                  type="number"
+                  value={size}
+                  onChange={(e) => setSize(e.target.value)}
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+              <div className="w-full py-2 flex justify-center">
+                <TextField
+                  size="small"
+                  id="outlined-basic"
+                  label="Price Per Hectare"
+                  variant="outlined"
+                  className="w-[92%]"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
               <div className="w-full py-2 mt-5 flex justify-center">
                 <button
                   onClick={(e) => submit(e)}
                   disabled={loading}
                   className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Updating..." : "Edit Item"}
+                  {loading ? "Updating..." : "Edit Farm"}
                 </button>
               </div>
             </div>
@@ -241,4 +235,4 @@ const EditItem = ({ item, loadData, Item_Type }) => {
   );
 };
 
-export default EditItem;
+export default EditFarm;

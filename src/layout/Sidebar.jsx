@@ -14,6 +14,7 @@ import { AiOutlineFundProjectionScreen } from "react-icons/ai";
 import { BsBoxes, BsClipboardPlus, BsPeople } from "react-icons/bs";
 import { HiOutlineInboxArrowDown } from "react-icons/hi2";
 import { MdOutlineWorkOutline } from "react-icons/md";
+import { GiFarmTractor } from "react-icons/gi";
 
 // SideBar Component
 const SideBar = ({
@@ -50,8 +51,9 @@ const SideBar = ({
   // Houses customer links
   const housesCustomerLinks = [
     { id: 1, name: "Units", icon: LuLayoutDashboard, url: "/units" },
-    { id: 82, name: "Requests", icon: HiOutlineInboxArrowDown, url: "/customer-requests" },
-    { id: 83, name: "Payments", icon: FcMoneyTransfer, url: "/customer-payments" },
+    { id: 82, name: "Farm Plots", icon: GiFarmTractor, url: "/customer-farms" },
+    { id: 83, name: "Requests", icon: HiOutlineInboxArrowDown, url: "/customer-requests" },
+    { id: 84, name: "Payments", icon: FcMoneyTransfer, url: "/customer-payments" },
     { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
   ];
 
@@ -59,8 +61,8 @@ const SideBar = ({
     // Spaces customer links
   const spacesCustomerLinks = [
     { id: 1, name: "Units", icon: LuLayoutDashboard, url: "/space-units" },
-    { id: 82, name: "Requests", icon: HiOutlineInboxArrowDown, url: "/space-customer-requests" },
-    { id: 83, name: "Payments", icon: FcMoneyTransfer, url: "/space-customer-payments" },
+    { id: 85, name: "Requests", icon: HiOutlineInboxArrowDown, url: "/space-customer-requests" },
+    { id: 86, name: "Payments", icon: FcMoneyTransfer, url: "/space-customer-payments" },
     { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
   ];
 

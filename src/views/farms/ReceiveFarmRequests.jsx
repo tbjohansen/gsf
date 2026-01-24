@@ -1,23 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
-import { BsHouse } from "react-icons/bs";
 import {
   LuCircleCheckBig,
   LuCircleUserRound,
   LuCircleX,
   LuClock,
   LuFileText,
-  LuUpload,
-  LuDownload,
-  LuReceipt,
+  LuPlus,
+  LuMinus,
 } from "react-icons/lu";
-import { GrDocumentUpdate } from "react-icons/gr";
-import { IoArrowUndoCircleOutline } from "react-icons/io5";
-import { capitalize, currencyFormatter, removeUnderscore } from "../../../helpers";
+import { CgFileRemove } from "react-icons/cg";
+import {
+  capitalize,
+  currencyFormatter,
+  removeUnderscore,
+} from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import apiClient, { baseURL } from "../../api/Client";
-import { CgFileRemove } from "react-icons/cg";
+import apiClient from "../../api/Client";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -26,9 +26,11 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { IconButton } from "@mui/material";
 import { MdClose } from "react-icons/md";
+import { IoArrowUndoCircleOutline } from "react-icons/io5";
 import { FcMoneyTransfer } from "react-icons/fc";
+import { GiFarmTractor } from "react-icons/gi";
 
-export default function ReceiveHouseRequest() {
+export default function ReceiveFarmRequest() {
   const { requestID } = useParams();
 
   const [requestData, setRequestData] = useState("");
@@ -36,7 +38,7 @@ export default function ReceiveHouseRequest() {
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
-  const [numberOfMonths, setNumberOfMonths] = useState(1);
+  const [farmSize, setFarmSize] = useState(0.25);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
 
@@ -47,169 +49,6 @@ export default function ReceiveHouseRequest() {
 
   const handleClose = () => {
     setOpen(false);
-  };
-
-  // Contract management states
-  const [contractFile, setContractFile] = useState(null);
-  const [uploadedContract, setUploadedContract] = useState(null);
-
-  // Payment details states
-  const [paymentDetails, setPaymentDetails] = useState({
-    sangilaNumber: "",
-    receiptNumber: "",
-    paymentDate: "",
-    amount: "",
-    remarks: "",
-  });
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  const handleUpdateContract = () => {
-    setIsUpdating(true);
-    setContractFile(null);
-  };
-
-  const handleCancelUpdate = () => {
-    setIsUpdating(false);
-    setContractFile(null);
-  };
-
-  const handleContractUpdate = async (e) => {
-    e.preventDefault();
-
-    if (!contractFile) {
-      toast.error("Please select a contract file to upload");
-      return;
-    }
-
-    const employeeId = localStorage.getItem("employeeId");
-
-    if (!employeeId) {
-      toast.error("User information not found. Please login again.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("contract", contractFile);
-      formData.append("Contract_attachment", contractFile);
-      formData.append("Request_ID", requestID);
-      formData.append("Employee_ID", employeeId);
-
-      // Make API request to upload contract
-      const response = await apiClient.post(
-        "/estate/attach-contract",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
-
-      if (!response.ok) {
-        setLoading(false);
-        toast.error("Failed to update contract");
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error("Failed to update contract");
-        return;
-      }
-
-      setLoading(false);
-      toast.success("Contract updated successfully");
-      setUploadedContract(response?.data?.data);
-      setContractFile(null);
-      setIsUpdating(false);
-      loadData();
-    } catch (error) {
-      console.error("Upload contract error:", error);
-      setLoading(false);
-      toast.error("An unexpected error occurred. Please try again");
-    }
-  };
-
-  const showTabs =
-    requestData?.Customer_Status === "served" ||
-    requestData?.Customer_Status === "requested" ||
-    requestData?.Customer_Status === "rejected";
-
-  // Calculate grand total
-  const calculateGrandTotal = () => {
-    if (paymentMethod === "cash" && numberOfMonths && requestData?.Price) {
-      return numberOfMonths * requestData.Price;
-    }
-    return 0;
-  };
-
-  const handleContractUpload = async (e) => {
-    e.preventDefault();
-
-    if (!contractFile) {
-      toast.error("Please select a contract file to upload");
-      return;
-    }
-
-    const employeeId = localStorage.getItem("employeeId");
-
-    if (!employeeId) {
-      toast.error("User information not found. Please login again.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("contract", contractFile);
-      formData.append("Contract_attachment", contractFile);
-      formData.append("Request_ID", requestID);
-      formData.append("Employee_ID", employeeId);
-
-      // Make API request to upload contract
-      const response = await apiClient.post(
-        "/estate/attach-contract",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
-
-      if (!response.ok) {
-        setLoading(false);
-        toast.error(response.data?.error || "Failed to upload contract");
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response.data.error || "Failed to upload contract");
-        return;
-      }
-
-      setLoading(false);
-      toast.success("Contract uploaded successfully");
-      setUploadedContract(response?.data?.data);
-      setContractFile(null);
-      loadData();
-    } catch (error) {
-      console.error("Upload contract error:", error);
-      setLoading(false);
-      toast.error("An unexpected error occurred. Please try again");
-    }
-  };
-
-  const handleDownloadContract = () => {
-    if (requestData?.Contract_attachment) {
-      const path = `${baseURL}/${requestData?.Contract_attachment}`;
-      window.open(path, "_blank");
-    }
   };
 
   const receiveRequest = async (e) => {
@@ -234,14 +73,14 @@ export default function ReceiveHouseRequest() {
     try {
       const data = {
         Customer_Status: "received",
-        real_estate_id: requestData?.real_estate_id,
+        Item_ID: requestData?.item?.Item_ID,
         Request_Batch_ID: requestData?.Request_Batch_ID,
         Customer_ID: requestData?.Customer_ID,
         Request_ID: requestID,
         Employee_ID: employeeId,
       };
 
-      const response = await apiClient.put(`/estate/real-estate-request`, data);
+      const response = await apiClient.put(`/estate/farm-request`, data);
 
       if (!response.ok) {
         setLoading(false);
@@ -250,20 +89,20 @@ export default function ReceiveHouseRequest() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to receive house request");
+          toast.error("Failed to receive farm request");
         }
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to receive house request";
+        const errorMessage = "Failed to receive farm request";
         toast.error(errorMessage);
         return;
       }
 
       setLoading(false);
-      toast.success("House request is received successfully");
+      toast.success("Farm request is received successfully");
       loadData();
     } catch (error) {
       console.error("Update unit error:", error);
@@ -272,7 +111,7 @@ export default function ReceiveHouseRequest() {
     }
   };
 
-  const acceptHouseRequest = async (e) => {
+  const acceptFarmRequest = async (e) => {
     e.preventDefault();
 
     const employeeId = localStorage.getItem("employeeId");
@@ -282,13 +121,13 @@ export default function ReceiveHouseRequest() {
       return;
     }
 
-    if (!paymentMethod) {
-      toast.error("Please select payment method");
+    if (!farmSize) {
+      toast.error("Please enter a valid farm plot size");
       return;
     }
 
-    if (paymentMethod === "cash" && (!numberOfMonths || numberOfMonths < 1)) {
-      toast.error("Please enter a valid number of months");
+    if (farmSize < 0 && farmSize > 2) {
+      toast.error("Please enter a valid farm plot size");
       return;
     }
 
@@ -303,22 +142,18 @@ export default function ReceiveHouseRequest() {
 
     try {
       const data = {
-        // Customer_Status: paymentMethod === "cash" ? "assign" : "served",
         Customer_Status: "assign",
-        Payment_Mode: paymentMethod,
-        real_estate_id: requestData?.real_estate_id,
+        Payment_Mode: "cash",
+        Item_ID: requestData?.Item_ID,
         Request_Batch_ID: requestData?.Request_Batch_ID,
         Customer_ID: requestData?.Customer_ID,
         Request_ID: requestID,
         Employee_ID: employeeId,
+        Requested_Farm_Size: farmSize,
+        Grand_Total_Price: calculateCost(farmSize),
       };
 
-      if (paymentMethod === "cash") {
-        data.months = numberOfMonths;
-        data.Grand_Total_Price = calculateGrandTotal();
-      }
-
-      const response = await apiClient.put(`/estate/real-estate-request`, data);
+      const response = await apiClient.put(`/estate/farm-request`, data);
 
       if (!response.ok) {
         setLoading(false);
@@ -327,23 +162,23 @@ export default function ReceiveHouseRequest() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to accept house request");
+          toast.error("Failed to accept farm request");
         }
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to accept house request";
+        const errorMessage = "Failed to accept farm request";
         toast.error(errorMessage);
         return;
       }
 
       setLoading(false);
-      toast.success("House request is accepted successfully");
+      toast.success("Farm request is accepted successfully");
       loadData();
       setPaymentMethod("");
-      setNumberOfMonths(1);
+      setFarmSize(1);
       setShowAcceptModal(false);
     } catch (error) {
       console.error("Update unit error:", error);
@@ -352,7 +187,7 @@ export default function ReceiveHouseRequest() {
     }
   };
 
-  const declineHouseRequest = async (e) => {
+  const declineFarmRequest = async (e) => {
     e.preventDefault();
 
     const employeeId = localStorage.getItem("employeeId");
@@ -380,14 +215,14 @@ export default function ReceiveHouseRequest() {
       const data = {
         Customer_Status: "rejected",
         Rejection_Reason: declineReason,
-        real_estate_id: requestData?.real_estate_id,
+        Item_ID: requestData?.item?.Item_ID,
         Request_Batch_ID: requestData?.Request_Batch_ID,
         Customer_ID: requestData?.Customer_ID,
         Request_ID: requestID,
         Employee_ID: employeeId,
       };
 
-      const response = await apiClient.put(`/estate/real-estate-request`, data);
+      const response = await apiClient.put(`/estate/farm-request`, data);
 
       if (!response.ok) {
         setLoading(false);
@@ -396,20 +231,20 @@ export default function ReceiveHouseRequest() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to decline house request");
+          toast.error("Failed to decline farm request");
         }
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to decline house request";
+        const errorMessage = "Failed to decline farm request";
         toast.error(errorMessage);
         return;
       }
 
       setLoading(false);
-      toast.success("House request is declined successfully");
+      toast.success("Farm request is declined successfully");
       loadData();
       setDeclineReason("");
       setShowDeclineModal(false);
@@ -444,18 +279,18 @@ export default function ReceiveHouseRequest() {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        `/customer/customer-request?&&Request_ID=${requestID}Request_Type=house_rent`,
+        `/customer/customer-request?&Request_ID=${requestID}&Request_Type=farm`,
       );
 
       if (!response.ok) {
         setLoading(false);
-        toast.error("Failed to fetch request data");
+        toast.error(response.data?.error || "Failed to fetch request data");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error("Failed to fetch request data");
+        toast.error(response.data.error || "Failed to fetch request data");
         return;
       }
 
@@ -464,19 +299,8 @@ export default function ReceiveHouseRequest() {
         ...payment,
         key: index + 1,
       }));
-      console.log(newData);
       setRequestData(Array.isArray(newData) ? newData[0] : "");
-
-      // Load uploaded contract if exists
-      if (newData[0]?.contract) {
-        setUploadedContract(newData[0].contract);
-      }
-
-      // Load payment details if exists
-      if (newData[0]?.paymentDetails) {
-        setPaymentDetails(newData[0]?.sangira);
-      }
-
+      setFarmSize(Array.isArray(newData) ? newData[0]?.Quantity : 0.25);
       setLoading(false);
     } catch (error) {
       console.error("Fetch requests error:", error);
@@ -503,7 +327,7 @@ export default function ReceiveHouseRequest() {
           <div>
             <p className="text-sm text-gray-600">Customer ID</p>
             <p className="font-semibold text-gray-900">
-              {requestData?.customer?.Student_ID}
+              {requestData?.customer?.Customer_ID}
             </p>
           </div>
           <div>
@@ -533,37 +357,29 @@ export default function ReceiveHouseRequest() {
         </div>
       </div>
 
-      {/* Property Information */}
+      {/* Farm Information */}
       <div className="px-8 py-6 border-b border-gray-200">
         <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-          <BsHouse className="mr-2 text-blue-600" size={24} />
-          Property Information
+          <GiFarmTractor className="mr-2 text-blue-600" size={24} />
+          Farm Information
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-gray-600">Property Name</p>
+            <p className="text-sm text-gray-600">Farm Name</p>
             <p className="font-semibold text-gray-900">
-              {requestData?.estate?.name}
+              {requestData?.item?.Item_Name}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Type</p>
+            <p className="text-sm text-gray-600">Total Hectares</p>
             <p className="font-semibold text-gray-900 capitalize">
-              {requestData?.estate?.real_estate_type}
+              {requestData?.item?.Farm_Size}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Location</p>
-            <p className="font-semibold text-gray-900">
-              {requestData?.estate?.location?.Unit_Location ||
-                requestData?.estate?.description}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Price</p>
+            <p className="text-sm text-gray-600">Price Per 0.25 Hectare</p>
             <p className="font-semibold text-green-600 text-lg">
-              {currencyFormatter.format(requestData?.Price)}{" "}
-              <span className="text-black">/ Month</span>
+              {currencyFormatter.format(requestData?.item?.Item_Price)}
             </p>
           </div>
         </div>
@@ -588,7 +404,23 @@ export default function ReceiveHouseRequest() {
               {requestData?.Request_Type?.replace("_", " ")}
             </p>
           </div>
-          {requestData.Received_Time && (
+          <div>
+            <p className="text-sm text-gray-600">
+              Requested Farm Size (Hectares)
+            </p>
+            <p className="font-semibold text-gray-900">
+              {requestData?.Quantity}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">
+              Allocated Farm Size (Hectares)
+            </p>
+            <p className="font-semibold text-gray-900 capitalize">
+              {requestData?.Quantity}
+            </p>
+          </div>
+          {requestData?.Received_Time && (
             <>
               <div>
                 <p className="text-sm text-gray-600">Received Time</p>
@@ -613,14 +445,6 @@ export default function ReceiveHouseRequest() {
             </p>
           </div>
         </div>
-        {requestData?.Remarks && (
-          <div className="mt-4">
-            <p className="text-sm text-gray-600 mb-2">Remarks</p>
-            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <p className="text-gray-800">{requestData?.Remarks}</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Action Buttons */}
@@ -657,34 +481,22 @@ export default function ReceiveHouseRequest() {
 
         {(requestData?.Customer_Status === "served" ||
           requestData?.Customer_Status === "requested") && (
-          // <div className="text-center py-4">
-          //   <LuCircleCheckBig
-          //     className="mx-auto text-green-600 mb-2"
-          //     size={48}
-          //   />
-          //   <p className="text-xl font-semibold text-green-600">
-          //     Request Accepted
-          //   </p>
-          // </div>
           <div>
             <button
               onClick={handleConfirmOpen}
               className="w-full cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center"
             >
               <IoArrowUndoCircleOutline className="mr-2" size={20} />
-              Revoke House Allocation
+              Revoke Farm Allocation
             </button>
             <Dialog
               open={open}
-              // slots={{
-              //   transition: Transition,
-              // }}
               keepMounted
               onClose={handleClose}
               aria-describedby="alert-dialog-slide-description"
             >
               <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
-                {"REVOKE HOUSE ALLOCATION"}
+                {"REVOKE FARM ALLOCATION"}
               </DialogTitle>
 
               <IconButton
@@ -701,8 +513,7 @@ export default function ReceiveHouseRequest() {
               </IconButton>
               <DialogContent>
                 <DialogContentText id="alert-dialog-slide-description">
-                  Are you sure you want to revoke this house request allocation
-                  ?
+                  Are you sure you want to revoke this farm request allocation?
                 </DialogContentText>
               </DialogContent>
               <DialogActions>
@@ -730,158 +541,6 @@ export default function ReceiveHouseRequest() {
           </div>
         )}
       </div>
-    </div>
-  );
-
-  const renderContractTab = () => (
-    <div className="px-8 py-6">
-      <div className="flex flex-row justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-          <LuFileText className="mr-2 text-blue-600" size={24} />
-          Contract Management
-        </h2>
-      </div>
-
-      {requestData?.Contract_attachment &&
-      requestData?.previos_contract?.length > 0 &&
-      !isUpdating ? (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <LuCircleCheckBig className="text-green-600 mr-3" size={32} />
-              <div>
-                <p className="font-semibold text-gray-900">Contract Uploaded</p>
-                <p className="text-sm text-gray-600">
-                  Uploaded on: {requestData?.Contract_Attached_Time}
-                </p>
-                {/* <p className="text-sm text-gray-600">
-                  Uploaded by: {capitalize(requestData?.contract?.name)}
-                </p> */}
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleDownloadContract}
-                className="flex items-center cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
-              >
-                <LuDownload className="mr-2" size={18} />
-                Download Contract
-              </button>
-              <button
-                onClick={handleUpdateContract}
-                className="flex items-center cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
-              >
-                <GrDocumentUpdate className="mr-2" size={18} />
-                Update Contract
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <form
-          onSubmit={isUpdating ? handleContractUpdate : handleContractUpload}
-        >
-          {isUpdating && (
-            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-800 font-semibold">
-                You are updating the existing contract. The previous version
-                will be replaced.
-              </p>
-            </div>
-          )}
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.currentTarget.classList.add("border-blue-500", "bg-blue-50");
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              e.currentTarget.classList.remove("border-blue-500", "bg-blue-50");
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.currentTarget.classList.remove("border-blue-500", "bg-blue-50");
-              const file = e.dataTransfer.files[0];
-              if (
-                file &&
-                (file.type === "application/pdf" ||
-                  file.type === "application/msword" ||
-                  file.type ===
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-              ) {
-                setContractFile(file);
-              } else {
-                alert(
-                  "Please upload only PDF or Word documents (.pdf, .doc, .docx)",
-                );
-              }
-            }}
-            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center transition-colors duration-200 hover:border-gray-400"
-          >
-            <LuUpload className="mx-auto text-gray-400 mb-4" size={48} />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {isUpdating ? "Upload New Contract" : "Upload Signed Contract"}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Drag and drop your file here, or click to browse
-            </p>
-            <p className="text-xs text-gray-500 mb-4">
-              Accepted formats: PDF, DOC, DOCX
-            </p>
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={(e) => {
-                const file = e.target.files[0];
-                if (file) setContractFile(file);
-              }}
-              className="hidden"
-              id="contract-file-input"
-            />
-            <label
-              htmlFor="contract-file-input"
-              className="inline-block cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-6 rounded-lg transition duration-200 mb-4"
-            >
-              Browse Files
-            </label>
-            {contractFile && (
-              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-gray-700">
-                  Selected file:{" "}
-                  <span className="font-semibold">{contractFile.name}</span>
-                </p>
-              </div>
-            )}
-            {contractFile && (
-              <div className="mt-4 flex gap-3 justify-center">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading
-                    ? isUpdating
-                      ? "Updating..."
-                      : "Uploading..."
-                    : isUpdating
-                      ? "Update Contract"
-                      : "Upload Contract"}
-                </button>
-                {isUpdating && (
-                  <button
-                    type="button"
-                    onClick={handleCancelUpdate}
-                    disabled={loading}
-                    className="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </form>
-      )}
     </div>
   );
 
@@ -962,7 +621,9 @@ export default function ReceiveHouseRequest() {
                 Payment Method
               </label>
               <p className="text-black font-semibold">
-                {capitalize(removeUnderscore(requestData?.payment?.Payment_Channel))}
+                {capitalize(
+                  removeUnderscore(requestData?.payment?.Payment_Channel),
+                )}
               </p>
             </div>
 
@@ -1042,14 +703,14 @@ export default function ReceiveHouseRequest() {
     try {
       const data = {
         Customer_Status: "expired",
-        real_estate_id: requestData?.real_estate_id,
+        Item_ID: requestData?.item?.Item_ID,
         Request_Batch_ID: requestData?.Request_Batch_ID,
         Customer_ID: requestData?.Customer_ID,
         Request_ID: requestID,
         Employee_ID: employeeId,
       };
 
-      const response = await apiClient.put(`/estate/real-estate-request`, data);
+      const response = await apiClient.put(`/estate/farm-request`, data);
 
       if (!response.ok) {
         setLoading(false);
@@ -1058,26 +719,65 @@ export default function ReceiveHouseRequest() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to revoke house allocation");
+          toast.error("Failed to revoke farm allocation");
         }
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        const errorMessage = "Failed to revoke house allocation";
+        const errorMessage = "Failed to revoke farm allocation";
         toast.error(errorMessage);
         return;
       }
 
       setLoading(false);
-      toast.success("House allocation is revoked successfully");
+      toast.success("Farm allocation is revoked successfully");
       loadData();
     } catch (error) {
       console.error("Update unit error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
+  };
+
+  const showTabs =
+    requestData?.Customer_Status === "served" ||
+    requestData?.Customer_Status === "requested" ||
+    requestData?.Customer_Status === "rejected";
+
+  const increment = () => {
+    if (farmSize < 2) {
+      setFarmSize((prev) => parseFloat((prev + 0.25).toFixed(2)));
+    }
+  };
+
+  const decrement = () => {
+    if (farmSize > 0.25) {
+      setFarmSize((prev) => parseFloat((prev - 0.25).toFixed(2)));
+    }
+  };
+
+  const calculateCost = (size) => {
+    // Calculate number of 0.25 hectare units
+    const quarterHectareUnits = size / 0.25;
+    return quarterHectareUnits * requestData?.Price;
+  };
+
+  // Helper function to format plot size display
+  const formatPlotSize = (size) => {
+    return size % 1 === 0 ? size.toString() : size.toFixed(2);
+  };
+
+  // Calculate how many 0.25 hectare units
+  const getQuarterHectareUnits = (size) => {
+    return size / 0.25;
+  };
+
+  // Helper function to format cost display
+  const formatCost = (size) => {
+    const cost = calculateCost(size);
+    return currencyFormatter.format(cost);
   };
 
   return (
@@ -1087,13 +787,13 @@ export default function ReceiveHouseRequest() {
         <div className="max-w-5xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6">
               <div className="flex justify-between items-start">
                 <div>
                   <h1 className="text-3xl font-bold text-white mb-2">
-                    House Request Details
+                    Farm Request Details
                   </h1>
-                  <p className="text-blue-100">
+                  <p className="text-green-100">
                     Request ID: #{requestData?.Request_ID}
                   </p>
                 </div>
@@ -1107,7 +807,7 @@ export default function ReceiveHouseRequest() {
                         ? "bg-blue-100 text-blue-800"
                         : requestData?.Customer_Status === "assign" ||
                             requestData?.Customer_Status === "requested"
-                          ? "bg-blue-100 text-blue-600"
+                          ? "bg-blue-100 text-green-800"
                           : requestData?.Customer_Status === "served" ||
                               requestData?.Customer_Status === "paid"
                             ? "bg-green-100 text-green-800"
@@ -1141,7 +841,7 @@ export default function ReceiveHouseRequest() {
                     onClick={() => setActiveTab("details")}
                     className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === "details"
-                        ? "border-blue-600 text-blue-600"
+                        ? "border-green-600 text-green-600"
                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                   >
@@ -1151,24 +851,10 @@ export default function ReceiveHouseRequest() {
                     requestData?.Customer_Status,
                   ) && (
                     <button
-                      onClick={() => setActiveTab("contract")}
-                      className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === "contract"
-                          ? "border-blue-600 text-blue-600"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                      }`}
-                    >
-                      Contract Management
-                    </button>
-                  )}
-                  {["requested", "served", "assign"].includes(
-                    requestData?.Customer_Status,
-                  ) && (
-                    <button
                       onClick={() => setActiveTab("payment")}
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
                         activeTab === "payment"
-                          ? "border-blue-600 text-blue-600"
+                          ? "border-green-600 text-green-600"
                           : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                       }`}
                     >
@@ -1180,7 +866,7 @@ export default function ReceiveHouseRequest() {
                       onClick={() => setActiveTab("rejection")}
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
                         activeTab === "rejection"
-                          ? "border-blue-600 text-blue-600"
+                          ? "border-green-600 text-green-600"
                           : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                       }`}
                     >
@@ -1195,7 +881,6 @@ export default function ReceiveHouseRequest() {
             {showTabs ? (
               <>
                 {activeTab === "details" && renderDetailsTab()}
-                {activeTab === "contract" && renderContractTab()}
                 {activeTab === "payment" && renderPaymentTab()}
                 {activeTab === "rejection" && renderRejectionTab()}
               </>
@@ -1207,7 +892,7 @@ export default function ReceiveHouseRequest() {
 
         {/* Decline Modal */}
         {showDeclineModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-md w-full p-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-4">
                 Reject Request
@@ -1232,7 +917,7 @@ export default function ReceiveHouseRequest() {
                   Cancel
                 </button>
                 <button
-                  onClick={declineHouseRequest}
+                  onClick={declineFarmRequest}
                   disabled={!declineReason.trim()}
                   className="flex-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -1245,113 +930,86 @@ export default function ReceiveHouseRequest() {
 
         {/* Accept Modal */}
         {showAcceptModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                Accept Request
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Please select a payment method:
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+              <p className="text-center text-balck mb-4">
+                Kindly confirm the size of the farm plot to be allocated to the
+                user:
               </p>
-              <div className="space-y-2 mb-4">
-                <label className="flex items-center p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="free"
-                    checked={paymentMethod === "free"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mr-3 w-4 h-4 text-green-600"
-                  />
-                  <div>
-                    <p className="font-semibold text-gray-900">Free</p>
-                    <p className="text-sm text-gray-600">No payment required</p>
-                  </div>
-                </label>
-                <label className="flex items-center p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="salary_deduction"
-                    checked={paymentMethod === "salary_deduction"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mr-3 w-4 h-4 text-green-600"
-                  />
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      Salary Deduction
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Deduct from monthly salary
-                    </p>
-                  </div>
-                </label>
-                <label className="block p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                  <div className="flex items-center mb-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cash"
-                      checked={paymentMethod === "cash"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="mr-3 w-4 h-4 text-green-600"
-                    />
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        Cash Payment
-                      </p>
-                      <p className="text-sm text-gray-600">Pay in cash</p>
+
+              <div className="flex flex-col items-center">
+                <div className="text-sm font-semibold mb-2">
+                  Actual user requested plot size is{" "}
+                  {requestData?.Quantity || 0} hectare(s)
+                </div>
+                <div className="text-sm text-gray-500 mb-2">
+                  Adjust plot size by (0.25 (¼) hectare)
+                </div>
+                <div className="flex items-center space-x-6 mb-4 mt-2">
+                  <button
+                    onClick={decrement}
+                    disabled={farmSize <= 0.25}
+                    className={`p-3 rounded-full shadow-md transition-all duration-200 ${
+                      farmSize <= 0.25
+                        ? "bg-gray-200 cursor-not-allowed"
+                        : "bg-emerald-100 hover:bg-emerald-200 active:scale-95"
+                    }`}
+                  >
+                    <LuMinus className="w-6 h-6 text-emerald-800" />
+                  </button>
+
+                  <div className="text-center">
+                    <div className="text-2xl md:text-3xl font-bold text-emerald-900">
+                      {formatPlotSize(farmSize)}
                     </div>
                   </div>
 
-                  {paymentMethod === "cash" && (
-                    <div className="ml-7 space-y-2 mt-3 pt-3 border-t border-gray-200">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Number of Months
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={numberOfMonths}
-                          onChange={(e) =>
-                            setNumberOfMonths(parseInt(e.target.value) || 1)
-                          }
-                          className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          placeholder="Enter number of months"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Grand Total Amount
-                        </label>
-                        <input
-                          type="text"
-                          value={currencyFormatter.format(
-                            calculateGrandTotal(),
-                          )}
-                          disabled
-                          className="w-full border border-gray-300 rounded-lg p-2 bg-gray-100 text-gray-700 font-semibold cursor-not-allowed"
-                        />
-                      </div>
+                  <button
+                    onClick={increment}
+                    disabled={farmSize >= 2}
+                    className={`p-3 rounded-full shadow-md transition-all duration-200 ${
+                      farmSize >= 2
+                        ? "bg-gray-200 cursor-not-allowed"
+                        : "bg-emerald-100 hover:bg-emerald-200 active:scale-95"
+                    }`}
+                  >
+                    <LuPlus className="w-6 h-6 text-emerald-800" />
+                  </button>
+                </div>
+
+                {/* Price Display */}
+                <div className="mb-8 p-6 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
+                  <div className="text-center">
+                    <div className="text-3xl md:text-4xl font-bold text-emerald-900 mb-2">
+                      {formatCost(farmSize)}
                     </div>
-                  )}
-                </label>
+                    <div className="text-gray-600">
+                      Total price for {formatPlotSize(farmSize)}{" "}
+                      {farmSize > 1 ? "hectares" : "hectare"} plot
+                    </div>
+                    <div className="text-sm text-emerald-700 mt-2">
+                      {getQuarterHectareUnits(farmSize)} units ×{" "}
+                      {currencyFormatter.format(requestData?.Price)} per 0.25
+                      (¼) hectare = {formatCost(farmSize)}
+                    </div>
+                  </div>
+                </div>
               </div>
+
               <div className="flex gap-3">
                 <button
                   onClick={() => {
                     setShowAcceptModal(false);
                     setPaymentMethod("");
-                    setNumberOfMonths(1);
+                    setFarmSize(1);
                   }}
                   className="flex-1 cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition duration-200"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={acceptHouseRequest}
-                  disabled={!paymentMethod}
+                  onClick={acceptFarmRequest}
+                  //   disabled={!paymentMethod}
                   className="flex-1 cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Confirm Accept

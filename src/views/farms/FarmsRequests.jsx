@@ -9,20 +9,12 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import {
-  capitalize,
-  currencyFormatter,
-  formatDateForDb,
-  formatDateTimeForDb,
-  formatter,
-} from "../../../helpers";
+import { capitalize, currencyFormatter, formatter } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
-import DatePick from "../../components/DatePicker";
-import { Autocomplete, TextField } from "@mui/material";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -34,96 +26,56 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function CustomerSpaceRequests({ status }) {
+export default function FarmsRequests() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [requests, setRequests] = React.useState([]);
+  const [requestsList, setList] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
-  const [startDate, setStartDate] = React.useState(null);
-  const [endDate, setEndDate] = React.useState(null);
-  const [requestStatus, setRequestStatus] = React.useState("");
-
-  const employeeData = localStorage.getItem("userInfo");
-  const employee = JSON.parse(employeeData);
-  const customer = employee?.customer;
-
   const navigate = useNavigate();
+
   const hasFetchedData = React.useRef(false);
 
-  // Fetch requests from API
   React.useEffect(() => {
     if (!hasFetchedData.current) {
       hasFetchedData.current = true;
       loadData();
     }
-  }, [startDate, endDate]);
-
-  const sortedRequestStatus = [
-    {
-      id: "active",
-      label: "Pending",
-    },
-    {
-      id: "received",
-      label: "Received",
-    },
-    {
-      id: "rejected",
-      label: "Rejected",
-    },
-    {
-      id: "served",
-      label: "Served",
-    },
-  ];
-
-  const statuOnChange = (e, value) => {
-    setRequestStatus(value);
-  };
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Customer_ID=${customer?.Customer_ID}&Request_Type=business_land`;
-
-      if (startDate) {
-        url += `&Start_Date=${formatDateForDb(startDate)}`;
-      }
-
-      if (endDate) {
-        url += `&End_Date=${formatDateForDb(endDate)}`;
-      }
-
-
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(
+        "/customer/customer-request?&Request_Type=farm"
+      );
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(
-          response.data?.error || "Failed to fetch customer requests"
-        );
+        toast.error(response.data?.error || "Failed to fetch requests");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch customer requests");
+        toast.error(response.data.error || "Failed to fetch requests");
         return;
       }
 
-      const itemData = response?.data?.data?.data;
-      const newData = itemData?.map((item, index) => ({
-        ...item,
+      // Adjust based on your API response structure
+      const paymentsData = response?.data?.data?.data;
+      const newData = paymentsData?.map((payment, index) => ({
+        ...payment,
         key: index + 1,
       }));
-      setRequests(Array.isArray(newData) ? newData : []);
+      console.log(newData);
+      setList(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch customer requests error:", error);
+      console.error("Fetch requests error:", error);
       setLoading(false);
-      toast.error("Failed to load customer requests");
+      toast.error("Failed to load requests");
     }
   };
 
@@ -136,22 +88,36 @@ export default function CustomerSpaceRequests({ status }) {
     setPage(0);
   };
 
-  const handleRowClick = (row) => {
-    setSelectedRow(row);
-    navigate(`/space-customer-requests/${row?.Request_ID}/details`);
-  };
-
-  const columns = React.useMemo(() => {
-    return [
+  // Inside the Hostels component, replace the columns definition with:
+  const columns = React.useMemo(
+    () => [
       { id: "key", label: "S/N" },
       {
-        id: "Request_Batch_ID",
-        label: "Request ID",
-        minWidth: 110,
+        id: "name",
+        label: "Full Name",
+        minWidth: 170,
+        format: (row, value) => (
+          <span>{capitalize(value?.customer?.Customer_Name)}</span>
+        ),
+      },
+      {
+        id: "gender",
+        label: "Gender",
+        format: (row, value) => (
+          <span>{capitalize(value?.customer?.Gender)}</span>
+        ),
+      },
+      {
+        id: "student_id",
+        label: "Customer ID",
+        format: (row, value) => (
+          <span>{capitalize(value?.customer?.Student_ID)}</span>
+        ),
       },
       {
         id: "Customer_Status",
-        label: "Status",
+        label: "Request Status",
+        minWidth: 170,
         align: "center",
         format: (row, value) => (
           <Badge
@@ -175,79 +141,97 @@ export default function CustomerSpaceRequests({ status }) {
         ),
       },
       {
-        id: "estate",
-        label: "Unit Type",
-        minWidth: 150,
-        format: (row, value) => (
-          <span>{capitalize(value?.estate?.real_estate_type)}</span>
-        ),
-      },
-      {
         id: "requested_room",
-        label: "Unit Name",
+        label: "Farm Name",
         minWidth: 170,
-        format: (row, value) => <span>{value?.estate?.name}</span>,
-      },
-      {
-        id: "requested_room",
-        label: "Location",
-        minWidth: 170,
-        format: (row, value) => (
-          <span>{value?.estate?.location?.Unit_Location}</span>
-        ),
+        format: (row, value) => <span>{value?.item?.Item_Name}</span>,
       },
       {
         id: "price",
-        label: "Monthly Price",
+        label: "Price",
         minWidth: 170,
         format: (row, value) => (
-          <span>{currencyFormatter?.format(value?.estate?.price)}</span>
+          <span>{currencyFormatter?.format(value?.Price)}</span>
         ),
       },
       {
-        id: "requested_room",
-        label: "Request Date",
-        minWidth: 170,
-        format: (row, value) => <span>{value?.Request_Date}</span>,
+        id: "total_amount",
+        label: "Amount",
+        format: (row, value) => (
+          <span>
+            {value?.Sangira
+              ? currencyFormatter?.format(
+                  value?.Sangira?.Grand_Total_Price || 0
+                )
+              : null}
+          </span>
+        ),
       },
-    ];
-  }, []);
+      {
+        id: "sangira_number",
+        label: "Sangira",
+        format: (row, value) => (
+          <span>{value?.Sangira?.Sangira_Number || ""}</span>
+        ),
+      },
+      {
+        id: "requested_at",
+        label: "Requested Date",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.Sangira?.Requested_Date}</span>,
+      },
+      {
+        id: "status",
+        label: "Payment Status",
+        minWidth: 170,
+        align: "center",
+        format: (row, value) => (
+          <>
+            {value?.Sangira ? (
+              <Badge
+                name={capitalize(value?.Sangira?.Sangira_Status)}
+                color={
+                  value?.Sangira?.Sangira_Status === "completed"
+                    ? "green"
+                    : value?.Sangira?.Sangira_Status === "pending"
+                    ? "blue"
+                    : "red"
+                }
+              />
+            ) : null}
+          </>
+        ),
+      },
+      {
+        id: "completed_date",
+        label: "Payment Date",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.Sangira?.Completed_Date}</span>,
+      },
+      {
+        id: "payment_receipt",
+        label: "Receipt",
+        format: (row, value) => <span>{value?.Sangira?.Receipt_Number}</span>,
+      },
+    ],
+    []
+  );
+
+  const handleRowClick = (row) => {
+    navigate(
+      `/projects/farms/requests/${row?.Request_ID}/receive`
+    );
+  };
 
   return (
     <>
       <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
-          <h4>Customer Requests List</h4>
+          <h4>Requests List</h4>
         </div>
       </div>
 
-      <div className="w-full py-2 flex gap-2 mb-1">
-        <DatePick
-          label="Start Date"
-          value={startDate}
-          onChange={(newValue) => setStartDate(newValue)}
-          className="w-[33%]"
-        />
-        <DatePick
-          label="End Date"
-          value={endDate}
-          onChange={(newValue) => setEndDate(newValue)}
-          className="w-[33%]"
-        />
-        <Autocomplete
-          id="combo-box-demo"
-          options={sortedRequestStatus}
-          size="small"
-          freeSolo
-          className="w-[34%]"
-          value={requestStatus}
-          onChange={statuOnChange}
-          renderInput={(params) => (
-            <TextField {...params} label="Request Status" />
-          )}
-        />
-      </div>
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
         <TableContainer sx={{ maxHeight: 440 }}>
           <Table stickyHeader aria-label="sticky table">
@@ -272,14 +256,7 @@ export default function CustomerSpaceRequests({ status }) {
                   </TableCell>
                 </TableRow>
               )}
-              {!loading && requests.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={columns.length} align="center">
-                    No customer requests found
-                  </TableCell>
-                </TableRow>
-              )}
-              {requests
+              {requestsList
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -287,7 +264,7 @@ export default function CustomerSpaceRequests({ status }) {
                       hover
                       role="checkbox"
                       tabIndex={-1}
-                      key={row.key || row.Request_Batch_ID}
+                      key={row.key || row.id}
                       onClick={() => handleRowClick(row)}
                       sx={{
                         cursor: "pointer",
@@ -300,28 +277,24 @@ export default function CustomerSpaceRequests({ status }) {
                         },
                       }}
                     >
-                      {columns
-                        .filter(
-                          (e) => typeof e.show === "undefined" || !!e.show
-                        )
-                        .map((column) => {
-                          const value = row[column.id];
-                          return (
-                            <TableCell
-                              key={column.id}
-                              align={column.align}
-                              onClick={(e) => {
-                                if (column.id === "actions") {
-                                  e.stopPropagation();
-                                }
-                              }}
-                            >
-                              {column.format
-                                ? column.format(value, row, handleRowClick)
-                                : value}
-                            </TableCell>
-                          );
-                        })}
+                      {columns.map((column) => {
+                        const value = row[column.id];
+                        return (
+                          <TableCell
+                            key={column.id}
+                            align={column.align}
+                            onClick={(e) => {
+                              // Prevent click event from bubbling up to the row
+                              // when clicking on action buttons
+                              if (column.id === "actions") {
+                                e.stopPropagation();
+                              }
+                            }}
+                          >
+                            {column.format ? column.format(value, row) : value}
+                          </TableCell>
+                        );
+                      })}
                     </TableRow>
                   );
                 })}
@@ -331,7 +304,7 @@ export default function CustomerSpaceRequests({ status }) {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={requests?.length}
+          count={requestsList?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

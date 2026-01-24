@@ -4,19 +4,16 @@ import {
   LuCircleCheckBig,
   LuCircleUserRound,
   LuCircleX,
-  LuClock,
   LuFileText,
   LuDownload,
-  LuReceipt,
 } from "react-icons/lu";
 import { CgFileRemove } from "react-icons/cg";
-import { GrDocumentUpdate } from "react-icons/gr";
 import { capitalize, currencyFormatter, removeUnderscore } from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import apiClient, { baseURL } from "../../api/Client";
-import { MdOutlinePending, MdOutlinePendingActions } from "react-icons/md";
+import { MdOutlinePendingActions } from "react-icons/md";
 import { CiInboxIn } from "react-icons/ci";
 import { FcMoneyTransfer } from "react-icons/fc";
 
@@ -24,11 +21,6 @@ export default function SpaceRequestDetails() {
   const { requestID } = useParams();
 
   const [requestData, setRequestData] = useState("");
-  const [showDeclineModal, setShowDeclineModal] = useState(false);
-  const [showAcceptModal, setShowAcceptModal] = useState(false);
-  const [declineReason, setDeclineReason] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [numberOfMonths, setNumberOfMonths] = useState(1);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
 
@@ -365,7 +357,7 @@ export default function SpaceRequestDetails() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Sangila Number
+                Sangira Number
               </label>
               <p className="text-black font-semibold">
                 {requestData?.sangira?.Sangira_Number}

@@ -1,53 +1,33 @@
 import React, { useState, useRef, useEffect } from "react";
-import { BsHouse } from "react-icons/bs";
 import {
   LuCircleCheckBig,
   LuCircleUserRound,
   LuCircleX,
-  LuClock,
   LuFileText,
-  LuUpload,
-  LuDownload,
-  LuReceipt,
 } from "react-icons/lu";
 import { CgFileRemove } from "react-icons/cg";
-import { GrDocumentUpdate } from "react-icons/gr";
-import { capitalize, currencyFormatter, removeUnderscore } from "../../../helpers";
+import {
+  capitalize,
+  currencyFormatter,
+  removeUnderscore,
+} from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import apiClient, { baseURL } from "../../api/Client";
-import { MdOutlinePending, MdOutlinePendingActions } from "react-icons/md";
-import { CiInboxIn } from "react-icons/ci";
+import apiClient from "../../api/Client";
+import {  MdOutlinePendingActions } from "react-icons/md";
 import { FcMoneyTransfer } from "react-icons/fc";
+import { GiFarmTractor } from "react-icons/gi";
+import { CiInboxIn } from "react-icons/ci";
 
-export default function HouseRequestDetails() {
+export default function CustomerRequestDetails() {
   const { requestID } = useParams();
 
   const [requestData, setRequestData] = useState("");
-  const [showDeclineModal, setShowDeclineModal] = useState(false);
-  const [showAcceptModal, setShowAcceptModal] = useState(false);
-  const [declineReason, setDeclineReason] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [numberOfMonths, setNumberOfMonths] = useState(1);
+  const [farmSize, setFarmSize] = useState(0.25);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
 
-  // Contract management states
-  const [contractFile, setContractFile] = useState(null);
-  const [uploadedContract, setUploadedContract] = useState(null);
-
-  const showTabs =
-    requestData?.Customer_Status === "served" ||
-    requestData?.Customer_Status === "requested" ||
-    requestData?.Customer_Status === "rejected";
-
-  const handleDownloadContract = () => {
-    if (requestData?.Contract_attachment) {
-      const path = `${baseURL}/${requestData?.Contract_attachment}`;
-      window.open(path, "_blank");
-    }
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -73,18 +53,18 @@ export default function HouseRequestDetails() {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        `/customer/customer-request?&Request_ID=${requestID}Request_Type=house_rent`,
+        `/customer/customer-request?&Request_ID=${requestID}&Request_Type=farm`,
       );
 
       if (!response.ok) {
         setLoading(false);
-        toast.error("Failed to fetch request data");
+        toast.error(response.data?.error || "Failed to fetch request data");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error("Failed to fetch request data");
+        toast.error(response.data.error || "Failed to fetch request data");
         return;
       }
 
@@ -93,19 +73,8 @@ export default function HouseRequestDetails() {
         ...payment,
         key: index + 1,
       }));
-      console.log(newData);
       setRequestData(Array.isArray(newData) ? newData[0] : "");
-
-      // Load uploaded contract if exists
-      if (newData[0]?.contract) {
-        setUploadedContract(newData[0].contract);
-      }
-
-      // Load payment details if exists
-      if (newData[0]?.paymentDetails) {
-        setPaymentDetails(newData[0]?.sangira);
-      }
-
+      setFarmSize(Array.isArray(newData) ? newData[0]?.Quantity : 0.25);
       setLoading(false);
     } catch (error) {
       console.error("Fetch requests error:", error);
@@ -132,7 +101,7 @@ export default function HouseRequestDetails() {
           <div>
             <p className="text-sm text-gray-600">Customer ID</p>
             <p className="font-semibold text-gray-900">
-              {requestData?.customer?.Student_ID}
+              {requestData?.customer?.Customer_ID}
             </p>
           </div>
           <div>
@@ -162,37 +131,29 @@ export default function HouseRequestDetails() {
         </div>
       </div>
 
-      {/* Property Information */}
+      {/* Farm Information */}
       <div className="px-8 py-6 border-b border-gray-200">
         <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-          <BsHouse className="mr-2 text-blue-600" size={24} />
-          Property Information
+          <GiFarmTractor className="mr-2 text-blue-600" size={24} />
+          Farm Information
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-gray-600">Property Name</p>
+            <p className="text-sm text-gray-600">Farm Name</p>
             <p className="font-semibold text-gray-900">
-              {requestData?.estate?.name}
+              {requestData?.item?.Item_Name}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Type</p>
+            <p className="text-sm text-gray-600">Total Hectares</p>
             <p className="font-semibold text-gray-900 capitalize">
-              {requestData?.estate?.real_estate_type}
+              {requestData?.item?.Farm_Size}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Location</p>
-            <p className="font-semibold text-gray-900">
-              {requestData?.estate?.location?.Unit_Location ||
-                requestData?.estate?.description}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Price</p>
+            <p className="text-sm text-gray-600">Price Per 0.25 Hectare</p>
             <p className="font-semibold text-green-600 text-lg">
-              {currencyFormatter.format(requestData?.Price)}{" "}
-              <span className="text-black">/ Month</span>
+              {currencyFormatter.format(requestData?.item?.Item_Price)}
             </p>
           </div>
         </div>
@@ -215,6 +176,22 @@ export default function HouseRequestDetails() {
             <p className="text-sm text-gray-600">Request Type</p>
             <p className="font-semibold text-gray-900 capitalize">
               {requestData?.Request_Type?.replace("_", " ")}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">
+              Requested Farm Size (Hectares)
+            </p>
+            <p className="font-semibold text-gray-900">
+              {requestData?.Quantity}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">
+              Allocated Farm Size (Hectares)
+            </p>
+            <p className="font-semibold text-gray-900 capitalize">
+              {requestData?.Quantity}
             </p>
           </div>
           {requestData?.Received_Time && (
@@ -242,14 +219,6 @@ export default function HouseRequestDetails() {
             </p>
           </div>
         </div>
-        {requestData?.Remarks && (
-          <div className="mt-4">
-            <p className="text-sm text-gray-600 mb-2">Remarks</p>
-            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <p className="text-gray-800">{requestData?.Remarks}</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Action Buttons */}
@@ -284,16 +253,7 @@ export default function HouseRequestDetails() {
               size={48}
             />
             <p className="text-xl font-semibold text-green-600">
-              Request Accepted
-            </p>
-          </div>
-        )}
-
-        {requestData?.Customer_Status === "rejected" && (
-          <div className="text-center py-4">
-            <LuCircleX className="mx-auto text-red-600 mb-2" size={48} />
-            <p className="text-xl font-semibold text-red-600">
-              Request Rejected
+              Farm Allocated
             </p>
           </div>
         )}
@@ -306,51 +266,16 @@ export default function HouseRequestDetails() {
             </p>
           </div>
         )}
-      </div>
-    </div>
-  );
 
-  const renderContractTab = () => (
-    <div className="px-8 py-6">
-      <div className="flex flex-row justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-          <LuFileText className="mr-2 text-blue-600" size={24} />
-          Contract Management
-        </h2>
-      </div>
-
-      {requestData?.Contract_attachment && requestData?.previos_contract?.length > 0 ? (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <LuCircleCheckBig className="text-green-600 mr-3" size={32} />
-              <div>
-                <p className="font-semibold text-gray-900">Contract Uploaded</p>
-                <p className="text-sm text-gray-600">
-                  Uploaded on: {requestData?.Contract_Attached_Time}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Uploaded by: {capitalize(requestData?.contract?.name)}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleDownloadContract}
-                className="flex items-center cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
-              >
-                <LuDownload className="mr-2" size={18} />
-                Download Contract
-              </button>
-            </div>
+        {requestData?.Customer_Status === "rejected" && (
+          <div className="text-center py-4">
+            <LuCircleX className="mx-auto text-red-600 mb-2" size={48} />
+            <p className="text-xl font-semibold text-red-600">
+              Request Rejected
+            </p>
           </div>
-        </div>
-      ) : (
-        <p className="text-sm text-amber-800 font-semibold">
-          The signed contract is yet to be uploaded. Please wait or contact
-          house manager for more details.
-        </p>
-      )}
+        )}
+      </div>
     </div>
   );
 
@@ -491,6 +416,17 @@ export default function HouseRequestDetails() {
     </div>
   );
 
+  const showTabs =
+    requestData?.Customer_Status === "served" ||
+    requestData?.Customer_Status === "requested" ||
+    requestData?.Customer_Status === "rejected";
+
+  const calculateCost = (size) => {
+    // Calculate number of 0.25 hectare units
+    const quarterHectareUnits = size / 0.25;
+    return quarterHectareUnits * requestData?.Price;
+  };
+
   return (
     <>
       <Breadcrumb />
@@ -498,13 +434,13 @@ export default function HouseRequestDetails() {
         <div className="max-w-5xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6">
               <div className="flex justify-between items-start">
                 <div>
                   <h1 className="text-3xl font-bold text-white mb-2">
-                    House Request Details
+                    Farm Request Details
                   </h1>
-                  <p className="text-blue-100">
+                  <p className="text-green-100">
                     Request ID: #{requestData?.Request_ID}
                   </p>
                 </div>
@@ -518,7 +454,7 @@ export default function HouseRequestDetails() {
                         ? "bg-blue-100 text-blue-800"
                         : requestData?.Customer_Status === "assign" ||
                             requestData?.Customer_Status === "requested"
-                          ? "bg-blue-100 text-blue-600"
+                          ? "bg-blue-100 text-green-800"
                           : requestData?.Customer_Status === "served" ||
                               requestData?.Customer_Status === "paid"
                             ? "bg-green-100 text-green-800"
@@ -552,7 +488,7 @@ export default function HouseRequestDetails() {
                     onClick={() => setActiveTab("details")}
                     className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === "details"
-                        ? "border-blue-600 text-blue-600"
+                        ? "border-green-600 text-green-600"
                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                   >
@@ -562,24 +498,10 @@ export default function HouseRequestDetails() {
                     requestData?.Customer_Status,
                   ) && (
                     <button
-                      onClick={() => setActiveTab("contract")}
-                      className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === "contract"
-                          ? "border-blue-600 text-blue-600"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                      }`}
-                    >
-                      Contract Management
-                    </button>
-                  )}
-                  {["requested", "served", "assign"].includes(
-                    requestData?.Customer_Status,
-                  ) && (
-                    <button
                       onClick={() => setActiveTab("payment")}
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
                         activeTab === "payment"
-                          ? "border-blue-600 text-blue-600"
+                          ? "border-green-600 text-green-600"
                           : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                       }`}
                     >
@@ -591,7 +513,7 @@ export default function HouseRequestDetails() {
                       onClick={() => setActiveTab("rejection")}
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
                         activeTab === "rejection"
-                          ? "border-blue-600 text-blue-600"
+                          ? "border-green-600 text-green-600"
                           : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                       }`}
                     >
@@ -606,7 +528,6 @@ export default function HouseRequestDetails() {
             {showTabs ? (
               <>
                 {activeTab === "details" && renderDetailsTab()}
-                {activeTab === "contract" && renderContractTab()}
                 {activeTab === "payment" && renderPaymentTab()}
                 {activeTab === "rejection" && renderRejectionTab()}
               </>

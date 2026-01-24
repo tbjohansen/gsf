@@ -55,6 +55,14 @@ import SpaceRequestDetails from "../src/views/rentals/SpaceRequestDetails";
 import HouseRequestDetails from "../src/views/rentals/HouseRequestDetails";
 import RentedHouses from "../src/views/real-estate/RentedHouses";
 import RentedSpaces from "../src/views/real-estate/RentedSpaces";
+import FarmDashboard from "../src/views/farms/FarmDashboard";
+import FarmsEmployees from "../src/views/farms/FarmsEmployees";
+import FarmsRequests from "../src/views/farms/FarmsRequests";
+import FarmsPayments from "../src/views/farms/FarmsPayments";
+import Farms from "../src/views/farms/Farms";
+import CustomerFarms from "../src/views/farms/CustomerFarms";
+import ReceiveFarmRequest from "../src/views/farms/ReceiveFarmRequests";
+import CustomerRequestDetails from "../src/views/farms/CustomerRequestDetails";
 
 const LoginElement = () => <Login />;
 
@@ -273,6 +281,12 @@ const CustomerHouseRequestDetailsElement = () => (
   </AppLayout>
 );
 
+const CustomerFarmRequestDetailsElement = () => (
+  <AppLayout>
+    <CustomerRequestDetails />
+  </AppLayout>
+);
+
 const CustomerHousePaymentsElement = () => (
   <AppLayout>
     <CustomerHousePayments />
@@ -411,12 +425,56 @@ const HouseRentalsPaymentsElement = () => (
   </AppLayout>
 );
 
+//FARMS ELEMENTS
+
+const FarmsElement = () => (
+  <AppLayout>
+    <FarmDashboard />
+  </AppLayout>
+);
+
+const FarmsListElement = () => (
+  <AppLayout>
+    <Farms />
+  </AppLayout>
+);
+
+const FarmsRequestsElement = () => (
+  <AppLayout>
+    <FarmsRequests />
+  </AppLayout>
+);
+
+const FarmsPaymentsElement = () => (
+  <AppLayout>
+    <FarmsPayments />
+  </AppLayout>
+);
+
+const FarmsEmployeesElement = () => (
+  <AppLayout>
+    <FarmsEmployees />
+  </AppLayout>
+);
+
+const CustomerFarmsElement = () => (
+  <AppLayout>
+    <CustomerFarms />
+  </AppLayout>
+);
+
+const ReceiveFarmRequestElement = () => (
+  <AppLayout>
+    <ReceiveFarmRequest />
+  </AppLayout>
+);
+
 const AppRoutes = () => {
   const employeeData = localStorage.getItem("userInfo");
   const employee = JSON.parse(employeeData);
   const customer = employee?.customer;
 
-  console.log(employee);
+  // console.log(employee);
 
   return (
     <React.Fragment>
@@ -608,6 +666,11 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="/customer-requests/:requestID/farm-details"
+          element={<CustomerFarmRequestDetailsElement status="farm" />}
+        />
+
+        <Route
           path="/space-customer-requests"
           element={<CustomerSpaceRequestsElement status="business_land" />}
         />
@@ -689,6 +752,30 @@ const AppRoutes = () => {
         <Route
           path="/projects/hostels/pending-room-assignments/:requestID/assign-room"
           element={<AssignRoomElement />}
+        />
+
+        {/* farms */}
+        <Route path="/projects/farms" element={<FarmsElement />} />
+        <Route
+          path="/projects/farms/farms-list"
+          element={<FarmsListElement />}
+        />
+        <Route
+          path="/projects/farms/requests"
+          element={<FarmsRequestsElement />}
+        />
+        <Route
+          path="/projects/farms/payments"
+          element={<FarmsPaymentsElement />}
+        />
+        <Route
+          path="/projects/farms/employees"
+          element={<FarmsEmployeesElement />}
+        />
+        <Route path="/customer-farms" element={<CustomerFarmsElement />} />
+        <Route
+          path="/projects/farms/requests/:requestID/receive"
+          element={<ReceiveFarmRequestElement />}
         />
       </Routes>
     </React.Fragment>
