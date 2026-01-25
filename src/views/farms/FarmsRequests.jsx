@@ -148,15 +148,27 @@ export default function FarmsRequests() {
       },
       {
         id: "price",
-        label: "Price",
+        label: "Price @ 0.25 Hectare",
         minWidth: 170,
         format: (row, value) => (
-          <span>{currencyFormatter?.format(value?.Price)}</span>
+          <span>{currencyFormatter?.format(value?.item?.Item_Price)}</span>
         ),
       },
       {
+        id: "size",
+        label: "Requested Size",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.Requested_Farm_Size || 0} Hectares</span>,
+      },
+       {
+        id: "allocated size",
+        label: "Allocated Size",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.Quantity || 0} Hectares</span>,
+      },
+      {
         id: "total_amount",
-        label: "Amount",
+        label: "Total Amount",
         format: (row, value) => (
           <span>
             {value?.Sangira

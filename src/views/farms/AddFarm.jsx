@@ -49,7 +49,7 @@ const AddFarm = ({ loadData }) => {
     }
 
     if (!price || price < 0) {
-      toast.error("Please enter valid price per hectare");
+      toast.error("Please enter valid price per 0.25 hectare");
       return;
     }
 
@@ -180,7 +180,7 @@ const AddFarm = ({ loadData }) => {
                 <TextField
                   size="small"
                   id="outlined-basic"
-                  label="Price Per Hectare"
+                  label="Price Per 0.25 Hectare"
                   variant="outlined"
                   className="w-[92%]"
                   value={price}

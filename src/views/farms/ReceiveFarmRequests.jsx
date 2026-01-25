@@ -409,17 +409,20 @@ export default function ReceiveFarmRequest() {
               Requested Farm Size (Hectares)
             </p>
             <p className="font-semibold text-gray-900">
-              {requestData?.Quantity}
+              {requestData?.Requested_Farm_Size}
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">
-              Allocated Farm Size (Hectares)
-            </p>
-            <p className="font-semibold text-gray-900 capitalize">
-              {requestData?.Quantity}
-            </p>
-          </div>
+         {requestData?.Customer_Status === "served" ||
+            (requestData?.Customer_Status === "requested" && (
+              <div>
+                <p className="text-sm text-gray-600">
+                  Allocated Farm Size (Hectares)
+                </p>
+                <p className="font-semibold text-gray-900 capitalize">
+                  {requestData?.Quantity}
+                </p>
+              </div>
+            ))}
           {requestData?.Received_Time && (
             <>
               <div>
@@ -437,14 +440,14 @@ export default function ReceiveFarmRequest() {
             </>
           )}
         </div>
-        <div>
+        {/* <div>
           <p className="text-sm text-gray-600 mb-2">Description</p>
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-gray-800 whitespace-pre-line">
               {requestData?.Description}
             </p>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Action Buttons */}

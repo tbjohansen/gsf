@@ -15,7 +15,7 @@ import Breadcrumb from "../../components/Breadcrumb";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import apiClient from "../../api/Client";
-import {  MdOutlinePendingActions } from "react-icons/md";
+import { MdOutlinePendingActions } from "react-icons/md";
 import { FcMoneyTransfer } from "react-icons/fc";
 import { GiFarmTractor } from "react-icons/gi";
 import { CiInboxIn } from "react-icons/ci";
@@ -27,7 +27,6 @@ export default function CustomerRequestDetails() {
   const [farmSize, setFarmSize] = useState(0.25);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
-
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -186,14 +185,18 @@ export default function CustomerRequestDetails() {
               {requestData?.Quantity}
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">
-              Allocated Farm Size (Hectares)
-            </p>
-            <p className="font-semibold text-gray-900 capitalize">
-              {requestData?.Quantity}
-            </p>
-          </div>
+          {requestData?.Customer_Status === "served" ||
+            (requestData?.Customer_Status === "requested" && (
+              <div>
+                <p className="text-sm text-gray-600">
+                  Allocated Farm Size (Hectares)
+                </p>
+                <p className="font-semibold text-gray-900 capitalize">
+                  {requestData?.Quantity}
+                </p>
+              </div>
+            ))}
+
           {requestData?.Received_Time && (
             <>
               <div>
@@ -211,14 +214,14 @@ export default function CustomerRequestDetails() {
             </>
           )}
         </div>
-        <div>
+        {/* <div>
           <p className="text-sm text-gray-600 mb-2">Description</p>
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-gray-800 whitespace-pre-line">
               {requestData?.Description}
             </p>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Action Buttons */}

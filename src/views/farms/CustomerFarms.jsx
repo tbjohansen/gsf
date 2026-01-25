@@ -567,12 +567,12 @@ const CustomerFarms = () => {
           {/* Recent Requests - Full Width Below */}
           <div>
             <div className="bg-white rounded-2xl shadow-xl p-6 border border-emerald-100 h-full">
-              <h3 className="text-xl font-bold text-emerald-900 mb-6 flex items-center gap-2">
+              {/* <h3 className="text-xl font-bold text-emerald-900 mb-6 flex items-center gap-2">
                 <LuCircleAlert className="w-5 h-5" />
                 Recent Requests
-              </h3>
+              </h3> */}
 
-              {requests.length === 0 ? (
+              {/* {requests.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">No requests yet</div>
                   <div className="text-gray-500 text-sm">
@@ -610,7 +610,7 @@ const CustomerFarms = () => {
                     </div>
                   ))}
                 </div>
-              )}
+              )} */}
 
               {/* Information Panel */}
               <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100">

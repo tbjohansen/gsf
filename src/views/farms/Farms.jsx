@@ -107,7 +107,7 @@ export default function Farms() {
       },
       {
         id: "Item_Price",
-        label: "Price Per Hectare",
+        label: "Price Per 0.25 (¼) Hectare",
         format: (value) => <span>{currencyFormatter.format(value)}</span>,
       },
       {
