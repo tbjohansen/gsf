@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { currencyFormatter } from "../../../helpers";
 import { BsHouse } from "react-icons/bs";
+import houseImage from '../../assets/images/shop3.svg';
 
 const SpaceRentals = () => {
   const [selectedHouse, setSelectedHouse] = useState(null);
@@ -32,8 +33,7 @@ const SpaceRentals = () => {
   const navigate = useNavigate();
 
   // Default placeholder image for properties without images
-  const DEFAULT_HOUSE_IMAGE =
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop";
+  const DEFAULT_HOUSE_IMAGE = houseImage;
 
   useEffect(() => {
     if (!hasFetchedData.current) {
@@ -283,7 +283,7 @@ const SpaceRentals = () => {
                   <img
                     src={getHouseImage(house, 0)}
                     alt={house.name}
-                    className={`w-full h-full object-cover transition duration-300 ${
+                    className={`w-full h-full ${house?.image && house?.image?.length > 0 ? "object-cover" : null} transition duration-300 ${
                       !isUnavailable && "hover:scale-110"
                     }`}
                     onError={(e) => {
@@ -431,7 +431,7 @@ const SpaceRentals = () => {
               <img
                 src={getHouseImages(selectedHouse)[currentImageIndex]}
                 alt={selectedHouse?.name}
-                className="w-full h-full object-cover"
+                className={`w-full h-full ${selectedHouse?.image && selectedHouse?.image?.length > 0 ? "object-cover" : null}`}
                 onError={(e) => {
                   e.target.src = DEFAULT_HOUSE_IMAGE;
                 }}

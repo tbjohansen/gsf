@@ -120,7 +120,7 @@ const MapItem = ({ loadData }) => {
 
   const sortedFloors = floors?.map((floor) => ({
     id: floor?.Flow_ID,
-    label: floor?.Flow_Name,
+    label: `${floor?.Flow_Name} - ${floor?.wing?.Wing_Name} - ${floor?.wing?.Wing_Gender}`,
     data: floor,
   }));
 

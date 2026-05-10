@@ -63,6 +63,12 @@ import Farms from "../src/views/farms/Farms";
 import CustomerFarms from "../src/views/farms/CustomerFarms";
 import ReceiveFarmRequest from "../src/views/farms/ReceiveFarmRequests";
 import CustomerRequestDetails from "../src/views/farms/CustomerRequestDetails";
+import DashboardPage from "../src/DashboardPage";
+import HostelPayments from "../src/views/hostels/HostelPayments";
+import HostelRequests from "../src/views/hostels/HostelRequests";
+import HostelSetupTabs from "../src/views/hostels/setups/HostelSetupTabs";
+import BroadcastedMessages from "../src/views/hostels/messages/BroadcastedMessages";
+import MonthlyPayments from "../src/views/hostels/MonthlyPayments";
 
 const LoginElement = () => <Login />;
 
@@ -129,6 +135,24 @@ const CustomersElement = (props) => (
 const PaymentCategoriesElement = () => (
   <AppLayout>
     <PaymentCategories />
+  </AppLayout>
+);
+
+const HostelSetupsElement = () => (
+  <AppLayout>
+    <HostelSetupTabs />
+  </AppLayout>
+);
+
+const HostelMessageElement = () => (
+  <AppLayout>
+    <BroadcastedMessages />
+  </AppLayout>
+);
+
+const HostelMonthlyPaymentsElement = () => (
+  <AppLayout>
+    <MonthlyPayments />
   </AppLayout>
 );
 
@@ -398,6 +422,18 @@ const ProjectsElement = () => (
 const AssignRoomElement = () => (
   <AppLayout>
     <AccommodationForm />
+  </AppLayout>
+);
+
+const HostelPaymentsElement = () => (
+  <AppLayout>
+    <HostelPayments />
+  </AppLayout>
+);
+
+const HostelRequestsElement = () => (
+  <AppLayout>
+    <HostelRequests />
   </AppLayout>
 );
 
@@ -739,12 +775,22 @@ const AppRoutes = () => {
         />
         <Route
           path="/projects/hostels/payments"
-          element={<PaymentsElement status="student" />}
+          element={<HostelPaymentsElement />}
         />
         <Route
           path="/projects/hostels/setups"
-          element={<PaymentCategoriesElement />}
+          element={<HostelSetupsElement />}
         />
+        <Route
+          path="/projects/hostels/announcements"
+          element={<HostelMessageElement />}
+        />
+
+        <Route
+          path="/projects/hostels/monthly-payments"
+          element={<HostelMonthlyPaymentsElement />}
+        />
+
         <Route
           path="/projects/hostels/pending-room-assignments"
           element={<PendingRoomAssignmentElement />}

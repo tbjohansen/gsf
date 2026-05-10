@@ -42,7 +42,7 @@ const CustomerFarms = () => {
 
   // Calculate price per 0.25 hectare from farm's Item_Price
   const pricePerQuarterHectare = parseFloat(selectedFarm?.Item_Price || 0);
-  const maxPlotSize = 2; // Maximum 2 hectares
+  const maxPlotSize = 4; // Maximum 2 hectares
 
   useEffect(() => {
     // Reset plot size to minimum when farm changes
@@ -390,7 +390,7 @@ const CustomerFarms = () => {
 
                     {/* Quick Select Buttons */}
                     <div className="flex flex-wrap gap-3 mt-8">
-                      {[0.25, 0.5, 1, 1.5, 2].map((size) => (
+                      {[0.25, 0.5, 1, 1.5, 2, 2.5, 3, 4].map((size) => (
                         <button
                           key={size}
                           onClick={() => setPlotSize(size)}
@@ -466,7 +466,7 @@ const CustomerFarms = () => {
                     className="w-full h-3 bg-emerald-100 rounded-lg appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-4 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-lg"
                   />
                   <div className="flex justify-between mt-2 text-xs text-gray-500">
-                    {[0.25, 0.5, 1, 1.5, 2].map((size) => (
+                    {[0.25, 0.5, 1, 1.5, 2, 2.5, 3, 4].map((size) => (
                       <span key={size}>
                         {size % 1 === 0 ? size : size.toFixed(2)}{" "}
                         {size > 1 ? "hectares" : "hectare"}

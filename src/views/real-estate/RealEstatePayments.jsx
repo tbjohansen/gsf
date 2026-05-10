@@ -11,6 +11,7 @@ import Badge from "../../components/Badge";
 import {
   capitalize,
   currencyFormatter,
+  extractBank,
   formatter,
   removeUnderscore,
 } from "../../../helpers";
@@ -247,7 +248,7 @@ export default function RealEstatePayments() {
         label: "Bank Name",
         minWidth: 170,
         format: (row, value) => (
-          <span>{value?.Sangira?.Payment_Direction}</span>
+          <span>{extractBank(value?.payment?.Payment_Channel)}</span>
         ),
       },
       {

@@ -185,7 +185,7 @@ export default function CustomerRequestDetails() {
               {requestData?.Quantity}
             </p>
           </div>
-          {requestData?.Customer_Status === "served" ||
+          {requestData?.Customer_Status === "served" || requestData?.Customer_Status === "paid" ||
             (requestData?.Customer_Status === "requested" && (
               <div>
                 <p className="text-sm text-gray-600">
@@ -208,7 +208,7 @@ export default function CustomerRequestDetails() {
               <div>
                 <p className="text-sm text-gray-600">Received By</p>
                 <p className="font-semibold text-gray-900">
-                  {requestData?.Received_By}
+                 {capitalize(requestData?.received_by?.name || "N/A")}
                 </p>
               </div>
             </>
@@ -248,7 +248,7 @@ export default function CustomerRequestDetails() {
           </div>
         )}
 
-        {(requestData?.Customer_Status === "served" ||
+        {(requestData?.Customer_Status === "served" || requestData?.Customer_Status === "paid" ||
           requestData?.Customer_Status === "requested") && (
           <div className="text-center py-4">
             <LuCircleCheckBig
@@ -421,6 +421,7 @@ export default function CustomerRequestDetails() {
 
   const showTabs =
     requestData?.Customer_Status === "served" ||
+     requestData?.Customer_Status === "paid" ||
     requestData?.Customer_Status === "requested" ||
     requestData?.Customer_Status === "rejected";
 
@@ -497,7 +498,7 @@ export default function CustomerRequestDetails() {
                   >
                     Request Details
                   </button>
-                  {["requested", "served", "assign"].includes(
+                  {["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
                   ) && (
                     <button

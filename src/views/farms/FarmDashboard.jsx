@@ -226,8 +226,14 @@ const FarmDashboard = () => {
       return `${Math.floor(diffInSeconds / 3600)} hours ago`;
     if (diffInSeconds < 604800)
       return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    if (diffInSeconds < 2592000)
+      // Less than 30 days
+      return `${Math.floor(diffInSeconds / 604800)} weeks ago`;
+    if (diffInSeconds < 31536000)
+      // Less than 365 days
+      return `${Math.floor(diffInSeconds / 2592000)} months ago`;
 
-    return date.toLocaleDateString();
+    return `${Math.floor(diffInSeconds / 31536000)} years ago`;
   };
 
   // Function to get total occupants (occupied units)
@@ -325,9 +331,14 @@ const FarmDashboard = () => {
             {payments?.slice(0, 4).map((item) => {
               // Determine status display
               const getStatusInfo = () => {
-                if (item.Customer_Status === "served") {
+                if (item?.Customer_Status === "served" || item?.Customer_Status === "paid") {
                   return {
                     label: "Served",
+                    color: "text-green-600 bg-green-50",
+                  };
+                } else if (item?.Customer_Status === "paid") {
+                  return {
+                    label: "Paid",
                     color: "text-green-600 bg-green-50",
                   };
                 } else if (item?.sangira?.Sangira_Status === "pending") {
@@ -336,14 +347,14 @@ const FarmDashboard = () => {
                     color: "text-yellow-600 bg-yellow-50",
                   };
                 } else if (
-                  item.Customer_Status === "requested" &&
-                  item.Received_Time
+                  item?.Customer_Status === "requested" &&
+                  item?.Received_Time
                 ) {
                   return {
                     label: "Requested",
                     color: "text-blue-600 bg-blue-50",
                   };
-                } else if (item.Customer_Status === "requested") {
+                } else if (item?.Customer_Status === "requested") {
                   return {
                     label: "Pending",
                     color: "text-yellow-600 bg-yellow-50",
@@ -359,7 +370,7 @@ const FarmDashboard = () => {
 
               // Use Served_Date for served items without sangira, otherwise use Request_Date
               const displayDate =
-                item.Customer_Status === "served" && !item.Sangira_ID
+                item?.Customer_Status === "served" && !item.Sangira_ID
                   ? item.Served_Date
                   : item.Request_Date;
 

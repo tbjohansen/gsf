@@ -41,7 +41,7 @@ const App = () => {
       }
     } else {
       // No token found, redirect to login if not already there
-      const publicRoutes = ["/login", "/forgot-password", "/register"];
+      const publicRoutes = ["/login", "/forgot-password", "/register", "/students"];
       if (!publicRoutes.includes(location.pathname)) {
         navigate("/login");
       }

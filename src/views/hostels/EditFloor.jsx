@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
@@ -36,6 +36,8 @@ const EditFlow = ({ floor, loadData }) => {
     id: floor?.Flow_Status,
     label: capitalize(floor?.Flow_Status),
   });
+  const [wing, setWing] = useState(floor?.Wing_ID);
+  const [wings, setWings] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const sortedStatus = [
@@ -51,6 +53,54 @@ const EditFlow = ({ floor, loadData }) => {
 
   const statusOnChange = (e, value) => {
     setStatus(value);
+  };
+
+  const sortedWings = wings?.map((wing) => ({
+    id: wing?.Wing_ID,
+    label: `${wing?.Wing_Name} - ${wing?.Wing_Gender}`,
+  }));
+
+  const wingOnChange = (e, value) => {
+    setWing(value?.id);
+  };
+
+  useEffect(() => {
+    loadWings();
+  }, []);
+
+  const loadWings = async () => {
+    // setLoading(true);
+    try {
+      const response = await apiClient.get(`/settings/wing`, {
+        Block_ID: blockID,
+      });
+
+      if (!response.ok) {
+        // setLoading(false);
+        toast.error("Failed to fetch wings");
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        // setLoading(false);
+        toast.error("Failed to fetch wings");
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const blockData = response?.data?.data;
+      const newData = blockData?.map((block, index) => ({
+        ...block,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setWings(Array.isArray(newData) ? newData : []);
+      // setLoading(false);
+    } catch (error) {
+      console.error("Fetch wings error:", error);
+      // setLoading(false);
+      toast.error("Failed to load wings");
+    }
   };
 
   const submit = async (e) => {
@@ -82,6 +132,7 @@ const EditFlow = ({ floor, loadData }) => {
         Flow_Name: name.trim(),
         Flow_ID: floor?.Flow_ID,
         Flow_Status: status?.id,
+        Wing_ID: wing,
         Block_ID: blockID,
         Hostel_ID: hostelID,
         Employee_ID: employeeId,
@@ -123,9 +174,6 @@ const EditFlow = ({ floor, loadData }) => {
 
       // Close modal and reset form
       handleClose();
-
-      // TODO: Dispatch action to update Redux store if needed
-      // dispatch(addHostelToStore(response.data.data));
 
       // Trigger parent component refresh
       if (loadData && typeof loadData === "function") {
@@ -170,20 +218,20 @@ const EditFlow = ({ floor, loadData }) => {
                   autoFocus
                 />
               </div>
-              {/* <div className="w-full py-2 flex justify-center">
+              <div className="w-full py-2 flex justify-center">
                 <Autocomplete
                   id="combo-box-demo"
-                  options={sortedStatus}
+                  options={sortedWings}
                   size="small"
                   freeSolo
                   className="w-[92%]"
-                  value={status}
-                  onChange={statusOnChange}
+                  value={sortedWings?.find((option) => option.id === wing)}
+                  onChange={wingOnChange}
                   renderInput={(params) => (
-                    <TextField {...params} label="Select Hostel" />
+                    <TextField {...params} label="Select Wing" />
                   )}
                 />
-              </div> */}
+              </div>
               <div className="w-full py-2 flex justify-center">
                 <Autocomplete
                   id="combo-box-demo"

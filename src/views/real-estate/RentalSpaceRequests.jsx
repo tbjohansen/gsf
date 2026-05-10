@@ -48,7 +48,7 @@ export default function RentalSpaceRequests() {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        "/customer/customer-request?&Request_Type=business_land"
+        "/customer/customer-request?&Request_Type=business_land",
       );
 
       if (!response.ok) {
@@ -111,9 +111,7 @@ export default function RentalSpaceRequests() {
         id: "student_id",
         label: "Customer ID",
         minWidth: 140,
-        format: (row, value) => (
-          <span>{value?.customer?.Customer_ID}</span>
-        ),
+        format: (row, value) => <span>{value?.customer?.Customer_ID}</span>,
       },
       {
         id: "Customer_Status",
@@ -129,14 +127,15 @@ export default function RentalSpaceRequests() {
             }
             color={
               value?.Customer_Status === "served" ||
-              value?.Customer_Status === "assign"
+              value?.Customer_Status === "assign" ||
+              value?.Customer_Status === "paid"
                 ? "green"
                 : value?.Customer_Status === "active"
-                ? "yellow"
-                : value?.Customer_Status === "received" ||
-                  value?.Customer_Status === "requested"
-                ? "blue"
-                : "red"
+                  ? "yellow"
+                  : value?.Customer_Status === "received" ||
+                      value?.Customer_Status === "requested"
+                    ? "blue"
+                    : "red"
             }
           />
         ),
@@ -170,7 +169,7 @@ export default function RentalSpaceRequests() {
           <span>
             {value?.Sangira
               ? currencyFormatter?.format(
-                  value?.Sangira?.Grand_Total_Price || 0
+                  value?.Sangira?.Grand_Total_Price || 0,
                 )
               : null}
           </span>
@@ -203,8 +202,8 @@ export default function RentalSpaceRequests() {
                   value?.Sangira?.Sangira_Status === "completed"
                     ? "green"
                     : value?.Sangira?.Sangira_Status === "pending"
-                    ? "blue"
-                    : "red"
+                      ? "blue"
+                      : "red"
                 }
               />
             ) : null}
@@ -223,12 +222,12 @@ export default function RentalSpaceRequests() {
         format: (row, value) => <span>{value?.Sangira?.Receipt_Number}</span>,
       },
     ],
-    []
+    [],
   );
 
   const handleRowClick = (row) => {
     navigate(
-      `/projects/real-estates/space-requests/${row?.Request_ID}/receive`
+      `/projects/real-estates/space-requests/${row?.Request_ID}/receive`,
     );
   };
 

@@ -36,7 +36,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 
 export default function CustomerSpaceRequests({ status }) {
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [requests, setRequests] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
@@ -96,13 +96,12 @@ export default function CustomerSpaceRequests({ status }) {
         url += `&End_Date=${formatDateForDb(endDate)}`;
       }
 
-
       const response = await apiClient.get(url);
 
       if (!response.ok) {
         setLoading(false);
         toast.error(
-          response.data?.error || "Failed to fetch customer requests"
+          response.data?.error || "Failed to fetch customer requests",
         );
         return;
       }
@@ -162,14 +161,15 @@ export default function CustomerSpaceRequests({ status }) {
             }
             color={
               value?.Customer_Status === "served" ||
-              value?.Customer_Status === "assign"
+              value?.Customer_Status === "assign" ||
+              value?.Customer_Status === "paid"
                 ? "green"
                 : value?.Customer_Status === "active"
-                ? "yellow"
-                : value?.Customer_Status === "received" ||
-                  value?.Customer_Status === "requested"
-                ? "blue"
-                : "red"
+                  ? "yellow"
+                  : value?.Customer_Status === "received" ||
+                      value?.Customer_Status === "requested"
+                    ? "blue"
+                    : "red"
             }
           />
         ),
@@ -302,7 +302,7 @@ export default function CustomerSpaceRequests({ status }) {
                     >
                       {columns
                         .filter(
-                          (e) => typeof e.show === "undefined" || !!e.show
+                          (e) => typeof e.show === "undefined" || !!e.show,
                         )
                         .map((column) => {
                           const value = row[column.id];

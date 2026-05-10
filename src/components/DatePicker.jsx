@@ -2,7 +2,7 @@ import moment from "moment";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
 
-const DatePick = ({ label, value, onChange, className }) => {
+const DatePick = ({ label, value, onChange, className, maxDate, minDate }) => {
   return (
     <LocalizationProvider
       dateAdapter={AdapterMoment}
@@ -12,6 +12,8 @@ const DatePick = ({ label, value, onChange, className }) => {
         label={label}
         value={value}
         onChange={onChange}
+        maxDate={maxDate}
+        minDate={minDate}
         className={`${className}`}
         slotProps={{
           textField: {

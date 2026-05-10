@@ -7,7 +7,7 @@ import { toast } from "react-hot-toast";
 import { MdEdit } from "react-icons/md";
 import apiClient from "../../api/Client";
 import Autocomplete from "@mui/material/Autocomplete";
-import { capitalize } from "../../../helpers";
+import { capitalize, formatter } from "../../../helpers";
 
 const style = {
   position: "absolute",
@@ -171,7 +171,7 @@ const EditUnit = ({ unit, loadData }) => {
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.put(
         `/settings/real-estate/${unit?.id}`,
-        data
+        data,
       );
 
       // Check if request was successful
@@ -270,8 +270,12 @@ const EditUnit = ({ unit, loadData }) => {
                   label="Unit Price"
                   variant="outlined"
                   className="w-[92%]"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  value={price ? formatter.format(Number(price)) : ""}
+                  onChange={(e) => {
+                    // Remove any non-digit characters except decimal point
+                    const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                    setPrice(rawValue);
+                  }}
                   disabled={loading}
                   autoFocus
                 />

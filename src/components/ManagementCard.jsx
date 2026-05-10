@@ -1,6 +1,6 @@
 import { FiArrowRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { currencyFormatter } from "../../helpers";
+import { currencyFormatter, formatDateTimeForDb } from "../../helpers";
 
 const ManagementCard = ({
   title,
@@ -59,6 +59,7 @@ const ManagementCard = ({
       item?.Production_Date ||
       item?.Transaction_Date ||
       item?.Unit_Location ||
+      formatDateTimeForDb(item?.created_at) ||
       ""
     );
   };
@@ -121,7 +122,7 @@ const ManagementCard = ({
             </tr>
           </thead>
           <tbody>
-            {items.slice(0, 3).map((item) => (
+            {items?.slice(0, 3).map((item) => (
               <tr
                 key={item?.id}
                 className="border-t border-slate-100 last:border-b-0"

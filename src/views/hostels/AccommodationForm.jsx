@@ -26,7 +26,7 @@ import Breadcrumb from "../../components/Breadcrumb";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import apiClient from "../../api/Client";
-import { capitalize, formatter } from "../../../helpers";
+import { capitalize, extractBank, formatter } from "../../../helpers";
 
 const AccommodationForm = () => {
   const { studentID, requestID } = useParams();
@@ -150,8 +150,16 @@ const AccommodationForm = () => {
     console.log("Form submitted:", formData);
     // Here you would typically send the data to your backend
 
+    // Get employee info from localStorage
+    const employeeId = localStorage.getItem("employeeId");
+
+    if (!employeeId) {
+      toast.error("User information not found. Please login again.");
+      return;
+    }
+
     try {
-      let url = `/customer/admit-student-to-room?&Customer_Status=paid&Room_Status=paid&Request_Type=hostel&Request_ID=${requestID}`;
+      let url = `/customer/admit-student-to-room?&Employee_ID=${employeeId}&Customer_Status=paid&Room_Status=paid&Request_Type=hostel&Request_ID=${requestID}`;
 
       const response = await apiClient.post(url);
 
@@ -176,10 +184,10 @@ const AccommodationForm = () => {
     }
   };
 
-  useEffect(() => {}, []);
-
-  React.useEffect(() => {
-    loadData();
+  useEffect(() => {
+    if (requestID) {
+      loadData();
+    }
   }, [studentID, requestID]);
 
   const loadData = async () => {
@@ -465,7 +473,7 @@ const AccommodationForm = () => {
                     }
                     label="Do you have any special needs or health conditions related to accommodation?"
                   />
-                  {formData.specialNeeds && (
+                  {formData?.specialNeeds && (
                     <TextField
                       fullWidth
                       label="Please specify special needs or health conditions"
@@ -508,7 +516,7 @@ const AccommodationForm = () => {
                       Bank Name
                     </span>
                     <span className="text-gray-900">
-                      {studentData?.Sangira?.Payment_Direction}
+                      {extractBank(studentData?.Sangira?.Payment_Direction)}
                     </span>
                   </div>
 
@@ -530,7 +538,7 @@ const AccommodationForm = () => {
                     </span>
                     <span className="text-gray-900">
                       {formatter.format(
-                        studentData?.Sangira?.Grand_Total_Price || 0
+                        studentData?.Sangira?.Grand_Total_Price || 0,
                       )}
                     </span>
                   </div>
@@ -640,11 +648,11 @@ const AccommodationForm = () => {
                                 key === "mattress"
                                   ? sortedConditions
                                   : key === "bedFrame" ||
-                                    key === "chair" ||
-                                    key === "studyTable" ||
-                                    key === "wardrobe"
-                                  ? sortedConditionsOne
-                                  : sortedConditionsTwo
+                                      key === "chair" ||
+                                      key === "studyTable" ||
+                                      key === "wardrobe"
+                                    ? sortedConditionsOne
+                                    : sortedConditionsTwo
                               }
                               size="small"
                               freeSolo
@@ -719,7 +727,7 @@ const AccommodationForm = () => {
                 variant="contained"
                 size="large"
                 disabled={!formData.agreed}
-                onChange={() => submitData()}
+                // onChange={() => submitData()}
                 className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
               >
                 Submit Applicant Accommodation Form

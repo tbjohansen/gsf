@@ -60,30 +60,6 @@ const TopBar = ({
   const greeting = getGreeting();
   const date = getCurrentDate();
 
-  const renderIcons = () => {
-    if (greeting === "Good morning") {
-      return (
-        <div className="relative w-8 h-8">
-          <LuCloud className="absolute right-2 top-1 w-5 h-5 text-blue-600" />
-          <LuSunset className="absolute right-0 -top-0.5 w-4 h-4 text-blue-600" />
-        </div>
-      );
-    } else if (greeting === "Good afternoon") {
-      return (
-        <div className="relative w-8 h-8">
-          <LuCloud className="absolute right-2 top-1 w-5 h-5 text-blue-600" />
-          <LuSun className="absolute right-0 top-0 w-5 h-5 text-blue-600" />
-        </div>
-      );
-    } else {
-      return (
-        <div className="relative w-8 h-8">
-          <LuCloud className="absolute right-2 top-1 w-5 h-5 text-blue-600" />
-        </div>
-      );
-    }
-  };
-
   const handleLogout = async () => {
     setIsLoggingOut(true);
 
@@ -109,6 +85,7 @@ const TopBar = ({
       localStorage.removeItem("employeeId");
       localStorage.removeItem("userName");
       localStorage.removeItem("userEmail");
+      localStorage.removeItem("permission");
 
       // Remove authorization header from API client using apisauce method
       apiClient.deleteHeader("Authorization");
@@ -135,7 +112,7 @@ const TopBar = ({
       return nameParts[0].charAt(0).toUpperCase();
     }
     return `${nameParts[0].charAt(0)}${nameParts[nameParts.length - 1].charAt(
-      0
+      0,
     )}`.toUpperCase();
   };
 
@@ -245,7 +222,6 @@ const TopBar = ({
         </div>
         <div className="h-1 w-full bg-[rgb(46,227,240)]"></div>
       </header>
-      
     </>
   );
 };

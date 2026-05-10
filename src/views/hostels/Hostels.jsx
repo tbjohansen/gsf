@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { styled } from "@mui/material/styles";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
@@ -29,16 +29,16 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function Hostels() {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [hostels, setHostels] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [selectedRow, setSelectedRow] = React.useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [hostels, setHostels] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
 
   const navigate = useNavigate();
-  const hasFetchedData = React.useRef(false);
+  const hasFetchedData = useRef(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!hasFetchedData.current) {
       hasFetchedData.current = true;
       loadData();
@@ -50,15 +50,23 @@ export default function Hostels() {
     try {
       const response = await apiClient.get("/settings/hostel");
 
+      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
-        toast.error("Failed to fetch hostels");
-        return;
-      }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error("Failed to fetch hostels");
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to fetch hostel",
+          );
+        }
         return;
       }
 
@@ -93,7 +101,7 @@ export default function Hostels() {
   };
 
   // Inside the Hostels component, replace the columns definition with:
-  const columns = React.useMemo(
+  const columns = useMemo(
     () => [
       { id: "key", label: "S/N" },
       { id: "Hostel_Name", label: "Name" },
@@ -124,7 +132,7 @@ export default function Hostels() {
         ),
       },
     ],
-    [loadData]
+    [loadData],
   ); // Add loadData as dependency
 
   return (

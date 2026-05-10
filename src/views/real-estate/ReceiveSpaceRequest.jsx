@@ -136,6 +136,7 @@ export default function ReceiveSpaceRequest() {
 
   const showTabs =
     requestData?.Customer_Status === "served" ||
+    requestData?.Customer_Status === "paid" ||
     requestData?.Customer_Status === "requested" ||
     requestData?.Customer_Status === "rejected";
 
@@ -610,7 +611,7 @@ export default function ReceiveSpaceRequest() {
               <div>
                 <p className="text-sm text-gray-600">Received By</p>
                 <p className="font-semibold text-gray-900">
-                  {requestData?.Received_By}
+                  {capitalize(requestData?.received_by?.name || "N/A")}
                 </p>
               </div>
             </>
@@ -1165,7 +1166,7 @@ export default function ReceiveSpaceRequest() {
                   >
                     Request Details
                   </button>
-                  {["requested", "served", "assign"].includes(
+                  {["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
                   ) && (
                     <button
@@ -1179,7 +1180,7 @@ export default function ReceiveSpaceRequest() {
                       Contract Management
                     </button>
                   )}
-                  {["requested", "served", "assign"].includes(
+                  {["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
                   ) && (
                     <button

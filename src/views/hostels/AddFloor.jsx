@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
@@ -20,7 +20,7 @@ const style = {
   p: 4,
 };
 
-const AddFloor = ({loadData}) => {
+const AddFloor = ({ loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -32,8 +32,10 @@ const AddFloor = ({loadData}) => {
   const { hostelID, blockID } = useParams();
 
   const [name, setName] = useState("");
+  const [wing, setWing] = useState("");
   const [block, setBlock] = useState("");
   const [blocks, setBlocks] = useState([]);
+  const [wings, setWings] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const sortedBlocks = [
@@ -47,8 +49,56 @@ const AddFloor = ({loadData}) => {
     },
   ];
 
+  const sortedWings = wings?.map((wing) => ({
+    id: wing?.Wing_ID,
+    label: `${wing?.Wing_Name} - ${wing?.Wing_Gender}`,
+  }));
+
+  const wingOnChange = (e, value) => {
+    setWing(value);
+  };
+
   const blocksOnChange = (e, value) => {
     setBlock(value);
+  };
+
+  useEffect(() => {
+    loadWings();
+  }, []);
+
+  const loadWings = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get(`/settings/wing`, {
+        Block_ID: blockID,
+      });
+
+      if (!response.ok) {
+        setLoading(false);
+        toast.error("Failed to fetch wings");
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        toast.error("Failed to fetch wings");
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const blockData = response?.data?.data;
+      const newData = blockData?.map((block, index) => ({
+        ...block,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setWings(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch blocks error:", error);
+      setLoading(false);
+      toast.error("Failed to load wings");
+    }
   };
 
   const submit = async (e) => {
@@ -75,6 +125,7 @@ const AddFloor = ({loadData}) => {
         Flow_Name: name.trim(),
         Hostel_ID: hostelID,
         Block_ID: blockID,
+        Wing_ID: wing?.id,
         Employee_ID: employeeId,
       };
 
@@ -161,20 +212,20 @@ const AddFloor = ({loadData}) => {
                   autoFocus
                 />
               </div>
-              {/* <div className="w-full py-2 flex justify-center">
+              <div className="w-full py-2 flex justify-center">
                 <Autocomplete
                   id="combo-box-demo"
-                  options={sortedBlocks}
+                  options={sortedWings}
                   size="small"
                   freeSolo
                   className="w-[92%]"
-                  value={block}
-                  onChange={blocksOnChange}
+                  value={wing}
+                  onChange={wingOnChange}
                   renderInput={(params) => (
-                    <TextField {...params} label="Select Block" />
+                    <TextField {...params} label="Select Wing" />
                   )}
                 />
-              </div> */}
+              </div>
               <div className="w-full py-2 mt-5 flex justify-center">
                 <button
                   onClick={(e) => submit(e)}

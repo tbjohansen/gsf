@@ -14,7 +14,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 
 const style = {
   position: "absolute",
-  top: "45%",
+  top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 600,
@@ -30,24 +30,43 @@ const AssignPermission = ({ employee, loadData }) => {
     setOpen(false);
   };
 
-  const [Can_Acces_Hostel, setHostelPermission] = useState(
-    employee?.Can_Acces_Hostel || "no"
+  console.log(employee);
+
+  const [Can_Access_Hostel, setHostelPermission] = useState(
+    employee?.Can_Access_Hostel || "no",
   );
-  const [Can_Acces_Real_Estate, setRealEstatePermission] = useState(
-    employee?.Can_Acces_Real_Estate || "no"
+  const [Can_Access_Real_Estate, setRealEstatePermission] = useState(
+    employee?.Can_Access_Real_Estate || "no",
   );
-  const [Can_Acces_Oxygen, setOxygenPermission] = useState(
-    employee?.Can_Acces_Oxygen || "no"
+  const [Can_Access_Oxygen, setOxygenPermission] = useState(
+    employee?.Can_Access_Oxygen || "no",
   );
-  const [Can_Acces_Farm, setFarmPermission] = useState(
-    employee?.Can_Acces_Farm || "no"
+  const [Can_Access_Farm, setFarmPermission] = useState(
+    employee?.Can_Access_Farm || "no",
   );
-  const [Can_Access_Sales, setOxygenProductionPermission] = useState(
-    employee?.Can_Access_Sales || "no"
+  const [Can_Access_Production, setOxygenProductionPermission] = useState(
+    employee?.Can_Access_Production || "no",
   );
-  const [Can_Access_Production, setOxygenSalesPermission] = useState(
-    employee?.Can_Access_Production || "no"
+  const [Can_Access_Sales, setOxygenSalesPermission] = useState(
+    employee?.Can_Access_Sales || "no",
   );
+
+  const [Contact_Person_Hostel, setHostelContactPerson] = useState(
+    employee?.Contact_Person_Hostel || "no",
+  );
+
+  const [Contact_Person_Farm, setFarmContactPerson] = useState(
+    employee?.Contact_Person_Farm || "no",
+  );
+
+  const [Contact_Person_Oxygen, setOxygenContactPerson] = useState(
+    employee?.Contact_Person_Oxygen || "no",
+  );
+
+  const [Contact_Person_Real_Estate, setRealEstateContactPerson] = useState(
+    employee?.Contact_Person_Real_Estate || "no",
+  );
+
   const [loading, setLoading] = useState(false);
 
   // Handler for hostel permission checkbox
@@ -80,6 +99,26 @@ const AssignPermission = ({ employee, loadData }) => {
     setFarmPermission(event.target.checked ? "yes" : "no");
   };
 
+  // Handler for hostel contact person permission checkbox
+  const handleHostelContactChange = (event) => {
+    setHostelContactPerson(event.target.checked ? "yes" : "no");
+  };
+
+  // Handler for oxygen contact person permission checkbox
+  const handleOxygenContactChange = (event) => {
+    setOxygenContactPerson(event.target.checked ? "yes" : "no");
+  };
+
+  // Handler for farm contact person permission checkbox
+  const handleFarmContactChange = (event) => {
+    setFarmContactPerson(event.target.checked ? "yes" : "no");
+  };
+
+  // Handler for real estate contact person permission checkbox
+  const handleRealEstateContactChange = (event) => {
+    setRealEstateContactPerson(event.target.checked ? "yes" : "no");
+  };
+
   const dispatch = useDispatch();
 
   const submit = async (e) => {
@@ -100,12 +139,16 @@ const AssignPermission = ({ employee, loadData }) => {
       const data = {
         Employee_ID: employee?.Employee_ID,
         Edited_By: employeeId,
-        Can_Acces_Hostel: Can_Acces_Hostel,
-        Can_Acces_Real_Estate: Can_Acces_Real_Estate,
-        Can_Acces_Oxygen: Can_Acces_Oxygen,
-        Can_Acces_Farm: Can_Acces_Farm,
+        Can_Access_Hostel: Can_Access_Hostel,
+        Can_Access_Real_Estate: Can_Access_Real_Estate,
+        Can_Access_Oxygen: Can_Access_Oxygen,
+        Can_Access_Farm: Can_Access_Farm,
         Can_Access_Sales: Can_Access_Sales,
         Can_Access_Production: Can_Access_Production,
+        Contact_Person_Hostel: Contact_Person_Hostel,
+        Contact_Person_Oxygen: Contact_Person_Oxygen,
+        Contact_Person_Farm: Contact_Person_Farm,
+        Contact_Person_Real_Estate: Contact_Person_Real_Estate,
       };
 
       // console.log("Submitting user data:", data);
@@ -180,13 +223,13 @@ const AssignPermission = ({ employee, loadData }) => {
             </h3>
             <div>
               <div>
-                <div className="pl-4">
-                  <div className="flex justify-between">
-                    <FormGroup>
+                <div className="flex justify-center">
+                  <div>
+                    <div className="flex flex-row gap-2">
                       <FormControlLabel
                         control={
                           <Checkbox
-                            checked={Can_Acces_Hostel === "yes"}
+                            checked={Can_Access_Hostel === "yes"}
                             onChange={handleHostelChange}
                           />
                         }
@@ -195,18 +238,19 @@ const AssignPermission = ({ employee, loadData }) => {
                       <FormControlLabel
                         control={
                           <Checkbox
-                            checked={Can_Acces_Farm === "yes"}
+                            checked={Can_Access_Farm === "yes"}
                             onChange={handleFarmChange}
                           />
                         }
-                        label="Nuru Farm"
+                        label="Farms"
                       />
-                    </FormGroup>
-                    <FormGroup>
+                    </div>
+
+                    <div className="flex flex-row gap-2">
                       <FormControlLabel
                         control={
                           <Checkbox
-                            checked={Can_Acces_Real_Estate === "yes"}
+                            checked={Can_Access_Real_Estate === "yes"}
                             onChange={handleRealEstateChange}
                           />
                         }
@@ -215,33 +259,75 @@ const AssignPermission = ({ employee, loadData }) => {
                       <FormControlLabel
                         control={
                           <Checkbox
-                            checked={Can_Acces_Oxygen === "yes"}
+                            checked={Can_Access_Oxygen === "yes"}
                             onChange={handleOxygenChange}
                           />
                         }
                         label="Oxygen Plant"
                       />
-                      </FormGroup>
-                      <FormGroup>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={Can_Access_Production === "yes"}
-                              onChange={handleOxygenProductionChange}
-                            />
-                          }
-                          label="Oxygen Production"
-                        />
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={Can_Access_Sales === "yes"}
-                              onChange={handleOxygenSalesChange}
-                            />
-                          }
-                          label="Oxygen Sales"
-                        />
-                      </FormGroup>
+                    </div>
+
+                    <div className="flex flex-row gap-2">
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={Can_Access_Production === "yes"}
+                            onChange={handleOxygenProductionChange}
+                          />
+                        }
+                        label="Oxygen Production"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={Can_Access_Sales === "yes"}
+                            onChange={handleOxygenSalesChange}
+                          />
+                        }
+                        label="Oxygen Sales"
+                      />
+                    </div>
+
+                    <div className="flex flex-row gap-2">
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={Contact_Person_Hostel === "yes"}
+                            onChange={handleHostelContactChange}
+                          />
+                        }
+                        label="Hostel Contact Person"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={Contact_Person_Real_Estate === "yes"}
+                            onChange={handleRealEstateContactChange}
+                          />
+                        }
+                        label="Real Estate Contact Person"
+                      />
+                    </div>
+                    <div className="flex flex-row gap-2">
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={Contact_Person_Oxygen === "yes"}
+                            onChange={handleOxygenContactChange}
+                          />
+                        }
+                        label="Oxygen Contact Person"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={Contact_Person_Farm === "yes"}
+                            onChange={handleFarmContactChange}
+                          />
+                        }
+                        label="Farms Contact Person"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

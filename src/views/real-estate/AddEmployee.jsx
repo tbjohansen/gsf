@@ -47,7 +47,7 @@ const AddEmployee = ({ loadData }) => {
 
   const sortedGender = [
     { id: "male", label: "Male" },
-    { id: "femal", label: "Female" },
+    { id: "female", label: "Female" },
   ];
 
   const sortedNationalities = [

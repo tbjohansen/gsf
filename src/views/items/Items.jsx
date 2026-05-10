@@ -35,7 +35,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 
 export default function Items({ status }) {
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [items, setItems] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
@@ -52,20 +52,46 @@ export default function Items({ status }) {
     try {
       let url = `/settings/item?`;
       if (status) {
-        url += `Item_Type=${status}`;
+        if (
+          status === "student_accomodation" ||
+          status === "student_accomodatio"
+        ) {
+          url += `&Item_Type=${status},caution_money`;
+        } else {
+          url += `&Item_Type=${status}`;
+        }
       }
 
       const response = await apiClient.get(url);
 
+      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch items");
-        return;
-      }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response.data.error || "Failed to fetch items");
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+
+          console.log(response);
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to fetch items";
+          }
+
+          toast.error(errorText);
+        }
         return;
       }
 
@@ -95,14 +121,17 @@ export default function Items({ status }) {
   };
 
   const handleRowClick = (row) => {
+    if (row?.Item_Type === "caution_money") {
+      return null;
+    }
     console.log(status);
     setSelectedRow(row);
     navigate(
       status === "oxygen"
         ? `projects/${status}/items/${row?.Item_ID}/mapped-items`
         : status === "student_accomodation" || status === "student_accomodatio"
-        ? `/projects/hostels/items/${row?.Item_ID}/mapped-items`
-        : `/items/${row?.Item_ID}/mapped-items`
+          ? `/projects/hostels/items/${row?.Item_ID}/mapped-items`
+          : `/items/${row?.Item_ID}/mapped-items`,
     );
   };
 
@@ -194,7 +223,8 @@ export default function Items({ status }) {
                       tabIndex={-1}
                       key={row.key || row.id}
                       onClick={() =>
-                        status === "student_accomodation" || status === "student_accomodatio"
+                        status === "student_accomodation" ||
+                        status === "student_accomodatio"
                           ? handleRowClick(row)
                           : null
                       }
@@ -211,7 +241,7 @@ export default function Items({ status }) {
                     >
                       {columns
                         .filter(
-                          (e) => typeof e.show === "undefined" || !!e.show
+                          (e) => typeof e.show === "undefined" || !!e.show,
                         )
                         .map((column) => {
                           const value = row[column.id];

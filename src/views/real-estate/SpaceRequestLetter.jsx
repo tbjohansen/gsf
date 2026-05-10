@@ -87,6 +87,7 @@ const SpaceRequestLetter = () => {
         Phone_Number: customer?.phone,
         Price: unit?.price,
         Request_Type: "business_land",
+        Employee_ID: customer?.Employee_ID,
       };
 
       // Make API request - Bearer token is automatically included by apiClient

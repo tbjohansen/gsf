@@ -160,3 +160,9 @@ export function removeUnderscore(str) {
   if (!str) return "";
   return str.replace(/_/g, " ");
 }
+
+export function extractBank(value) {
+  if (!value) return "";
+  if (!value.startsWith("to_")) return value;
+  return value.replace("to_", "").toUpperCase();
+}

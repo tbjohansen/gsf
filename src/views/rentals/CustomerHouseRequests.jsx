@@ -59,9 +59,9 @@ export default function CustomerHouseRequests({ status }) {
   React.useEffect(() => {
     // if (!hasFetchedData.current) {
     //   hasFetchedData.current = true;
-     
+
     // }
-     loadData();
+    loadData();
   }, [startDate, endDate, requestType]);
 
   const sortedRequestTypes = [
@@ -123,14 +123,13 @@ export default function CustomerHouseRequests({ status }) {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error("Failed to fetch customer requests",
-        );
+        toast.error("Failed to fetch customer requests");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error( "Failed to fetch customer requests");
+        toast.error("Failed to fetch customer requests");
         return;
       }
 
@@ -192,7 +191,8 @@ export default function CustomerHouseRequests({ status }) {
             }
             color={
               value?.Customer_Status === "served" ||
-              value?.Customer_Status === "assign"
+              value?.Customer_Status === "assign" ||
+              value?.Customer_Status === "paid"
                 ? "green"
                 : value?.Customer_Status === "active"
                   ? "yellow"

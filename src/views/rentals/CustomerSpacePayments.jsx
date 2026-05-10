@@ -8,7 +8,7 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import { capitalize, currencyFormatter, formatter, removeUnderscore } from "../../../helpers";
+import { capitalize, currencyFormatter, extractBank, formatter, removeUnderscore } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -201,7 +201,7 @@ export default function CustomerSpacePayments({ status }) {
         label: "Bank Name",
         minWidth: 170,
         format: (row, value) => (
-          <span>{value?.Sangira?.Payment_Direction}</span>
+          <span>{extractBank(value?.payment?.Payment_Channel)}</span>
         ),
       },
     ],

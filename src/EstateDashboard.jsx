@@ -53,7 +53,9 @@ const EstateDashboard = () => {
   const loadPaymentsData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/customer/customer-request");
+      const response = await apiClient.get(
+        "/customer/customer-request?&Request_Type=house_rent,business_land",
+      );
 
       if (!response.ok) {
         setLoading(false);
@@ -404,25 +406,31 @@ const EstateDashboard = () => {
       return `${Math.floor(diffInSeconds / 3600)} hours ago`;
     if (diffInSeconds < 604800)
       return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    if (diffInSeconds < 2592000)
+      // Less than 30 days
+      return `${Math.floor(diffInSeconds / 604800)} weeks ago`;
+    if (diffInSeconds < 31536000)
+      // Less than 365 days
+      return `${Math.floor(diffInSeconds / 2592000)} months ago`;
 
-    return date.toLocaleDateString();
+    return `${Math.floor(diffInSeconds / 31536000)} years ago`;
   };
 
   // Function to get total occupants (occupied units)
-function getTotalOccupants(realEstateData) {
-  return realEstateData?.filter(unit => unit?.available === "no")?.length;
-}
+  function getTotalOccupants(realEstateData) {
+    return realEstateData?.filter((unit) => unit?.available === "no")?.length;
+  }
 
-// Function to calculate occupancy rate
-function getOccupancyRate(realEstateData) {
-  const totalUnits = realEstateData?.length;
-  const occupiedUnits = getTotalOccupants(realEstateData);
-  
-  if (totalUnits === 0) return 0;
-  
-  const rate = (occupiedUnits / totalUnits) * 100;
-  return parseFloat(rate.toFixed(2));
-}
+  // Function to calculate occupancy rate
+  function getOccupancyRate(realEstateData) {
+    const totalUnits = realEstateData?.length;
+    const occupiedUnits = getTotalOccupants(realEstateData);
+
+    if (totalUnits === 0) return 0;
+
+    const rate = (occupiedUnits / totalUnits) * 100;
+    return parseFloat(rate.toFixed(2));
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -514,6 +522,11 @@ function getOccupancyRate(realEstateData) {
                     label: "Served",
                     color: "text-green-600 bg-green-50",
                   };
+                } else if (item?.Customer_Status === "paid") {
+                  return {
+                    label: "Paid",
+                    color: "text-green-600 bg-green-50",
+                  };
                 } else if (
                   item.Customer_Status === "requested" &&
                   item.Received_Time
@@ -529,8 +542,13 @@ function getOccupancyRate(realEstateData) {
                   };
                 } else if (item.sangira?.Sangira_Status === "pending") {
                   return {
-                    label: "Payment Pending",
+                    label: "Pending Payment",
                     color: "text-yellow-600 bg-yellow-50",
+                  };
+                } else if (item.Customer_Status === "expired") {
+                  return {
+                    label: "Expired",
+                    color: "text-red-600 bg-red-50",
                   };
                 }
                 return {

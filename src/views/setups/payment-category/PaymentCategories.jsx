@@ -28,7 +28,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 
 export default function PaymentCategories() {
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [PaymentCategories, setPaymentCategories] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
@@ -113,11 +113,11 @@ export default function PaymentCategories() {
 
   return (
     <>
-      <Breadcrumb/>
+      {/* <Breadcrumb/> */}
       <div className="w-full h-12">
-        <div className="w-full my-2 flex justify-between">
+        {/* <div className="w-full my-2 flex justify-between">
           <h4>Payment Types List</h4>
-        </div>
+        </div> */}
       </div>
 
       <Paper sx={{ width: "100%", overflow: "hidden" }}>

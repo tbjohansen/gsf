@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useEffect, useMemo } from "react";
 import { styled } from "@mui/material/styles";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import Breadcrumb from "../../components/Breadcrumb";
-import { Autocomplete, TextField } from "@mui/material";
+import { TextField } from "@mui/material";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -29,29 +29,38 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function PendingAllocations({ status }) {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [users, setUsers] = React.useState([]);
-  const [name, setName] = React.useState("");
-  const [customerID, setCustomerID] = React.useState("");
-  const [phoneNumber, setPhoneNumber] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-  const [selectedRow, setSelectedRow] = React.useState(null);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [users, setUsers] = useState([]);
+  const [name, setName] = useState("");
+  const [customerID, setCustomerID] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+
+  const [pagination, setPagination] = useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
 
   const navigate = useNavigate();
 
   // Fetch hostels from API
-  React.useEffect(() => {
+  useEffect(() => {
     loadData();
-  }, [name, customerID, phoneNumber]);
+  }, [name, customerID, phoneNumber, rowsPerPage, page]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Customer_Status=paid&Room_Status=paid&Request_Type=hostel`;
+      let url = `/customer/customer-request?&Customer_Status=paid&Room_Status=paid&Request_Type=hostel&limit=${rowsPerPage}&page=${page}`;
 
       if (name) {
-        url += `&Student_Name=${name}`;
+        url += `&Customer_Name=${name}`;
       }
 
       if (customerID) {
@@ -76,14 +85,27 @@ export default function PendingAllocations({ status }) {
         return;
       }
 
-      // Adjust based on your API response structure
-      const userData = response?.data?.data?.data;
-      const newData = userData?.map((user, index) => ({
+      const responseData = response?.data?.data;
+      const unitsData = responseData?.data || [];
+
+      const newData = unitsData?.map((user, index) => ({
         ...user,
-        key: index + 1,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
-      // console.log(newData);
+
       setUsers(Array.isArray(newData) ? newData : []);
+
+      // Update pagination state
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch customers error:", error);
@@ -93,30 +115,32 @@ export default function PendingAllocations({ status }) {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event.target.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
   const handleRowClick = (row) => {
     setSelectedRow(row);
     navigate(
-      `/projects/hostels/pending-room-assignments/${row?.Request_ID}/assign-room`
+      `/projects/hostels/pending-room-assignments/${row?.Request_ID}/assign-room`,
     );
   };
 
   // Inside the users component, replace the columns definition with:
-  const columns = React.useMemo(
+  const columns = useMemo(
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "Customer_Name",
-        label: "Name",
+        id: "name",
+        label: "Student Name",
+         minWidth: 170,
         format: (row, value) => (
-          <span>{capitalize(value?.customer?.Customer_Name)}</span>
+          <div>{capitalize(value?.customer?.Customer_Name)}</div>
         ),
       },
       {
@@ -126,13 +150,13 @@ export default function PendingAllocations({ status }) {
           <span>{capitalize(value?.customer?.Gender)}</span>
         ),
       },
-      {
-        id: "Nationality",
-        label: "Nationality",
-        format: (row, value) => (
-          <span>{capitalize(value?.customer?.Nationality)}</span>
-        ),
-      },
+      // {
+      //   id: "Nationality",
+      //   label: "Nationality",
+      //   format: (row, value) => (
+      //     <span>{capitalize(value?.customer?.Nationality)}</span>
+      //   ),
+      // },
       {
         id: "Phone_Number",
         label: "Phone",
@@ -149,10 +173,10 @@ export default function PendingAllocations({ status }) {
       },
       {
         id: "Student_ID",
-        label: "Student ID",
+        label: "Student / Admission ID",
         minWidth: 170,
         format: (row, value) => (
-          <span>{capitalize(value?.customer?.Student_ID)}</span>
+          <span>{capitalize(value?.customer?.Student_ID || value?.customer?.Admission_ID)}</span>
         ),
       },
       {
@@ -177,14 +201,6 @@ export default function PendingAllocations({ status }) {
         ),
       },
       {
-        id: "Admission_ID",
-        label: "Admission ID",
-        minWidth: 170,
-        format: (row, value) => (
-          <span>{capitalize(value?.customer?.Admission_ID)}</span>
-        ),
-      },
-      {
         id: "Customer_Status",
         label: "Status",
         format: (value) => (
@@ -195,13 +211,22 @@ export default function PendingAllocations({ status }) {
         ),
       },
       {
+        id: "hostel",
+        label: "Hostel",
+        minWidth: 170,
+        format: (row, value) => (
+          <span>{capitalize(value?.room?.hostel?.Hostel_Name)}</span>
+        ),
+      },
+      
+      {
         id: "created_at",
         label: "Created At",
         minWidth: 170,
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
       },
     ],
-    [loadData, status]
+    [loadData, status],
   );
 
   return (
@@ -251,7 +276,7 @@ export default function PendingAllocations({ status }) {
                 {columns
                   .filter(
                     (column) =>
-                      typeof column.show === "undefined" || !!column.show
+                      typeof column.show === "undefined" || !!column.show,
                   )
                   .map((column) => (
                     <StyledTableCell
@@ -272,66 +297,69 @@ export default function PendingAllocations({ status }) {
                   </TableCell>
                 </TableRow>
               )}
-              {users
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      onClick={() => handleRowClick(row)}
-                      sx={{
-                        cursor: "pointer",
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns
-                        .filter(
-                          (column) =>
-                            typeof column.show === "undefined" || !!column.show
-                        )
-                        .map((column) => {
-                          const value = row[column.id];
-                          return (
-                            <TableCell
-                              key={column.id}
-                              align={column.align}
-                              onClick={(e) => {
-                                // Prevent click event from bubbling up to the row
-                                // when clicking on action buttons
-                                if (column.id === "actions") {
-                                  e.stopPropagation();
-                                }
-                              }}
-                            >
-                              {column.format
-                                ? column.format(value, row, handleRowClick)
-                                : value}
-                            </TableCell>
-                          );
-                        })}
-                    </TableRow>
-                  );
-                })}
+              {users?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    onClick={() => handleRowClick(row)}
+                    sx={{
+                      cursor: "pointer",
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns
+                      .filter(
+                        (column) =>
+                          typeof column.show === "undefined" || !!column.show,
+                      )
+                      .map((column) => {
+                        const value = row[column.id];
+                        return (
+                          <TableCell
+                            key={column.id}
+                            align={column.align}
+                            onClick={(e) => {
+                              // Prevent click event from bubbling up to the row
+                              // when clicking on action buttons
+                              if (column.id === "actions") {
+                                e.stopPropagation();
+                              }
+                            }}
+                          >
+                            {column.format
+                              ? column.format(value, row, handleRowClick)
+                              : value}
+                          </TableCell>
+                        );
+                      })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 1000]}
           component="div"
-          count={users?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

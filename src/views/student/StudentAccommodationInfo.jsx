@@ -36,22 +36,26 @@ const StudentAccommodationInfo = ({
     try {
       // Adjust the endpoint based on your API structure
       const response = await apiClient.get(
-        `/student-accommodation-info?Student_ID=${studentId}`
+        `/student-accommodation-info?Student_ID=${studentId}`,
       );
 
+      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
-        toast.error(
-          response.data?.error || "Failed to fetch accommodation information"
-        );
-        return;
-      }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(
-          response.data?.error || "Failed to fetch accommodation information"
-        );
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          // ✅ Use the server's error message if available
+          const serverMessage = response.data?.error || response.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to fetch accommodation details",
+          );
+        }
         return;
       }
 
@@ -271,7 +275,8 @@ const StudentAccommodationInfo = ({
                   Room Price
                 </p>
                 <p className="text-lg font-bold text-blue-700">
-                  {formatter?.format(accommodation?.Price)} {accommodation.Currency || "TZS"}
+                  {formatter?.format(accommodation?.Price)}{" "}
+                  {accommodation.Currency || "TZS"}
                 </p>
               </div>
             )}

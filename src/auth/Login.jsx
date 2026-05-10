@@ -42,16 +42,33 @@ export default function Login() {
           } else if (response.problem === "CONNECTION_ERROR") {
             toast.error("Connection error. Please check your internet");
           } else {
-            toast.error("An error occurred. Please try again");
+            if (response?.data?.error || response?.data?.code >= 400) {
+              setLoading(false);
+              const errorMessage = response?.data?.error;
+              const errorCode = response?.data?.code;
+
+              if (errorCode === 401) {
+                toast.error(errorMessage || "Invalid credentials");
+              } else if (errorCode === 403) {
+                toast.error(errorMessage || "Access denied");
+              } else if (errorCode === 404) {
+                toast.error(errorMessage || "User not found");
+              } else {
+                toast.error(
+                  errorMessage || "An error occurred. Please try again",
+                );
+              }
+              return;
+            }
           }
           return;
         }
 
         // Check if response contains an error (your API pattern)
-        if (response.data?.error || response.data?.code >= 400) {
+        if (response?.data?.error || response?.data?.code >= 400) {
           setLoading(false);
-          const errorMessage = response.data.error;
-          const errorCode = response.data.code;
+          const errorMessage = response?.data?.error;
+          const errorCode = response?.data?.code;
 
           if (errorCode === 401) {
             toast.error(errorMessage || "Invalid credentials");
@@ -66,7 +83,7 @@ export default function Login() {
         }
 
         // Extract token and user info from successful response
-        const { authorization, employee } = response.data.data;
+        const { authorization, employee, permission } = response.data.data;
 
         // Store access token in localStorage
         if (authorization?.access_token) {
@@ -74,7 +91,7 @@ export default function Login() {
           localStorage.setItem("tokenType", authorization.token_type);
           localStorage.setItem(
             "expiresIn",
-            authorization.expires_in.toString()
+            authorization.expires_in.toString(),
           );
 
           // Calculate and store expiration timestamp
@@ -91,15 +108,20 @@ export default function Login() {
           localStorage.setItem("customerId", employee?.Customer_ID?.toString());
           localStorage.setItem(
             "customerOrigin",
-            employee.customer_origin?.toString()
+            employee.customer_origin?.toString(),
           );
+        }
+
+        // Store employee permssion info in localStorage
+        if (permission) {
+          localStorage.setItem("permission", JSON.stringify(permission));
         }
 
         // Set token in API client headers for future requests using apisauce method
         if (authorization?.access_token) {
           apiClient.setHeader(
             "Authorization",
-            `${authorization.token_type} ${authorization.access_token}`
+            `${authorization.token_type} ${authorization.access_token}`,
           );
         }
 

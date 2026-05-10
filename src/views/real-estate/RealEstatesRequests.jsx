@@ -48,7 +48,7 @@ export default function RealEsatesRequests() {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        "/customer/customer-request?&Request_Type=house_rent"
+        "/customer/customer-request?&Request_Type=house_rent",
       );
 
       if (!response.ok) {
@@ -128,14 +128,15 @@ export default function RealEsatesRequests() {
             }
             color={
               value?.Customer_Status === "served" ||
-              value?.Customer_Status === "assign"
+              value?.Customer_Status === "assign" ||
+              value?.Customer_Status === "paid"
                 ? "green"
                 : value?.Customer_Status === "active"
-                ? "yellow"
-                : value?.Customer_Status === "received" ||
-                  value?.Customer_Status === "requested"
-                ? "blue"
-                : "red"
+                  ? "yellow"
+                  : value?.Customer_Status === "received" ||
+                      value?.Customer_Status === "requested"
+                    ? "blue"
+                    : "red"
             }
           />
         ),
@@ -169,7 +170,7 @@ export default function RealEsatesRequests() {
           <span>
             {value?.Sangira
               ? currencyFormatter?.format(
-                  value?.Sangira?.Grand_Total_Price || 0
+                  value?.Sangira?.Grand_Total_Price || 0,
                 )
               : null}
           </span>
@@ -202,8 +203,8 @@ export default function RealEsatesRequests() {
                   value?.Sangira?.Sangira_Status === "completed"
                     ? "green"
                     : value?.Sangira?.Sangira_Status === "pending"
-                    ? "blue"
-                    : "red"
+                      ? "blue"
+                      : "red"
                 }
               />
             ) : null}
@@ -222,12 +223,12 @@ export default function RealEsatesRequests() {
         format: (row, value) => <span>{value?.Sangira?.Receipt_Number}</span>,
       },
     ],
-    []
+    [],
   );
 
   const handleRowClick = (row) => {
     navigate(
-      `/projects/real-estates/house-requests/${row?.Request_ID}/receive`
+      `/projects/real-estates/house-requests/${row?.Request_ID}/receive`,
     );
   };
 

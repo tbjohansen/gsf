@@ -14,7 +14,6 @@ import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate, useParams } from "react-router-dom";
-import Breadcrumb from "../../components/Breadcrumb";
 import AddFloor from "./AddFloor";
 import EditFlow from "./EditFloor";
 
@@ -30,7 +29,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 
 export default function Floors() {
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [floors, setFloors] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
@@ -40,10 +39,7 @@ export default function Floors() {
   const hasFetchedData = React.useRef(false);
 
   React.useEffect(() => {
-    if (!hasFetchedData.current) {
-      hasFetchedData.current = true;
-      loadData();
-    }
+    loadData();
   }, []);
 
   const loadData = async () => {
@@ -93,7 +89,7 @@ export default function Floors() {
   const handleRowClick = (row) => {
     setSelectedRow(row);
     navigate(
-      `/projects/hostels/list/${hostelID}/blocks/${blockID}/floors/${row?.Flow_ID}`
+      `/projects/hostels/list/${hostelID}/blocks/${blockID}/floors/${row?.Flow_ID}`,
     );
   };
 
@@ -101,7 +97,17 @@ export default function Floors() {
   const columns = React.useMemo(
     () => [
       { id: "key", label: "S/N" },
-      { id: "Flow_Name", label: "Name" },
+      { id: "Flow_Name", label: "Floor Name" },
+      {
+        id: "wingName",
+        label: "Wing Name",
+        format: (value, row) => <div>{row?.wing?.Wing_Name}</div>,
+      },
+      {
+        id: "gender",
+        label: "Gender",
+        format: (value, row) => <div>{row?.wing?.Wing_Gender}</div>,
+      },
       {
         id: "Flow_Status",
         label: "Status",
@@ -129,12 +135,11 @@ export default function Floors() {
         ),
       },
     ],
-    []
+    [],
   );
 
   return (
     <>
-      <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <h4>Block Floors List</h4>

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useEffect, useMemo } from "react";
 import { styled } from "@mui/material/styles";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
@@ -28,49 +28,74 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function MappedItems() {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [mappedItems, setMappedItems] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [selectedRow, setSelectedRow] = React.useState(null);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [mappedItems, setMappedItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+
+  const [pagination, setPagination] = useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
 
   const navigate = useNavigate();
   const { itemID } = useParams();
 
   // Fetch hostels from API
-  React.useEffect(() => {
+  useEffect(() => {
     loadData();
-  }, []);
+  }, [rowsPerPage, page]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/settings/item-price", {
-        Item_ID: itemID,
-      });
+      const response = await apiClient.get(
+        `/settings/item-price?&limit=${rowsPerPage}&page=${page}`,
+        {
+          Item_ID: itemID,
+        },
+      );
 
       // console.log(response);
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch hostels");
+        toast.error("Failed to fetch mapped prices");
         return;
       }
 
       if (response?.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch hostels");
+        toast.error("Failed to fetch mapped prices");
         return;
       }
 
-      // Adjust based on your API response structure
-      const hostelData = response?.data?.data?.data;
-      const newData = hostelData?.map((hostel, index) => ({
-        ...hostel,
-        key: index + 1,
+      const responseData = response?.data?.data;
+      const unitsData = responseData?.data || [];
+
+      const newData = unitsData?.map((user, index) => ({
+        ...user,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
-      // console.log(newData);
+
       setMappedItems(Array.isArray(newData) ? newData : []);
+
+      // Update pagination state
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch hostels error:", error);
@@ -80,12 +105,13 @@ export default function MappedItems() {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event.target.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
   const handleRowClick = (row) => {
@@ -97,7 +123,7 @@ export default function MappedItems() {
   };
 
   // Inside the Hostels component, replace the columns definition with:
-  const columns = React.useMemo(
+  const columns = useMemo(
     () => [
       { id: "key", label: "S/N" },
       {
@@ -152,12 +178,12 @@ export default function MappedItems() {
         align: "center",
         format: (value, row) => (
           <div className="flex gap-2 justify-center">
-            <RemoveItem item={row} loadData={loadData}/>
+            <RemoveItem item={row} loadData={loadData} />
           </div>
         ),
       },
     ],
-    [loadData]
+    [loadData],
   ); // Add loadData as dependency
 
   return (
@@ -194,61 +220,64 @@ export default function MappedItems() {
                   </TableCell>
                 </TableRow>
               )}
-              {mappedItems
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      //   onClick={() => handleRowClick(row)}
-                      sx={{
-                        // cursor: "pointer",
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format
-                              ? column.format(value, row, handleRowClick)
-                              : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
+              {mappedItems?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    //   onClick={() => handleRowClick(row)}
+                    sx={{
+                      // cursor: "pointer",
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell
+                          key={column.id}
+                          align={column.align}
+                          onClick={(e) => {
+                            // Prevent click event from bubbling up to the row
+                            // when clicking on action buttons
+                            if (column.id === "actions") {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
+                          {column.format
+                            ? column.format(value, row, handleRowClick)
+                            : value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 1000]}
           component="div"
-          count={mappedItems?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

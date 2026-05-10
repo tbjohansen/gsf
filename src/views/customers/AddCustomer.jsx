@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import TextField from "@mui/material/TextField";
-import MenuItem from "@mui/material/MenuItem";
 import { toast } from "react-hot-toast";
 import apiClient from "../../api/Client";
 import { MdAdd } from "react-icons/md";
@@ -8,14 +7,17 @@ import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import { capitalize } from "lodash";
 import { Autocomplete } from "@mui/material";
-import { validPhoneNumber } from "../../../helpers";
+import { formatDateForDb, validPhoneNumber } from "../../../helpers";
+import DatePick from "../../components/DatePicker";
+import moment from "moment";
+import { LuUsers } from "react-icons/lu";
 
 const style = {
   position: "absolute",
   top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
-  width: 600,
+  width: 800,
   bgcolor: "background.paper",
   boxShadow: 24,
   p: 4,
@@ -42,6 +44,9 @@ const AddCustomer = ({ loadData, status }) => {
       Admission_ID: "",
       Semester: "",
       Date_Birth: null,
+      Emergency_Contact_Name: "",
+      Next_Kin_Relationship: "",
+      Emergency_Contact_Phone: "",
     });
   };
   const [formData, setFormData] = useState({
@@ -60,6 +65,9 @@ const AddCustomer = ({ loadData, status }) => {
     Admission_ID: "",
     Semester: "",
     Date_Birth: null,
+    Emergency_Contact_Name: "",
+    Next_Kin_Relationship: "",
+    Emergency_Contact_Phone: "",
   });
 
   const sortedPrograms = [
@@ -134,7 +142,7 @@ const AddCustomer = ({ loadData, status }) => {
 
   const sortedGender = [
     { id: "male", label: "Male" },
-    { id: "femal", label: "Female" },
+    { id: "female", label: "Female" },
   ];
 
   const sortedOrigin = [
@@ -330,9 +338,18 @@ const AddCustomer = ({ loadData, status }) => {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (field) => (e, newValue) => {
-    // For Autocomplete components
+    //for date componet
+    if (moment.isMoment(e) || e === null) {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: e ? e : null,
+      }));
+      return;
+    }
 
+    // For Autocomplete components
     if (newValue !== undefined) {
+      console.log("passed 1");
       setFormData((prev) => ({
         ...prev,
         [field]: newValue?.id,
@@ -367,11 +384,13 @@ const AddCustomer = ({ loadData, status }) => {
       return;
     }
 
-    if (
-      (status === "student" && !formData.Student_ID) ||
-      formData.Admission_ID
-    ) {
+    if (status === "student" && !formData.Student_ID) {
       toast.error("Please enter student ID or Admission ID");
+      return;
+    }
+
+    if (status === "student" && !formData.Emergency_Contact_Name) {
+      toast.error("Please enter emergency contact");
       return;
     }
 
@@ -401,10 +420,20 @@ const AddCustomer = ({ loadData, status }) => {
               ? "local"
               : "foreigner"
             : "",
+        customer_origin: formData?.customer_origin
+          ? formData?.customer_origin
+          : "inside",
         Phone_Number: formData.Phone_Number.startsWith("0")
           ? formData.Phone_Number
           : `0${formData.Phone_Number}`,
+        Date_Birth: formatDateForDb(formData?.Date_Birth),
         Employee_ID: employeeId,
+        Emergency_Contact_Name:
+          status === "student" ? formData?.Emergency_Contact_Name : "",
+        Emergency_Contact_Phone:
+          status === "student" ? formData?.Emergency_Contact_Phone : "",
+        Next_Kin_Relationship:
+          status === "student" ? formData?.Next_Kin_Relationship : "",
       };
 
       // Make API request
@@ -413,24 +442,18 @@ const AddCustomer = ({ loadData, status }) => {
       // Check if request was successful
       if (!response.ok) {
         setLoading(false);
+
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to create customer");
-        }
-        return;
-      }
-
-      // Check if response contains an error
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        if (response.data?.error && typeof response.data.error === "object") {
-          toast.error("Failed to create customer");
-        } else {
-          const errorMessage = "Failed to create customer";
-          toast.error(errorMessage);
+          const serverMessage = response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to create customer",
+          );
         }
         return;
       }
@@ -442,20 +465,22 @@ const AddCustomer = ({ loadData, status }) => {
       // Reset form
       setFormData({
         Customer_Name: "",
-        Gender: "",
-        Nationality: "",
+        Gender: null,
+        Nationality: null,
         Phone_Number: "",
         Email: "",
         Student_ID: "",
-        Program_Study: "",
-        Year_Study: "",
+        Program_Study: null,
+        Year_Study: null,
         Customer_Status: "active",
         Customer_Nature: status || "student",
         Customer_Type: "",
         customer_origin: "",
-        Admission_ID: "",
         Semester: "",
         Date_Birth: null,
+        Emergency_Contact_Name: "",
+        Emergency_Contact_Phone: "",
+        Next_Kin_Relationship: "",
       });
 
       // Trigger parent component refresh
@@ -565,7 +590,7 @@ const AddCustomer = ({ loadData, status }) => {
                       freeSolo
                       fullWidth
                       value={sortedGender.find(
-                        (option) => option.id === formData?.Gender
+                        (option) => option.id === formData?.Gender,
                       )}
                       onChange={handleChange("Gender")}
                       renderInput={(params) => (
@@ -576,7 +601,9 @@ const AddCustomer = ({ loadData, status }) => {
                     <TextField
                       size="small"
                       label={`${
-                        status === "student" ? "Student ID" : "Customer ID"
+                        status === "student"
+                          ? "Student / Admission ID"
+                          : "Customer ID"
                       }`}
                       variant="outlined"
                       fullWidth
@@ -595,7 +622,7 @@ const AddCustomer = ({ loadData, status }) => {
                     freeSolo
                     fullWidth
                     value={sortedOrigin.find(
-                      (option) => option.id === formData?.customer_origin
+                      (option) => option.id === formData?.customer_origin,
                     )}
                     onChange={handleChange("customer_origin")}
                     renderInput={(params) => (
@@ -606,6 +633,14 @@ const AddCustomer = ({ loadData, status }) => {
 
                 {status === "student" && (
                   <>
+                    <DatePick
+                      label="Select Date Of Birth"
+                      maxDate={moment()}
+                      value={
+                        formData.Date_Birth ? moment(formData.Date_Birth) : null
+                      }
+                      onChange={handleChange("Date_Birth")}
+                    />
                     <Autocomplete
                       id="combo-box-demo"
                       options={sortedNationalities}
@@ -613,7 +648,7 @@ const AddCustomer = ({ loadData, status }) => {
                       freeSolo
                       fullWidth
                       value={sortedNationalities.find(
-                        (option) => option.id === formData?.Nationality
+                        (option) => option.id === formData?.Nationality,
                       )}
                       onChange={handleChange("Nationality")}
                       renderInput={(params) => (
@@ -628,7 +663,7 @@ const AddCustomer = ({ loadData, status }) => {
                       freeSolo
                       fullWidth
                       value={sortedPrograms.find(
-                        (option) => option.id === formData?.Program_Study
+                        (option) => option.id === formData?.Program_Study,
                       )}
                       onChange={handleChange("Program_Study")}
                       renderInput={(params) => (
@@ -645,26 +680,76 @@ const AddCustomer = ({ loadData, status }) => {
                       freeSolo
                       fullWidth
                       value={sortedYear.find(
-                        (option) => option.id === formData?.Year_Study
+                        (option) => option.id === formData?.Year_Study,
                       )}
                       onChange={handleChange("Year_Study")}
                       renderInput={(params) => (
                         <TextField {...params} label="Select Year of Study" />
                       )}
                     />
-
-                    <TextField
-                      size="small"
-                      label="Admission ID"
-                      variant="outlined"
-                      fullWidth
-                      value={formData?.Admission_ID}
-                      onChange={handleChange("Admission_ID")}
-                      disabled={loading}
-                    />
                   </>
                 )}
               </div>
+              {status === "student" ? (
+                <div className="border-t border-gray-200 mt-2 w-[100%]">
+                  <div className="mt-2">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      Next of Kin Details
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Next of Kin Name */}
+                    <TextField
+                      size="small"
+                      label="Contact Name"
+                      variant="outlined"
+                      fullWidth
+                      value={formData?.Emergency_Contact_Name}
+                      onChange={handleChange("Emergency_Contact_Name")}
+                      disabled={loading}
+                    />
+
+                    {/* Relationship */}
+                    <TextField
+                      size="small"
+                      label="Relationship"
+                      variant="outlined"
+                      fullWidth
+                      value={formData?.Next_Kin_Relationship}
+                      onChange={handleChange("Next_Kin_Relationship")}
+                      disabled={loading}
+                    />
+
+                    {/* Next of Kin Phone */}
+                    <TextField
+                      size="small"
+                      label="Contact Phone"
+                      variant="outlined"
+                      fullWidth
+                      value={formData?.Emergency_Contact_Phone}
+                      onChange={handleChange("Emergency_Contact_Phone")}
+                      disabled={loading}
+                      error={
+                        formData?.Phone_Number?.length > 0 &&
+                        !validPhoneNumber(formData?.Phone_Number)
+                      }
+                      helperText={
+                        formData?.Phone_Number?.length > 0 &&
+                        !validPhoneNumber(formData?.Phone_Number)
+                          ? formData?.Phone_Number?.length !== 10
+                            ? "Phone number must be 10 digits"
+                            : "Phone number must start with 06, or 07"
+                          : ""
+                      }
+                      inputProps={{
+                        maxLength: 10,
+                        pattern: "0[567][0-9]{8}",
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : null}
               <div className="pt-2">
                 <button
                   type="submit"

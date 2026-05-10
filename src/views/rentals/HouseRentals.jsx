@@ -16,6 +16,7 @@ import apiClient, { baseURL } from "../../api/Client";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { currencyFormatter } from "../../../helpers";
+import houseImage from '../../assets/images/house3.svg';
 
 const HouseRentals = () => {
   const [selectedHouse, setSelectedHouse] = useState(null);
@@ -30,8 +31,7 @@ const HouseRentals = () => {
   const navigate = useNavigate();
 
   // Default placeholder image for properties without images
-  const DEFAULT_HOUSE_IMAGE =
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop";
+  const DEFAULT_HOUSE_IMAGE = houseImage;
 
   useEffect(() => {
     if (!hasFetchedData.current) {

@@ -8,19 +8,17 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import {
-  capitalize,
-  currencyFormatter,
-  formatter,
-  removeUnderscore,
-} from "../../../helpers";
+import { capitalize, currencyFormatter, extractBank } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
-import { Autocomplete, TextField } from "@mui/material";
+import { Autocomplete, Button, TextField } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { TbDownload } from "react-icons/tb";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -33,8 +31,8 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function FarmsPayments() {
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [payments, setPayments] = useState([]);
   const [paymentType, setPaymentType] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
@@ -44,17 +42,20 @@ export default function FarmsPayments() {
   const [loading, setLoading] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
 
+  const [pagination, setPagination] = useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
+
   const navigate = useNavigate();
 
   const sortedPaymentTypes = [
-    {
-      id: "house",
-      label: "Rental House",
-    },
-    {
-      id: "business_land",
-      label: "Rental Space",
-    },
+    { id: "house", label: "Rental House" },
+    { id: "business_land", label: "Rental Space" },
   ];
 
   const paymentTypeOnChange = (e, value) => {
@@ -62,49 +63,43 @@ export default function FarmsPayments() {
   };
 
   const sortedPaymentStatus = [
-    {
-      id: "pending",
-      label: "Pending",
-    },
-    {
-      id: "expired",
-      label: "Expired",
-    },
-    {
-      id: "completed",
-      label: "Completed",
-    },
+    { id: "pending", label: "Pending" },
+    { id: "expired", label: "Expired" },
+    { id: "completed", label: "Completed" },
   ];
 
   const paymentStatuOnChange = (e, value) => {
     setPaymentStatus(value);
   };
 
-  // Fetch payments from API
   useEffect(() => {
     loadData();
-  }, [name, customerID, sangiraNumber, paymentType, paymentStatus]);
+  }, [
+    name,
+    customerID,
+    sangiraNumber,
+    // paymentType,
+    // paymentStatus,
+    page,
+    rowsPerPage,
+  ]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Request_Type=farm`;
+      let url = `/customer/customer-request?&Request_Type=farm&Customer_Status=paid&limit=${rowsPerPage}&page=${page}`;
 
       if (name) {
-        url += `Customer_Name=${name}`;
+        url += `&Customer_Name=${name}`;
       }
 
       if (sangiraNumber) {
-        url += `Sangira_Number=${sangiraNumber}`;
+        url += `&Sangira_Number=${sangiraNumber}`;
       }
 
-      if (paymentType) {
-        url += `Request_Type=${paymentType?.value}`;
-      }
-
-    //   if (paymentStatus) {
-    //     url += `Sangira_Number=${paymentStatus}`;
-    //   }
+      // if (paymentType) {
+      //   url += `&Request_Type=${paymentType?.id}`;
+      // }
 
       const response = await apiClient.get(url);
 
@@ -120,14 +115,27 @@ export default function FarmsPayments() {
         return;
       }
 
-      // Adjust based on your API response structure
-      const paymentsData = response?.data?.data?.data;
-      const newData = paymentsData?.map((payment, index) => ({
-        ...payment,
-        key: index + 1,
+      const responseData = response?.data?.data;
+      const unitsData = responseData?.data || [];
+
+      const newData = unitsData.map((user, index) => ({
+        ...user,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
-      // console.log(newData);
+
       setPayments(Array.isArray(newData) ? newData : []);
+
+      // Update pagination state
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch payments error:", error);
@@ -137,15 +145,88 @@ export default function FarmsPayments() {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event.target.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
-  // Inside the Hostels component, replace the columns definition with:
+  // ── PDF Download ──────────────────────────────────────────────────────────
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "pt",
+      format: "a4",
+    });
+
+    // Title
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("GSF Farm Payments List", 40, 40);
+
+    // Sub-title with current date
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 40, 58);
+
+    // Table headers & rows
+    const tableColumns = [
+      "S/N",
+      "Customer Name",
+      "Farm Name",
+      "Plot Size",
+      "Total Amount",
+      "Sangira",
+      "Payment Date",
+      "Receipt",
+      "Bank",
+    ];
+
+    const tableRows = payments.map((row, index) => [
+      index + 1,
+      capitalize(row?.customer?.Customer_Name) || "-",
+      row?.item?.Item_Name || "-",
+      row?.Quantity ? `${row.Quantity} hectare` : "-",
+      currencyFormatter.format(row?.Sangira?.Grand_Total_Price || row?.Price) ||
+        "-",
+      row?.Sangira?.Sangira_Number || "-",
+      row?.Sangira?.Completed_Date || "-",
+      row?.Sangira?.Receipt_Number || "-",
+      extractBank(row?.payment?.Payment_Channel) || "-",
+    ]);
+
+    autoTable(doc, {
+      startY: 72,
+      head: [tableColumns],
+      body: tableRows,
+      styles: {
+        fontSize: 11,
+        cellPadding: 4,
+        overflow: "linebreak",
+      },
+      headStyles: {
+        fillColor: [245, 246, 250],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+      },
+      alternateRowStyles: {
+        fillColor: [250, 250, 252],
+      },
+      columnStyles: {
+        0: { cellWidth: 28 }, // S/N
+        6: { cellWidth: 68 }, // Total Amount
+      },
+      margin: { left: 40, right: 40 },
+    });
+
+    doc.save("GSF-Farms-Payments.pdf");
+  };
+  // ─────────────────────────────────────────────────────────────────────────
+
   const columns = useMemo(
     () => [
       { id: "key", label: "S/N" },
@@ -191,7 +272,7 @@ export default function FarmsPayments() {
         format: (row, value) => (
           <span>
             {currencyFormatter.format(
-              value?.Sangira?.Grand_Total_Price || value?.Price
+              value?.Sangira?.Grand_Total_Price || value?.Price,
             )}
           </span>
         ),
@@ -216,15 +297,14 @@ export default function FarmsPayments() {
                   value?.Sangira?.Sangira_Status === "completed"
                     ? "green"
                     : value?.Sangira?.Sangira_Status === "pending"
-                    ? "blue"
-                    : "red"
+                      ? "blue"
+                      : "red"
                 }
               />
             ) : null}
           </>
         ),
       },
-
       {
         id: "requested_at",
         label: "Requested Date",
@@ -247,66 +327,73 @@ export default function FarmsPayments() {
         label: "Bank Name",
         minWidth: 170,
         format: (row, value) => (
-          <span>{value?.Sangira?.Payment_Direction}</span>
+          <span>{extractBank(value?.payment?.Payment_Channel)}</span>
         ),
       },
-      
     ],
-    []
+    [],
   );
 
   return (
     <>
       <Breadcrumb />
-      <div className="w-full h-12">
+      <div className="w-full h-12 flex items-center justify-between">
         <h4>Payments List</h4>
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<TbDownload />}
+          onClick={handleDownloadPDF}
+          disabled={loading || payments.length === 0}
+          sx={{ textTransform: "none" }}
+        >
+          Download PDF
+        </Button>
       </div>
 
       <div className="w-full py-2 flex gap-2 mb-1">
         <TextField
           size="small"
-          id="outlined-basic"
+          id="name-filter"
           label={"Customer Name"}
           variant="outlined"
-          className="w-[25%]"
+          className="w-[33%]"
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoFocus
         />
         <TextField
           size="small"
-          id="outlined-basic"
+          id="customerid-filter"
           label={"Customer ID"}
           variant="outlined"
-          className="w-[25%]"
+          className="w-[33%]"
           value={customerID}
           onChange={(e) => setCustomerID(e.target.value)}
-          autoFocus
         />
         <TextField
           size="small"
-          id="outlined-basic"
+          id="sangira-filter"
           label="Sangira Number"
           variant="outlined"
-          className="w-[25%]"
+          className="w-[34%]"
           value={sangiraNumber}
           onChange={(e) => setSangiraNumber(e.target.value)}
-          autoFocus
         />
-        <Autocomplete
-          id="combo-box-demo"
-          options={sortedPaymentTypes}
+        {/* <Autocomplete
+          id="payment-type-filter"
+          options={[]}
           size="small"
           freeSolo
           className="w-[25%]"
           value={paymentType}
           onChange={paymentTypeOnChange}
           renderInput={(params) => (
-            <TextField {...params} label="Payment Type" />
+            <TextField {...params} label="Select Farm" />
           )}
-        />
-        <Autocomplete
-          id="combo-box-demo"
+        /> */}
+        {/* <Autocomplete
+          id="payment-status-filter"
           options={sortedPaymentStatus}
           size="small"
           freeSolo
@@ -316,8 +403,9 @@ export default function FarmsPayments() {
           renderInput={(params) => (
             <TextField {...params} label="Payment Status" />
           )}
-        />
+        /> */}
       </div>
+
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
         <TableContainer sx={{ maxHeight: 440 }}>
           <Table stickyHeader aria-label="sticky table">
@@ -342,57 +430,58 @@ export default function FarmsPayments() {
                   </TableCell>
                 </TableRow>
               )}
-              {payments
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      sx={{
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format ? column.format(value, row) : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
+              {payments?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    sx={{
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell
+                          key={column.id}
+                          align={column.align}
+                          onClick={(e) => {
+                            if (column.id === "actions") {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
+                          {column.format ? column.format(value, row) : value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 1000]}
           component="div"
-          count={payments?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

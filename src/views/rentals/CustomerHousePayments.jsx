@@ -8,7 +8,7 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import { capitalize, currencyFormatter, formatter, removeUnderscore } from "../../../helpers";
+import { capitalize, currencyFormatter, extractBank, formatter, removeUnderscore } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -16,7 +16,6 @@ import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
 import { Autocomplete, TextField } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { values } from "lodash";
 import DatePick from "../../components/DatePicker";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -77,7 +76,7 @@ export default function CustomerHousePayments({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Request_Type=house_rent&Customer_ID=${customer?.Customer_ID}`;
+      let url = `/customer/customer-request?&Customer_Status=paid&Customer_ID=${customer?.Customer_ID}`;
 
       if (startDate) {
         url += `&Start_Date=${formatDateForDb(startDate)}`;
@@ -201,7 +200,7 @@ export default function CustomerHousePayments({ status }) {
         label: "Bank Name",
         minWidth: 170,
         format: (row, value) => (
-          <span>{value?.Sangira?.Payment_Direction}</span>
+          <span>{extractBank(value?.payment?.Payment_Channel)}</span>
         ),
       },
     ],

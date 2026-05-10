@@ -8,7 +8,7 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import { formatDateTimeForDb, formatter } from "../../../helpers";
+import { formatDateTimeForDb } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -16,7 +16,6 @@ import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
 import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
-import EditFeature from "./EditFeatures";
 import { FcSynchronize } from "react-icons/fc";
 import AddEmployee from "./AddEmployee";
 import { TextField } from "@mui/material";
@@ -32,8 +31,8 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function RealEstateEmployees() {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [page, setPage] = React.useState(1);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [employees, setEmployees] = React.useState([]);
   const [name, setName] = React.useState("");
   const [customerID, setCustomerID] = React.useState("");
@@ -41,6 +40,15 @@ export default function RealEstateEmployees() {
   const [loading, setLoading] = React.useState(false);
   const [syncLoading, setSyncLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
+
+  const [pagination, setPagination] = React.useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
 
   const navigate = useNavigate();
 
@@ -51,12 +59,12 @@ export default function RealEstateEmployees() {
       hasFetchedData.current = true;
       loadData();
     }
-  }, []);
+  }, [rowsPerPage, page]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer?&Customer_Nature=house_rent`;
+      let url = `/customer/customer?&Customer_Nature=house_rent&page=${page}&limit=${rowsPerPage}`;
 
       if (name) {
         url += `&Customer_Name=${name}`;
@@ -84,7 +92,8 @@ export default function RealEstateEmployees() {
         return;
       }
 
-      const userData = response?.data?.data?.data || [];
+      const responseData = response?.data?.data;
+      const userData = responseData?.data || [];
 
       const employeesArray = [];
 
@@ -96,13 +105,26 @@ export default function RealEstateEmployees() {
 
       // Adjust based on your API response structure
       if (employeesArray?.length > 0) {
-        const newData = employeesArray?.map((user, index) => ({
+        const newData = userData.map((user, index) => ({
           ...user,
-          key: index + 1,
+          key:
+            (responseData?.current_page - 1) * responseData?.per_page +
+            index +
+            1,
         }));
         // console.log(newData);
         setEmployees(Array.isArray(newData) ? newData : []);
       }
+
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch employees error:", error);
@@ -129,7 +151,7 @@ export default function RealEstateEmployees() {
       if (!response.ok) {
         setSyncLoading(false);
         toast.error(
-          response?.data?.error || "Failed to fetch employees from eHMS"
+          response?.data?.error || "Failed to fetch employees from eHMS",
         );
         return;
       }
@@ -137,7 +159,7 @@ export default function RealEstateEmployees() {
       if (response.data?.error || response?.data?.code >= 400) {
         setSyncLoading(false);
         toast.error(
-          response?.data?.error || "Failed to fetch employees from eHMS"
+          response?.data?.error || "Failed to fetch employees from eHMS",
         );
         return;
       }
@@ -155,12 +177,13 @@ export default function RealEstateEmployees() {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event?.target?.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
   // Inside the users component, replace the columns definition with:
@@ -216,7 +239,7 @@ export default function RealEstateEmployees() {
       //   ),
       // },
     ],
-    []
+    [],
   );
 
   return (
@@ -298,57 +321,60 @@ export default function RealEstateEmployees() {
                   </TableCell>
                 </TableRow>
               )}
-              {employees
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      sx={{
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format ? column.format(value, row) : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
+              {employees?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    sx={{
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell
+                          key={column.id}
+                          align={column.align}
+                          onClick={(e) => {
+                            // Prevent click event from bubbling up to the row
+                            // when clicking on action buttons
+                            if (column.id === "actions") {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
+                          {column.format ? column.format(value, row) : value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 1000]}
           component="div"
-          count={employees?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

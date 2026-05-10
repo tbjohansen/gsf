@@ -12,7 +12,11 @@ import {
 } from "react-icons/lu";
 import { CgFileRemove } from "react-icons/cg";
 import { GrDocumentUpdate } from "react-icons/gr";
-import { capitalize, currencyFormatter, removeUnderscore } from "../../../helpers";
+import {
+  capitalize,
+  currencyFormatter,
+  removeUnderscore,
+} from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -39,6 +43,7 @@ export default function HouseRequestDetails() {
 
   const showTabs =
     requestData?.Customer_Status === "served" ||
+    requestData?.Customer_Status === "paid" ||
     requestData?.Customer_Status === "requested" ||
     requestData?.Customer_Status === "rejected";
 
@@ -228,7 +233,7 @@ export default function HouseRequestDetails() {
               <div>
                 <p className="text-sm text-gray-600">Received By</p>
                 <p className="font-semibold text-gray-900">
-                  {requestData?.Received_By}
+                  {capitalize(requestData?.received_by?.name || "N/A")}
                 </p>
               </div>
             </>
@@ -319,7 +324,8 @@ export default function HouseRequestDetails() {
         </h2>
       </div>
 
-      {requestData?.Contract_attachment && requestData?.previos_contract?.length > 0 ? (
+      {requestData?.Contract_attachment &&
+      requestData?.previos_contract?.length > 0 ? (
         <div className="bg-green-50 border border-green-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
@@ -558,7 +564,7 @@ export default function HouseRequestDetails() {
                   >
                     Request Details
                   </button>
-                  {["requested", "served", "assign"].includes(
+                  {["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
                   ) && (
                     <button
@@ -572,7 +578,7 @@ export default function HouseRequestDetails() {
                       Contract Management
                     </button>
                   )}
-                  {["requested", "served", "assign"].includes(
+                  {["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
                   ) && (
                     <button

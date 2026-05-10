@@ -54,13 +54,23 @@ const ImageUploadButton = styled("label")({
 });
 
 export default function Units() {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [page, setPage] = React.useState(1);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [units, setUnits] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
   const [uploadingImages, setUploadingImages] = React.useState({});
-  
+   const hasFetchedData = React.useRef(false);
+
+  const [pagination, setPagination] = React.useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
+
   // Add state for delete confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [imageToDelete, setImageToDelete] = React.useState(null);
@@ -68,38 +78,75 @@ export default function Units() {
 
   const navigate = useNavigate();
 
-  const hasFetchedData = React.useRef(false);
-
   React.useEffect(() => {
-    if (!hasFetchedData.current) {
+   if (!hasFetchedData.current) {
       hasFetchedData.current = true;
       loadData();
     }
-  }, []);
+  }, [page, rowsPerPage]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/settings/real-estate");
+      //
+      const response = await apiClient.get(
+        `/settings/real-estate?&page=${page}&limit=${rowsPerPage}`,
+      );
 
+       // Check if request was successful
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch units");
+
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+
+          console.log(response);
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to fetch units";
+          }
+
+          toast.error(errorText);
+        }
         return;
       }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response.data.error || "Failed to fetch units");
-        return;
-      }
+      // Extract paginated data from response
+      const responseData = response?.data?.data;
+      const unitsData = responseData?.data || [];
 
-      const userData = response?.data?.data?.data;
-      const newData = userData?.map((user, index) => ({
+      // Update units with keys
+      const newData = unitsData.map((user, index) => ({
         ...user,
-        key: index + 1,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
+
       setUnits(Array.isArray(newData) ? newData : []);
+
+      // Update pagination state
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch units error:", error);
@@ -113,7 +160,7 @@ export default function Units() {
     if (!file) return;
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif"];
     if (!allowedTypes.includes(file.type)) {
       toast.error("Please select a valid image file (JPEG, PNG, JPG, or GIF)");
       return;
@@ -147,16 +194,42 @@ export default function Units() {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
 
-      if (!response.ok || response.data?.error) {
-        toast.error(response.data?.error || "Failed to upload image");
+       // Check if request was successful
+      if (!response.ok) {
+        setLoading(false);
+
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+
+          console.log(response);
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to upload image";
+          }
+
+          toast.error(errorText);
+        }
         return;
       }
 
       toast.success("Image uploaded successfully");
-      loadData(); // Reload data to get updated image
+      loadData(); // Reload data to get updated image (preserves current page)
     } catch (error) {
       console.error("Image upload error:", error);
       toast.error("Failed to upload image");
@@ -185,7 +258,7 @@ export default function Units() {
 
     try {
       const response = await apiClient.delete(
-        `/settings/real-estate-images/${imageToDelete}`
+        `/settings/real-estate-images/${imageToDelete}`,
       );
 
       if (!response.ok || response.data?.error) {
@@ -194,7 +267,7 @@ export default function Units() {
       }
 
       toast.success("Image deleted successfully");
-      loadData(); // Reload data to update UI
+      loadData(); // Reload data to update UI (preserves current page)
     } catch (error) {
       console.error("Image delete error:", error);
       toast.error("Failed to delete image");
@@ -204,12 +277,13 @@ export default function Units() {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event.target.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1); 
   };
 
   const handleRowClick = (row) => {
@@ -223,17 +297,24 @@ export default function Units() {
       {
         id: "name",
         label: "Unit Name",
+        minWidth: 170,
         format: (value) => <span>{capitalize(value)}</span>,
       },
       {
         id: "real_estate_type",
         label: "Unit Type",
+        minWidth: 110,
         format: (value) => <span>{capitalize(value)}</span>,
       },
       {
         id: "price",
         label: "Price",
         format: (value) => <span>TZS {formatter.format(value || 0)}</span>,
+      },
+      {
+        id: "location",
+        label: "Location",
+        format: (value) => <span>{value?.location?.Unit_Location}</span>,
       },
       {
         id: "status",
@@ -251,7 +332,7 @@ export default function Units() {
         align: "center",
         format: (value, row) => {
           const isUploading = uploadingImages[row.id];
-          
+
           return (
             <div className="flex items-center justify-center gap-2">
               {value?.length > 0 ? (
@@ -310,6 +391,7 @@ export default function Units() {
       {
         id: "created_at",
         label: "Created At",
+        minWidth: 110,
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
       },
       {
@@ -323,7 +405,7 @@ export default function Units() {
         ),
       },
     ],
-    [uploadingImages]
+    [uploadingImages],
   );
 
   return (
@@ -360,64 +442,74 @@ export default function Units() {
                   </TableCell>
                 </TableRow>
               )}
-              {units
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      onClick={() => handleRowClick(row)}
-                      sx={{
-                        cursor: "pointer",
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons or image column
-                              if (
-                                column.id === "actions" ||
-                                column.id === "image"
-                              ) {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format
-                              ? column.format(value, row, handleRowClick)
-                              : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
+              {!loading && units.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={columns.length} align="center">
+                    No units found
+                  </TableCell>
+                </TableRow>
+              )}
+              {units.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    onClick={() => handleRowClick(row)}
+                    sx={{
+                      cursor: "pointer",
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell
+                          key={column.id}
+                          align={column.align}
+                          onClick={(e) => {
+                            // Prevent click event from bubbling up to the row
+                            // when clicking on action buttons or image column
+                            if (
+                              column.id === "actions" ||
+                              column.id === "image"
+                            ) {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
+                          {column.format
+                            ? column.format(value, row, handleRowClick)
+                            : value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 1000]}
           component="div"
-          count={units?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
 
@@ -433,15 +525,20 @@ export default function Units() {
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-image-dialog-description">
-            Are you sure you want to delete the image for unit "{imageToDeleteName}"? 
-            This action can not be undone.
+            Are you sure you want to delete the image for unit "
+            {imageToDeleteName}"? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeDeleteDialog} color="primary">
             Cancel
           </Button>
-          <Button onClick={handleImageDelete} color="error" variant="contained" autoFocus>
+          <Button
+            onClick={handleImageDelete}
+            color="error"
+            variant="contained"
+            autoFocus
+          >
             Delete
           </Button>
         </DialogActions>

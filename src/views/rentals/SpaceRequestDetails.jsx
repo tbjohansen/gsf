@@ -30,6 +30,7 @@ export default function SpaceRequestDetails() {
 
   const showTabs =
     requestData?.Customer_Status === "served" ||
+    requestData?.Customer_Status === "paid" ||
     requestData?.Customer_Status === "requested" ||
     requestData?.Customer_Status === "rejected";
 
@@ -219,7 +220,7 @@ export default function SpaceRequestDetails() {
               <div>
                 <p className="text-sm text-gray-600">Received By</p>
                 <p className="font-semibold text-gray-900">
-                  {requestData?.Received_By}
+                  {capitalize(requestData?.received_by?.name || "N/A")}
                 </p>
               </div>
             </>
@@ -549,7 +550,7 @@ export default function SpaceRequestDetails() {
                   >
                     Request Details
                   </button>
-                  {["requested", "served", "assign"].includes(
+                  {["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
                   ) && (
                     <button
@@ -563,7 +564,7 @@ export default function SpaceRequestDetails() {
                       Contract Management
                     </button>
                   )}
-                  {["requested", "served", "assign"].includes(
+                  {["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
                   ) && (
                     <button

@@ -92,33 +92,42 @@ const EditItem = ({ item, loadData, Item_Type }) => {
         Item_Type: Item_Type,
         Item_Price_Outside: Item_Type === "oxygen" ? outsidePrice : null,
         Item_Price_Inside: Item_Type === "oxygen" ? price : null,
+        ...(item?.Item_Type === "caution_money" && { Item_Price: price })
       };
 
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.put(`/settings/item`, data);
 
       // Check if request was successful
-      if (!response.ok) {
-        setLoading(false);
-
-        // Handle apisauce errors
-        if (response.problem === "NETWORK_ERROR") {
-          toast.error("Network error. Please check your connection");
-        } else if (response.problem === "TIMEOUT_ERROR") {
-          toast.error("Request timeout. Please try again");
-        } else {
-          toast.error(response.data?.error || "Failed to update item");
-        }
-        return;
-      }
-
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to update item";
-        toast.error(errorMessage);
-        return;
-      }
+           if (!response.ok) {
+             setLoading(false);
+     
+             if (response.problem === "NETWORK_ERROR") {
+               toast.error("Network error. Please check your connection");
+             } else if (response.problem === "TIMEOUT_ERROR") {
+               toast.error("Request timeout. Please try again");
+             } else {
+               const serverMessage =
+                 response?.data?.error || response?.data?.message;
+     
+               let errorText;
+     
+               console.log(response);
+               if (typeof serverMessage === "string") {
+                 errorText = serverMessage;
+               } else if (
+                 typeof serverMessage === "object" &&
+                 serverMessage !== null
+               ) {
+                 errorText = Object.values(serverMessage).flat()[0];
+               } else {
+                 errorText = "Failed to update item";
+               }
+     
+               toast.error(errorText);
+             }
+             return;
+           }
 
       // Success
       setLoading(false);
@@ -186,6 +195,25 @@ const EditItem = ({ item, loadData, Item_Type }) => {
                   )}
                 />
               </div>
+              {(item?.Item_Type === "caution_money" &&
+                Item_Type === "student_accomodation") ||
+                (Item_Type === "student_accomodatio" && (
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      label="Price (TZS)"
+                      value={price ? formatter.format(Number(price)) : ""}
+                      onChange={(e) => {
+                        // Remove any non-digit characters except decimal point
+                        const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                        setPrice(rawValue);
+                      }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                ))}
               {Item_Type === "oxygen" && (
                 <>
                   <div className="w-full py-2 flex justify-center">

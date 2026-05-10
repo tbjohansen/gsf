@@ -18,7 +18,8 @@ import Badge from "../../components/Badge";
 import UploadCustomers from "./UploadCustomers";
 import AddCustomer from "./AddCustomer";
 import Breadcrumb from "../../components/Breadcrumb";
-import { Autocomplete, TextField } from "@mui/material";
+import { TextField } from "@mui/material";
+import EditCustomer from "./EditCustomer";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -31,8 +32,8 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function Customers({ status }) {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [page, setPage] = React.useState(1);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [users, setUsers] = React.useState([]);
   const [name, setName] = React.useState("");
   const [customerID, setCustomerID] = React.useState("");
@@ -40,17 +41,26 @@ export default function Customers({ status }) {
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
+  const [pagination, setPagination] = React.useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
+
   const navigate = useNavigate();
 
   // Fetch hostels from API
   React.useEffect(() => {
     loadData();
-  }, [name, customerID, phoneNumber]);
+  }, [name, customerID, phoneNumber, rowsPerPage, page]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer?`;
+      let url = `/customer/customer?&page=${page}&limit=${rowsPerPage}`;
       if (status) {
         url += `&Customer_Nature=${status}`;
       }
@@ -77,26 +87,49 @@ export default function Customers({ status }) {
 
       const response = await apiClient.get(url);
 
+      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch customers");
-        return;
-      }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response.data.error || "Failed to fetch customers");
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          // ✅ Use the server's error message if available
+          const serverMessage = response.data?.error || response.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to fetch data",
+          );
+        }
         return;
       }
 
       // Adjust based on your API response structure
-      const userData = response?.data?.data?.data;
+      const responseData = response?.data?.data;
+      const userData = responseData?.data;
+
+      // Update customers with keys
       const newData = userData?.map((user, index) => ({
         ...user,
-        key: index + 1,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
       // console.log(newData);
       setUsers(Array.isArray(newData) ? newData : []);
+
+      // Update pagination state
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch customers error:", error);
@@ -106,12 +139,13 @@ export default function Customers({ status }) {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event?.target?.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
   // Inside the users component, replace the columns definition with:
@@ -168,8 +202,19 @@ export default function Customers({ status }) {
         minWidth: 170,
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
       },
+      {
+        id: "actions",
+        label: "Actions",
+        minWidth: 170,
+        align: "center",
+        format: (value, row) => (
+          <div className="flex gap-4 justify-center">
+            <EditCustomer customer={row} status={status} loadData={loadData} />
+          </div>
+        ),
+      },
     ],
-    [loadData, status]
+    [loadData, status],
   );
 
   return (
@@ -226,7 +271,7 @@ export default function Customers({ status }) {
                 {columns
                   .filter(
                     (column) =>
-                      typeof column.show === "undefined" || !!column.show
+                      typeof column.show === "undefined" || !!column.show,
                   )
                   .map((column) => (
                     <StyledTableCell
@@ -247,64 +292,65 @@ export default function Customers({ status }) {
                   </TableCell>
                 </TableRow>
               )}
-              {users
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      sx={{
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns
-                        .filter(
-                          (column) =>
-                            typeof column.show === "undefined" || !!column.show
-                        )
-                        .map((column) => {
-                          const value = row[column.id];
-                          return (
-                            <TableCell
-                              key={column.id}
-                              align={column.align}
-                              onClick={(e) => {
-                                // Prevent click event from bubbling up to the row
-                                // when clicking on action buttons
-                                if (column.id === "actions") {
-                                  e.stopPropagation();
-                                }
-                              }}
-                            >
-                              {column.format
-                                ? column.format(value, row)
-                                : value}
-                            </TableCell>
-                          );
-                        })}
-                    </TableRow>
-                  );
-                })}
+              {users?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    sx={{
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns
+                      .filter(
+                        (column) =>
+                          typeof column.show === "undefined" || !!column.show,
+                      )
+                      .map((column) => {
+                        const value = row[column.id];
+                        return (
+                          <TableCell
+                            key={column.id}
+                            align={column.align}
+                            onClick={(e) => {
+                              // Prevent click event from bubbling up to the row
+                              // when clicking on action buttons
+                              if (column.id === "actions") {
+                                e.stopPropagation();
+                              }
+                            }}
+                          >
+                            {column.format ? column.format(value, row) : value}
+                          </TableCell>
+                        );
+                      })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 1000]}
           component="div"
-          count={users?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

@@ -12,7 +12,11 @@ import {
 } from "react-icons/lu";
 import { GrDocumentUpdate } from "react-icons/gr";
 import { IoArrowUndoCircleOutline } from "react-icons/io5";
-import { capitalize, currencyFormatter, removeUnderscore } from "../../../helpers";
+import {
+  capitalize,
+  currencyFormatter,
+  removeUnderscore,
+} from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -135,6 +139,7 @@ export default function ReceiveHouseRequest() {
 
   const showTabs =
     requestData?.Customer_Status === "served" ||
+    requestData?.Customer_Status === "paid" ||
     requestData?.Customer_Status === "requested" ||
     requestData?.Customer_Status === "rejected";
 
@@ -599,7 +604,7 @@ export default function ReceiveHouseRequest() {
               <div>
                 <p className="text-sm text-gray-600">Received By</p>
                 <p className="font-semibold text-gray-900">
-                  {requestData?.Received_By}
+                  {capitalize(requestData?.received_by?.name || "N/A")}
                 </p>
               </div>
             </>
@@ -962,7 +967,9 @@ export default function ReceiveHouseRequest() {
                 Payment Method
               </label>
               <p className="text-black font-semibold">
-                {capitalize(removeUnderscore(requestData?.payment?.Payment_Channel))}
+                {capitalize(
+                  removeUnderscore(requestData?.payment?.Payment_Channel),
+                )}
               </p>
             </div>
 
@@ -1147,7 +1154,7 @@ export default function ReceiveHouseRequest() {
                   >
                     Request Details
                   </button>
-                  {["requested", "served", "assign"].includes(
+                  {["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
                   ) && (
                     <button
@@ -1161,7 +1168,7 @@ export default function ReceiveHouseRequest() {
                       Contract Management
                     </button>
                   )}
-                  {["requested", "served", "assign"].includes(
+                  {["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
                   ) && (
                     <button

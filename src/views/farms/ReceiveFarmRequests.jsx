@@ -73,6 +73,7 @@ export default function ReceiveFarmRequest() {
     try {
       const data = {
         Customer_Status: "received",
+        Quantity: requestData?.Quantity,
         Item_ID: requestData?.item?.Item_ID,
         Request_Batch_ID: requestData?.Request_Batch_ID,
         Customer_ID: requestData?.Customer_ID,
@@ -126,7 +127,7 @@ export default function ReceiveFarmRequest() {
       return;
     }
 
-    if (farmSize < 0 && farmSize > 2) {
+    if (farmSize < 0 && farmSize > 4) {
       toast.error("Please enter a valid farm plot size");
       return;
     }
@@ -149,7 +150,7 @@ export default function ReceiveFarmRequest() {
         Customer_ID: requestData?.Customer_ID,
         Request_ID: requestID,
         Employee_ID: employeeId,
-        Requested_Farm_Size: farmSize,
+        Quantity: farmSize,
         Grand_Total_Price: calculateCost(farmSize),
       };
 
@@ -178,7 +179,7 @@ export default function ReceiveFarmRequest() {
       toast.success("Farm request is accepted successfully");
       loadData();
       setPaymentMethod("");
-      setFarmSize(1);
+      setFarmSize(0.25);
       setShowAcceptModal(false);
     } catch (error) {
       console.error("Update unit error:", error);
@@ -214,6 +215,7 @@ export default function ReceiveFarmRequest() {
     try {
       const data = {
         Customer_Status: "rejected",
+        Quantity: requestData?.Quantity,
         Rejection_Reason: declineReason,
         Item_ID: requestData?.item?.Item_ID,
         Request_Batch_ID: requestData?.Request_Batch_ID,
@@ -284,13 +286,13 @@ export default function ReceiveFarmRequest() {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch request data");
+        toast.error("Failed to fetch request data");
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
-        toast.error(response.data.error || "Failed to fetch request data");
+        toast.error("Failed to fetch request data");
         return;
       }
 
@@ -412,7 +414,7 @@ export default function ReceiveFarmRequest() {
               {requestData?.Requested_Farm_Size}
             </p>
           </div>
-         {requestData?.Customer_Status === "served" ||
+          {requestData?.Customer_Status === "served" ||
             (requestData?.Customer_Status === "requested" && (
               <div>
                 <p className="text-sm text-gray-600">
@@ -434,7 +436,7 @@ export default function ReceiveFarmRequest() {
               <div>
                 <p className="text-sm text-gray-600">Received By</p>
                 <p className="font-semibold text-gray-900">
-                  {requestData?.Received_By}
+                  {capitalize(requestData?.received_by?.name || "N/A")}
                 </p>
               </div>
             </>
@@ -548,139 +550,179 @@ export default function ReceiveFarmRequest() {
   );
 
   const renderPaymentTab = () => (
-    <div className="px-8 py-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-        <FcMoneyTransfer className="mr-2 text-blue-600" size={24} />
-        Payment Details
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center">
+        <FcMoneyTransfer
+          className="mr-2 text-blue-600 flex-shrink-0"
+          size={24}
+        />
+        <span className="truncate">Payment Details</span>
       </h2>
 
       {requestData?.sangira && (
-        <form className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+        <div className="mb-8">
+          <h3 className="text-md font-medium text-gray-700 mb-3 pb-2 border-b border-gray-200">
+            Sangira Information
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
                 Sangira Number
               </label>
-              <p className="text-black font-semibold">
-                {requestData?.sangira?.Sangira_Number}
+              <p className="text-sm sm:text-base text-black font-semibold break-words">
+                {requestData?.sangira?.Sangira_Number || "N/A"}
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
                 Amount
               </label>
-              <p className="text-black font-semibold">
+              <p className="text-sm sm:text-base text-black font-semibold">
                 {currencyFormatter?.format(
                   requestData?.sangira?.Grand_Total_Price || 0,
                 )}
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
                 Sangira Status
               </label>
-              <p className="text-black font-semibold">
-                {capitalize(requestData?.sangira?.Sangira_Status)}
+              <p className="text-sm sm:text-base text-black font-semibold">
+                {capitalize(requestData?.sangira?.Sangira_Status || "")}
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
                 Receipt Number
               </label>
-              <p className="text-black font-semibold">
-                {requestData?.sangira?.Receipt_Number}
+              <p className="text-sm sm:text-base text-black font-semibold break-words">
+                {requestData?.sangira?.Receipt_Number || "N/A"}
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
                 Payment Date
               </label>
-              <p className="text-black font-semibold">
-                {requestData?.sangira?.Payment_Date}
+              <p className="text-sm sm:text-base text-black font-semibold">
+                {requestData?.sangira?.Payment_Date
+                  ? new Date(
+                      requestData.sangira.Payment_Date,
+                    ).toLocaleDateString()
+                  : "N/A"}
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg sm:col-span-2 lg:col-span-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
                 Remarks
               </label>
-              <p className="text-black font-semibold">
-                {requestData?.sangira?.Remarks}
+              <p className="text-sm sm:text-base text-black font-semibold break-words">
+                {requestData?.sangira?.Remarks || "No remarks"}
               </p>
             </div>
           </div>
-        </form>
+        </div>
       )}
 
       {requestData?.payment && (
-        <form className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+        <div>
+          <h3 className="text-md font-medium text-gray-700 mb-3 pb-2 border-b border-gray-200">
+            Payment Information
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
                 Payment Method
               </label>
-              <p className="text-black font-semibold">
+              <p className="text-sm sm:text-base text-black font-semibold break-words">
                 {capitalize(
-                  removeUnderscore(requestData?.payment?.Payment_Channel),
+                  removeUnderscore(requestData?.payment?.Payment_Channel || ""),
                 )}
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
                 Amount
               </label>
-              <p className="text-black font-semibold">
+              <p className="text-sm sm:text-base text-black font-semibold">
                 {currencyFormatter?.format(
                   requestData?.payment?.Amount_Paid || 0,
                 )}
               </p>
             </div>
           </div>
-        </form>
+        </div>
+      )}
+
+      {!requestData?.sangira && !requestData?.payment && (
+        <div className="text-center py-8 sm:py-12">
+          <p className="text-gray-500 text-sm sm:text-base">
+            No payment information available
+          </p>
+        </div>
       )}
     </div>
   );
 
   const renderRejectionTab = () => (
-    <div className="px-8 py-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-        <CgFileRemove className="mr-2 text-red-600" size={24} />
-        Rejection Details
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center">
+        <CgFileRemove className="mr-2 text-red-600 flex-shrink-0" size={24} />
+        <span className="truncate">Rejection Details</span>
       </h2>
 
-      <form className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Rejection Reason
-          </label>
-          <p className="text-black font-semibold">
-            {requestData?.Rejection_Reason}
+      {requestData?.Rejection_Reason ||
+      requestData?.Rejected_Time ||
+      requestData?.rejected_by ? (
+        <div className="space-y-6">
+          {/* Rejection Reason - Full width on all devices */}
+          <div className="bg-red-50 p-4 sm:p-6 rounded-lg border-l-4 border-red-500">
+            <label className="block text-xs sm:text-sm font-medium text-red-700 mb-2">
+              Rejection Reason
+            </label>
+            <p className="text-sm sm:text-base text-red-800 font-medium break-words">
+              {requestData?.Rejection_Reason || "No reason provided"}
+            </p>
+          </div>
+
+          {/* Metadata Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
+                Rejected Date
+              </label>
+              <p className="text-sm sm:text-base text-black font-semibold">
+                {requestData?.Rejected_Time
+                  ? new Date(requestData.Rejected_Time).toLocaleString()
+                  : "N/A"}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
+                Rejected By
+              </label>
+              <p className="text-sm sm:text-base text-black font-semibold break-words">
+                {requestData?.rejected_by?.name
+                  ? capitalize(requestData.rejected_by.name)
+                  : "N/A"}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg">
+          <CgFileRemove className="mx-auto text-gray-400 mb-3" size={40} />
+          <p className="text-gray-500 text-sm sm:text-base">
+            No rejection information available
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Rejected Date
-            </label>
-            <p className="text-black font-semibold">
-              {requestData?.Rejected_Time}
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Rejected By
-            </label>
-            <p className="text-black font-semibold">
-              {capitalize(requestData?.rejected_by?.name)}
-            </p>
-          </div>
-        </div>
-      </form>
+      )}
     </div>
   );
 
@@ -746,11 +788,12 @@ export default function ReceiveFarmRequest() {
 
   const showTabs =
     requestData?.Customer_Status === "served" ||
+    requestData?.Customer_Status === "paid" ||
     requestData?.Customer_Status === "requested" ||
     requestData?.Customer_Status === "rejected";
 
   const increment = () => {
-    if (farmSize < 2) {
+    if (farmSize < 4) {
       setFarmSize((prev) => parseFloat((prev + 0.25).toFixed(2)));
     }
   };
@@ -850,7 +893,7 @@ export default function ReceiveFarmRequest() {
                   >
                     Request Details
                   </button>
-                  {["requested", "served", "assign"].includes(
+                  {["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
                   ) && (
                     <button
@@ -969,9 +1012,9 @@ export default function ReceiveFarmRequest() {
 
                   <button
                     onClick={increment}
-                    disabled={farmSize >= 2}
+                    disabled={farmSize >= 4}
                     className={`p-3 rounded-full shadow-md transition-all duration-200 ${
-                      farmSize >= 2
+                      farmSize >= 4
                         ? "bg-gray-200 cursor-not-allowed"
                         : "bg-emerald-100 hover:bg-emerald-200 active:scale-95"
                     }`}
