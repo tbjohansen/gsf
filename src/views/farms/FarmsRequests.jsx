@@ -134,6 +134,7 @@ export default function FarmsRequests() {
       {
         id: "student_id",
         label: "Customer ID",
+        minWidth: 110,
         format: (row, value) => (
           <span>{capitalize(value?.customer?.Student_ID)}</span>
         ),
@@ -141,7 +142,7 @@ export default function FarmsRequests() {
       {
         id: "Customer_Status",
         label: "Request Status",
-        minWidth: 170,
+        minWidth: 110,
         align: "center",
         format: (row, value) => (
           <Badge

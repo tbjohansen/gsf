@@ -44,11 +44,10 @@ const AddUnit = ({ loadData }) => {
   const hasFetchedData = useRef(false);
 
   useEffect(() => {
-    if (!hasFetchedData.current) {
-      hasFetchedData.current = true;
+    if(open){
       loadLocations();
     }
-  }, []);
+  }, [open]);
 
   const loadLocations = async () => {
     // Get employee info from localStorage

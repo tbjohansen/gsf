@@ -20,7 +20,7 @@ const style = {
   p: 4,
 };
 
-const AddBlock = ({loadData}) => {
+const AddBlock = ({ loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -28,7 +28,7 @@ const AddBlock = ({loadData}) => {
     setName("");
   };
 
-  const {hostelID} = useParams();
+  const { hostelID } = useParams();
 
   const dispatch = useDispatch();
 
@@ -96,26 +96,22 @@ const AddBlock = ({loadData}) => {
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/settings/block", data);
 
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to create block");
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to create block",
+          );
         }
-        return;
-      }
-
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to create block";
-        toast.error(errorMessage);
         return;
       }
 

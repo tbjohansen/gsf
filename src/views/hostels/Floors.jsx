@@ -40,7 +40,7 @@ export default function Floors() {
 
   React.useEffect(() => {
     loadData();
-  }, []);
+  }, [blockID]);
 
   const loadData = async () => {
     setLoading(true);

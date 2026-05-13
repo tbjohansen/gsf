@@ -47,6 +47,10 @@ const AddWing = ({ loadData }) => {
       id: "female",
       label: "Female",
     },
+    {
+      id: "both",
+      label: "Both",
+    },
   ];
 
   const genderOnChange = (e, value) => {
@@ -88,26 +92,22 @@ const AddWing = ({ loadData }) => {
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/settings/wing", data);
 
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to create wing");
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to create wing",
+          );
         }
-        return;
-      }
-
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to create wing";
-        toast.error(errorMessage);
         return;
       }
 

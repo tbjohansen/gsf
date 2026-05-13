@@ -26,6 +26,7 @@ const AddFloor = ({ loadData }) => {
   const handleClose = () => {
     setOpen(false);
     setName("");
+    setWing("");
   };
 
   const dispatch = useDispatch();
@@ -64,7 +65,7 @@ const AddFloor = ({ loadData }) => {
 
   useEffect(() => {
     loadWings();
-  }, []);
+  }, [blockID]);
 
   const loadWings = async () => {
     setLoading(true);
@@ -134,28 +135,22 @@ const AddFloor = ({ loadData }) => {
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/settings/flow", data);
 
-      console.log("Response:", response);
-
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to create floor");
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to create floor",
+          );
         }
-        return;
-      }
-
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to create floor";
-        toast.error(errorMessage);
         return;
       }
 

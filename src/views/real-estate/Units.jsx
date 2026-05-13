@@ -28,6 +28,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import Button from "@mui/material/Button";
+import { Autocomplete, TextField } from "@mui/material";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -60,7 +61,13 @@ export default function Units() {
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
   const [uploadingImages, setUploadingImages] = React.useState({});
-   const hasFetchedData = React.useRef(false);
+  const hasFetchedData = React.useRef(false);
+
+  const [locations, setLocations] = React.useState([]);
+  const [location, setLocation] = React.useState("");
+  const [unitType, setUnitType] = React.useState("");
+  const [name, setName] = React.useState("");
+  const [unitStatus, setUnitStatus] = React.useState("");
 
   const [pagination, setPagination] = React.useState({
     total: 0,
@@ -79,21 +86,82 @@ export default function Units() {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-   if (!hasFetchedData.current) {
-      hasFetchedData.current = true;
-      loadData();
+    loadData();
+  }, [page, rowsPerPage, name, location, unitType, unitStatus]);
+
+  React.useEffect(() => {
+    loadLocations();
+  }, []);
+
+  const loadLocations = async () => {
+    // Get employee info from localStorage
+    const employeeId = localStorage.getItem("employeeId");
+    const data = {
+      Employee_ID: employeeId,
+    };
+
+    try {
+      const response = await apiClient.get("/settings/unit-location", data);
+
+      // Adjust based on your API response structure
+      const featuresData = response?.data?.data;
+      const newData = featuresData?.map((feature, index) => ({
+        ...feature,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setLocations(Array.isArray(newData) ? newData : []);
+    } catch (error) {
+      console.error("Fetch locations error:", error);
     }
-  }, [page, rowsPerPage]);
+  };
+
+  const sortedTypes = [
+    {
+      id: "house",
+      label: "House",
+    },
+    {
+      id: "business land",
+      label: "Business",
+    },
+  ];
+
+  const typesOnChange = (e, value) => {
+    setUnitType(value);
+  };
+
+  const sortedLocations = locations?.map((location) => ({
+    id: location?.Unit_Location_ID,
+    label: location?.Unit_Location,
+  }));
+
+  const locationOnChange = (e, value) => {
+    setLocation(value);
+  };
+
+  const sortedUnitStatus = [
+    { id: "active", label: "Active" },
+    { id: "inactive", label: "Inactive" },
+  ];
+
+  const statusOnChange = (e, value) => {
+    setUnitStatus(value);
+  };
 
   const loadData = async () => {
     setLoading(true);
     try {
-      //
-      const response = await apiClient.get(
-        `/settings/real-estate?&page=${page}&limit=${rowsPerPage}`,
-      );
+      let url = `/settings/real-estate?&limit=${rowsPerPage}&page=${page}`;
 
-       // Check if request was successful
+      if (name) url += `&name=${name}`;
+      if (unitType) url += `&real_estate_type=${unitType?.id}`;
+      if (location) url += `&Unit_Location_ID=${location?.id}`;
+      if (unitStatus) url += `&status=${unitStatus?.id}`;
+
+      const response = await apiClient.get(url);
+
+      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
@@ -197,7 +265,7 @@ export default function Units() {
         },
       );
 
-       // Check if request was successful
+      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
@@ -283,7 +351,7 @@ export default function Units() {
   const handleChangeRowsPerPage = (event) => {
     const newRowsPerPage = parseInt(event.target.value, 25);
     setRowsPerPage(newRowsPerPage);
-    setPage(1); 
+    setPage(1);
   };
 
   const handleRowClick = (row) => {
@@ -298,7 +366,7 @@ export default function Units() {
         id: "name",
         label: "Unit Name",
         minWidth: 170,
-        format: (value) => <span>{capitalize(value)}</span>,
+        format: (value) => <span>{value}</span>,
       },
       {
         id: "real_estate_type",
@@ -312,9 +380,9 @@ export default function Units() {
         format: (value) => <span>TZS {formatter.format(value || 0)}</span>,
       },
       {
-        id: "location",
+        id: "locations",
         label: "Location",
-        format: (value) => <span>{value?.location?.Unit_Location}</span>,
+        format: (value, row) => <span>{row?.location?.Unit_Location}</span>,
       },
       {
         id: "status",
@@ -418,6 +486,55 @@ export default function Units() {
         </div>
       </div>
 
+      <div className="w-full py-1 flex flex-row gap-2">
+        <TextField
+          size="small"
+          id="name-filter"
+          label="Unit Name"
+          variant="outlined"
+          className="w-[25%]"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <Autocomplete
+          id="hostel-filter"
+          options={sortedTypes}
+          size="small"
+          freeSolo
+          className="w-[25%]"
+          value={unitType}
+          onChange={typesOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Select Unit Type" />
+          )}
+        />
+        <Autocomplete
+          id="bank-filter"
+          options={sortedLocations}
+          size="small"
+          freeSolo
+          className="w-[25%]"
+          value={location}
+          onChange={locationOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Select Location" />
+          )}
+        />
+        <Autocomplete
+          id="bank-filter"
+          options={sortedUnitStatus}
+          size="small"
+          freeSolo
+          className="w-[25%]"
+          value={unitStatus}
+          onChange={statusOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Select Status" />
+          )}
+        />
+      </div>
+
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
         <TableContainer sx={{ maxHeight: 440 }}>
           <Table stickyHeader aria-label="sticky table">
@@ -449,7 +566,7 @@ export default function Units() {
                   </TableCell>
                 </TableRow>
               )}
-              {units.map((row) => {
+              {units?.map((row) => {
                 return (
                   <TableRow
                     hover

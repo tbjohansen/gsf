@@ -48,11 +48,10 @@ const EditUnit = ({ unit, loadData }) => {
   const hasFetchedData = useRef(false);
 
   useEffect(() => {
-    if (!hasFetchedData.current) {
-      hasFetchedData.current = true;
+    if (open) {
       loadLocations();
     }
-  }, []);
+  }, [open]);
 
   const loadLocations = async () => {
     // Get employee info from localStorage
@@ -178,22 +177,30 @@ const EditUnit = ({ unit, loadData }) => {
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to update unit");
-        }
-        return;
-      }
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
 
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = response.data.error || "Failed to update unit";
-        toast.error(errorMessage);
+          let errorText;
+
+          console.log(response);
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to edit unit";
+          }
+
+          toast.error(errorText);
+        }
         return;
       }
 
@@ -207,9 +214,6 @@ const EditUnit = ({ unit, loadData }) => {
       if (loadData && typeof loadData === "function") {
         loadData();
       }
-
-      // TODO: Dispatch action to update Redux store if needed
-      // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
       console.error("Update unit error:", error);
       setLoading(false);

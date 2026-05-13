@@ -66,7 +66,7 @@ const EditFlow = ({ floor, loadData }) => {
 
   useEffect(() => {
     loadWings();
-  }, []);
+  }, [blockID]);
 
   const loadWings = async () => {
     // setLoading(true);
@@ -145,26 +145,22 @@ const EditFlow = ({ floor, loadData }) => {
 
       console.log("Response:", response);
 
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to update block floor");
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to update floor",
+          );
         }
-        return;
-      }
-
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to update block floor";
-        toast.error(errorMessage);
         return;
       }
 

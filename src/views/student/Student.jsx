@@ -597,7 +597,7 @@ const Student = () => {
     setLoadingFloors(true);
     try {
       const response = await apiClient.get(
-        `/student-flow?nationality=${studentData?.Customer_Type}&Gender=${studentData?.Gender}&block_id=${blockId}`,
+        `/student-flow?nationality=${studentData?.Customer_Type}&Gender=${studentData?.Gender},both&block_id=${blockId}`,
       );
 
       if (!response.ok) {
@@ -790,7 +790,7 @@ const Student = () => {
 
   const floorOptions = floors.map((floor) => ({
     id: floor.Flow_ID,
-    label: floor.Flow_Name,
+    label: `${floor.Flow_Name} - ${floor?.Wing_Name}`,
   }));
 
   const roomOptions = rooms.map((room) => ({

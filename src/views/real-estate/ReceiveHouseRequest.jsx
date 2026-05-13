@@ -242,6 +242,7 @@ export default function ReceiveHouseRequest() {
         real_estate_id: requestData?.real_estate_id,
         Request_Batch_ID: requestData?.Request_Batch_ID,
         Customer_ID: requestData?.Customer_ID,
+        Quantity: 1,
         Request_ID: requestID,
         Employee_ID: employeeId,
       };
@@ -314,6 +315,7 @@ export default function ReceiveHouseRequest() {
         real_estate_id: requestData?.real_estate_id,
         Request_Batch_ID: requestData?.Request_Batch_ID,
         Customer_ID: requestData?.Customer_ID,
+        Quantity: numberOfMonths || 1,
         Request_ID: requestID,
         Employee_ID: employeeId,
       };

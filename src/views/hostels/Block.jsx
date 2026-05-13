@@ -89,15 +89,50 @@ const Block = () => {
         <div className="mx-auto">
           <Card className="shadow-xl rounded-2xl overflow-hidden">
             <Box
-              sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "white" }}
+              sx={{ 
+                borderBottom: 1, 
+                borderColor: "divider", 
+                bgcolor: "white",
+                '& .MuiTabs-indicator': {
+                  backgroundColor: '#1976d2',
+                  height: 3,
+                },
+                '& .Mui-selected': {
+                  color: '#1976d2 !important',
+                },
+                '& .MuiTab-root': {
+                  color: '#666',
+                  '&:hover': {
+                    color: '#1976d2',
+                  },
+                },
+              }}
             >
               <Tabs
                 value={activeTab}
                 onChange={handleTabChange}
                 variant="fullWidth"
               >
-                <Tab label="Wings" className="text-lg font-semibold" />
-                <Tab label="Floors" className="text-lg font-semibold" />
+                <Tab 
+                  label="Wings" 
+                  className="text-lg font-semibold"
+                  sx={{
+                    '&.Mui-selected': {
+                      color: '#1976d2',
+                      fontWeight: 'bold',
+                    },
+                  }}
+                />
+                <Tab 
+                  label="Floors" 
+                  className="text-lg font-semibold"
+                  sx={{
+                    '&.Mui-selected': {
+                      color: '#1976d2',
+                      fontWeight: 'bold',
+                    },
+                  }}
+                />
               </Tabs>
             </Box>
 
@@ -113,42 +148,39 @@ const Block = () => {
             )}
 
             {/* Error Alert for Blocks Tab */}
-            <>
-              {blockTabError && (
-                <Alert severity="error" className="m-4">
-                  You cannot access Floors tab without saving at least one Wing
-                  first!
-                </Alert>
-              )}
-            </>
+            {blockTabError && (
+              <Alert severity="error" className="m-4">
+                You cannot access Floors tab without saving at least one Wing
+                first!
+              </Alert>
+            )}
 
-            <div className={`p-6 ${activeTab === 0 ? "wing" : "hidden"}`}>
-              <Wings />
-            </div>
+            {/* Conditional rendering - This ensures components mount/unmount properly */}
+            {activeTab === 0 && (
+              <div className="p-6">
+                <Wings />
+              </div>
+            )}
 
-            {/* <div className={`p-6 ${activeTab === 0 ? "wing" : "hidden"}`}>
-               <Floors />
-            </div> */}
-
-            <div className={`p-6 ${activeTab === 1 ? "block" : "hidden"}`}>
-              {loading ? (
-                <div className="text-center py-12">
-                  <CircularProgress />
-                  <p className="mt-4 text-gray-600">Loading wings data...</p>
-                </div>
-              ) : wings?.length > 0 ? (
-                <>
+            {activeTab === 1 && (
+              <div className="p-6">
+                {loading ? (
+                  <div className="text-center py-12">
+                    <CircularProgress />
+                    <p className="mt-4 text-gray-600">Loading wings data...</p>
+                  </div>
+                ) : wings?.length > 0 ? (
                   <Floors />
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <Alert severity="info" className="mb-4">
-                    You need to create at least one Wing before you can add
-                    Floors.
-                  </Alert>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Alert severity="info" className="mb-4">
+                      You need to create at least one Wing before you can add
+                      Floors.
+                    </Alert>
+                  </div>
+                )}
+              </div>
+            )}
           </Card>
         </div>
       </div>

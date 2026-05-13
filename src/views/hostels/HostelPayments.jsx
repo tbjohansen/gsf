@@ -13,6 +13,7 @@ import {
   currencyFormatter,
   extractBank,
   formatDateForDb,
+  formatDateTimeForDb,
   formatter,
 } from "../../../helpers";
 import apiClient from "../../api/Client";
@@ -300,8 +301,8 @@ export default function HostelPayments() {
       if (paymentStatus) url += `&Customer_Status=${paymentStatus?.id}`;
       if (hostel) url += `&Hostel_ID=${hostel?.id}`;
       if (bank) url += `&Payment_Channel=${bank?.id}`;
-      if (startDate) url += `&Start_Date=${formatDateForDb(startDate)}`;
-      if (endDate) url += `&End_Date=${formatDateForDb(endDate)}`;
+      if (startDate) url += `&Start_Date=${formatDateTimeForDb(startDate)}`;
+      if (endDate) url += `&End_Date=${formatDateTimeForDb(endDate)}`;
 
       const response = await apiClient.get(url);
 
@@ -699,7 +700,7 @@ export default function HostelPayments() {
         id: "completed_date",
         label: "Payment Date",
         minWidth: 170,
-        format: (row, value) => <span>{value?.Sangira?.Completed_Date}</span>,
+        format: (row, value) => <span>{value?.Sangira?.Payment_Date}</span>,
       },
       {
         id: "payment_receipt",

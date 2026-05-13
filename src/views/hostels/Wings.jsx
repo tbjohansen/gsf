@@ -47,7 +47,7 @@ export default function Wings() {
       hasFetchedData.current = true;
       loadData();
     }
-  }, []);
+  }, [blockID]);
 
   const loadData = async () => {
     setLoading(true);
@@ -83,6 +83,7 @@ export default function Wings() {
       toast.error("Failed to load wings");
     }
   };
+  
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -93,12 +94,6 @@ export default function Wings() {
     setPage(0);
   };
 
-//   const handleRowClick = (row) => {
-//     setSelectedRow(row);
-//     navigate(
-//       `/projects/hostels/list/${row?.Hostel_ID}/blocks/${row?.Block_ID}`
-//     );
-//   };
 
   // Inside the Hostels component, replace the columns definition with:
   const columns = React.useMemo(

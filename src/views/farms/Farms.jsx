@@ -32,7 +32,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 export default function Farms() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [features, setFeatures] = React.useState([]);
+  const [farms, setFarms] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
@@ -67,13 +67,13 @@ export default function Farms() {
       }
 
       // Adjust based on your API response structure
-      const featuresData = response?.data?.data;
-      const newData = featuresData?.map((feature, index) => ({
-        ...feature,
+      const farmsData = response?.data?.data;
+      const newData = farmsData?.map((farm, index) => ({
+        ...farm,
         key: index + 1,
       }));
       // console.log(newData);
-      setFeatures(Array.isArray(newData) ? newData : []);
+      setFarms(Array.isArray(newData) ? newData : []);
       setLoading(false);
     } catch (error) {
       console.error("Fetch farms error:", error);
@@ -98,7 +98,7 @@ export default function Farms() {
       {
         id: "Item_Name",
         label: "Farm Name",
-        format: (value) => <span>{capitalize(value)}</span>,
+        format: (value) => <span>{value}</span>,
       },
       {
         id: "Farm_Size",
@@ -181,7 +181,7 @@ export default function Farms() {
                   </TableCell>
                 </TableRow>
               )}
-              {features
+              {farms
                 ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => {
                   return (
@@ -227,7 +227,7 @@ export default function Farms() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={features?.length}
+          count={farms?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

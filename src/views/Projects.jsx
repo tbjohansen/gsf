@@ -67,7 +67,7 @@ const Projects = () => {
   const loadRentalsData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/settings/real-estate");
+      const response = await apiClient.get(`/settings/real-estate?limit=2000&page=1`);
 
       if (!response.ok) {
         setLoading(false);

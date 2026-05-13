@@ -1,4 +1,5 @@
 import moment from "moment/moment";
+import toast from "react-hot-toast";
 
 /**
  * Formats a date object or string to the format of year-month-date.
@@ -166,3 +167,18 @@ export function extractBank(value) {
   if (!value.startsWith("to_")) return value;
   return value.replace("to_", "").toUpperCase();
 }
+
+// Create a reusable error handler
+export function reportError (response, defaultMessage) {
+    if (response.problem === "NETWORK_ERROR") {
+        toast.error("Network error. Please check your connection");
+    } else if (response.problem === "TIMEOUT_ERROR") {
+        toast.error("Request timeout. Please try again");
+    } else {
+        const serverMessage = response?.data?.error || response?.data?.message;
+        const errorText = typeof serverMessage === "string" 
+            ? serverMessage 
+            : (serverMessage ? Object.values(serverMessage).flat()[0] : defaultMessage);
+        toast.error(errorText);
+    }
+};

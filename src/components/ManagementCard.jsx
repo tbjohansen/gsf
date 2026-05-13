@@ -175,7 +175,7 @@ const ManagementCard = ({
       {items.length > 3 && (
         <div className="pt-2 border-t border-slate-100">
           <p className="text-xs text-sky-600 font-medium text-center group-hover:text-sky-700">
-            View all {items.length} {title.toLowerCase()} →
+            View all {title.toLowerCase()} →
           </p>
         </div>
       )}

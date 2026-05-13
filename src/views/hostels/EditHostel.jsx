@@ -86,33 +86,24 @@ const EditHostel = ({ hostel, loadData }) => {
       console.log("Submitting hostel data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.put(
-        `/settings/hostel`,
-        data
-      );
+      const response = await apiClient.put(`/settings/hostel`, data);
 
-      console.log("Response:", response);
-
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to update hostel");
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to update hostel",
+          );
         }
-        return;
-      }
-
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = response.data.error || "Failed to update hostel";
-        toast.error(errorMessage);
         return;
       }
 

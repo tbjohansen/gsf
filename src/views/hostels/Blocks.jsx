@@ -44,7 +44,7 @@ export default function Blocks() {
       hasFetchedData.current = true;
       loadData();
     }
-  }, []);
+  }, [hostelID]);
 
   const loadData = async () => {
     setLoading(true);
@@ -55,13 +55,29 @@ export default function Blocks() {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch blocks");
-        return;
-      }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response.data.error || "Failed to fetch blocks");
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to fetch blocks";
+          }
+
+          toast.error(errorText);
+        }
         return;
       }
 
@@ -93,7 +109,7 @@ export default function Blocks() {
   const handleRowClick = (row) => {
     setSelectedRow(row);
     navigate(
-      `/projects/hostels/list/${row?.Hostel_ID}/blocks/${row?.Block_ID}`
+      `/projects/hostels/list/${row?.Hostel_ID}/blocks/${row?.Block_ID}`,
     );
   };
 
@@ -129,7 +145,7 @@ export default function Blocks() {
         ),
       },
     ],
-    []
+    [],
   );
 
   return (

@@ -217,21 +217,20 @@ const MapItem = ({ loadData }) => {
       // Check if request was successful
       if (!response.ok) {
         setLoading(false);
+
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to map room price");
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to map room",
+          );
         }
-        return;
-      }
-
-      // Check if response contains an error
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to map room price";
-        toast.error(errorMessage);
         return;
       }
 

@@ -44,7 +44,7 @@ export default function Rooms() {
       hasFetchedData.current = true;
       loadData();
     }
-  }, []);
+  }, [floorID]);
 
   const loadData = async () => {
     setLoading(true);

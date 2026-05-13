@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
@@ -23,25 +23,93 @@ const style = {
 
 const EditRoom = ({ room, loadData }) => {
   const [open, setOpen] = useState(false);
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => {
-    setOpen(false);
-  };
-
   const { hostelID, blockID, floorID } = useParams();
   const dispatch = useDispatch();
 
-  const [name, setName] = useState(room?.Room_Name);
-  const [status, setStatus] = useState({
-    id: room?.Room_Status,
-    label: capitalize(room?.Room_Status),
-  });
-  const [beds, setBeds] = useState(room?.No_Bed);
-  const [roomType, setRoomType] = useState({
-    id: room?.Room_Type,
-    label: capitalize(room?.Room_Type),
-  });
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState("");
+  const [beds, setBeds] = useState("");
+  const [roomType, setRoomType] = useState("");
+  const [floor, setFloor] = useState("");
+  const [floors, setFloors] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Function to reset form to original room data
+  const resetFormToRoomData = useCallback(() => {
+    if (room) {
+      setFloor(room?.Flow_ID);
+      setRoomType({
+        id: room?.Room_Type,
+        label: capitalize(room?.Room_Type),
+      });
+      setStatus({
+        id: room?.Room_Status,
+        label: capitalize(room?.Room_Status),
+      });
+      setBeds(room?.No_Bed);
+      setName(room?.Room_Name);
+    }
+  }, [room]);
+
+  // Function to clear form (set to empty/default values)
+  const clearForm = () => {
+    setName("");
+    setStatus("");
+    setBeds("");
+    setRoomType("");
+    setFloor("");
+  };
+
+  const handleOpen = () => {
+    // Reset form to original room data when opening
+    resetFormToRoomData();
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    // Optional: Clear form after closing to free up memory
+    // clearForm();
+  };
+
+  const loadFloors = async () => {
+    try {
+      const response = await apiClient.get(`/settings/flow`, {
+        Block_ID: blockID,
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        return;
+      }
+
+      const floorsData = response?.data?.data;
+      const newData = floorsData?.map((floor, index) => ({
+        ...floor,
+        key: index + 1,
+      }));
+      setFloors(Array.isArray(newData) ? newData : []);
+    } catch (error) {
+      console.error("Fetch floors error:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadFloors();
+  }, [blockID]);
+
+
+  useEffect(() => {
+    resetFormToRoomData();
+  }, [room, resetFormToRoomData]);
+
+  const sortedFloors = floors?.map((floor) => ({
+    id: floor?.Flow_ID,
+    label: `${floor?.Flow_Name} - ${floor?.wing?.Wing_Name} - ${floor?.wing?.Wing_Gender}`,
+  }));
 
   const sortedRoomTypes = [
     {
@@ -73,6 +141,10 @@ const EditRoom = ({ room, loadData }) => {
     setStatus(value);
   };
 
+  const floorOnChange = (e, value) => {
+    setFloor(value?.id);
+  };
+
   const submit = async (e) => {
     e.preventDefault();
 
@@ -96,7 +168,6 @@ const EditRoom = ({ room, loadData }) => {
       return;
     }
 
-    // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -107,14 +178,13 @@ const EditRoom = ({ room, loadData }) => {
     setLoading(true);
 
     try {
-      // Prepare the data to send
       const data = {
         Room_Name: name.trim(),
         Room_ID: room?.Room_ID,
         Room_Status: status?.id,
         Room_Type: roomType?.id,
         No_Bed: beds,
-        Flow_ID: floorID,
+        Flow_ID: floor,
         Block_ID: blockID,
         Hostel_ID: hostelID,
         Employee_ID: employeeId,
@@ -122,45 +192,31 @@ const EditRoom = ({ room, loadData }) => {
 
       console.log("Submitting block floor room data:", data);
 
-      // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.put(`/settings/room`, data);
 
-      console.log("Response:", response);
-
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to update room");
+          const serverMessage = response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to update room",
+          );
         }
         return;
       }
 
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to update room";
-        toast.error(errorMessage);
-        return;
-      }
-
-      // Success
       setLoading(false);
       toast.success("Room updated successfully");
 
-      // Close modal and reset form
       handleClose();
 
-      // TODO: Dispatch action to update Redux store if needed
-      // dispatch(addHostelToStore(response.data.data));
-
-      // Trigger parent component refresh
       if (loadData && typeof loadData === "function") {
         loadData();
       }
@@ -228,7 +284,6 @@ const EditRoom = ({ room, loadData }) => {
                   value={beds}
                   onChange={(e) => setBeds(e.target.value)}
                   disabled={loading}
-                  autoFocus
                 />
               </div>
               <div className="w-full py-2 flex justify-center">
@@ -242,6 +297,21 @@ const EditRoom = ({ room, loadData }) => {
                   onChange={statusOnChange}
                   renderInput={(params) => (
                     <TextField {...params} label="Select Status" />
+                  )}
+                />
+              </div>
+              <div className="w-full py-2 flex justify-center">
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedFloors}
+                  size="small"
+                  freeSolo
+                  disableClearable
+                  className="w-[92%]"
+                  value={sortedFloors?.find((option) => option.id === floor)}
+                  onChange={floorOnChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Floor" />
                   )}
                 />
               </div>

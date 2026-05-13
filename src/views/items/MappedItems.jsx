@@ -16,6 +16,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
 import MapItem from "./MapItem";
 import RemoveItem from "./RemoveItem";
+import { Autocomplete, TextField } from "@mui/material";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -34,6 +35,17 @@ export default function MappedItems() {
   const [loading, setLoading] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
 
+  const [hostels, setHostels] = useState([]);
+  const [blocks, setBlocks] = useState([]);
+  const [floors, setFloors] = useState([]);
+  const [rooms, setRooms] = useState([]);
+
+  const [hostel, setHostel] = useState("");
+  const [block, setBlock] = useState("");
+  const [floor, setFloor] = useState("");
+  const [room, setRoom] = useState("");
+  const [roomType, setRoomType] = useState("");
+
   const [pagination, setPagination] = useState({
     total: 0,
     perPage: 25,
@@ -49,29 +61,217 @@ export default function MappedItems() {
   // Fetch hostels from API
   useEffect(() => {
     loadData();
-  }, [rowsPerPage, page]);
+  }, [rowsPerPage, page, hostel, block, room, floor, roomType]);
+
+  const sortedRoomTypes = [
+    {
+      id: "single",
+      label: "Single",
+    },
+    {
+      id: "shared",
+      label: "Shared",
+    },
+  ];
+
+  const roomTypeOnChange = (e, value) => {
+    setRoomType(value);
+  };
+
+  const sortedHostels = hostels?.map((hostel) => ({
+    id: hostel?.Hostel_ID,
+    label: hostel?.Hostel_Name,
+    data: hostel,
+  }));
+
+  const hostelOnChange = (e, value) => {
+    setHostel(value);
+    setBlock("");
+    setFloor("");
+    // setRoomType("");
+    // setSelectedRooms([]);
+    setRooms([]);
+  };
+
+  const sortedBlocks = blocks?.map((block) => ({
+    id: block?.Block_ID,
+    label: block?.Block_Name,
+    data: block,
+  }));
+
+  const blockOnChange = (e, value) => {
+    setBlock(value);
+    setFloor("");
+    // setRoomType("");
+    // setSelectedRooms([]);
+    setRooms([]);
+  };
+
+  const sortedFloors = floors?.map((floor) => ({
+    id: floor?.Flow_ID,
+    label: `${floor?.Flow_Name} - ${floor?.wing?.Wing_Name} - ${floor?.wing?.Wing_Gender}`,
+    data: floor,
+  }));
+
+  const floorOnChange = (e, value) => {
+    setFloor(value);
+    // setRoomType("");
+    // setSelectedRooms([]);
+    setRooms([]);
+  };
+
+  const sortedRooms = rooms?.map((room) => ({
+    id: room?.Room_ID,
+    label: room?.Room_Name,
+    data: room,
+  }));
+
+  const roomOnChange = (e, value) => {
+    setRoom(value);
+    // setRoomType("");
+  };
+
+  const loadHostels = async () => {
+    try {
+      const response = await apiClient.get("/settings/hostel");
+
+      // Check if request was successful
+      if (!response.ok) {
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const hostelData = response?.data?.data;
+      const newData = hostelData?.map((hostel, index) => ({
+        ...hostel,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setHostels(Array.isArray(newData) ? newData : []);
+    } catch (error) {
+      console.error("Fetch hostels error:", error);
+    }
+  };
+
+  const loadBlocks = async () => {
+    if (!hostel?.id) return;
+    try {
+      const response = await apiClient.get(`/settings/block`, {
+        Hostel_ID: hostel?.id,
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const blockData = response?.data?.data;
+      const newData = blockData?.map((block, index) => ({
+        ...block,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setBlocks(Array.isArray(newData) ? newData : []);
+    } catch (error) {
+      console.error("Fetch blocks error:", error);
+    }
+  };
+
+  const loadFloors = async () => {
+    if (!block?.id) return;
+
+    try {
+      const response = await apiClient.get("/settings/flow", {
+        Block_ID: block?.id,
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        return;
+      }
+
+      const floorData = response?.data?.data;
+      const newData = floorData?.map((floor, index) => ({
+        ...floor,
+        key: index + 1,
+      }));
+      setFloors(Array.isArray(newData) ? newData : []);
+    } catch (error) {
+      console.error("Fetch floors error:", error);
+    }
+  };
+
+  const loadRooms = async () => {
+    if (!floor?.id) return;
+    try {
+      const response = await apiClient.get(`/settings/room`, {
+        Flow_ID: floor?.id,
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const roomsData = response?.data?.data;
+      const newData = roomsData?.map((room, index) => ({
+        ...room,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setRooms(Array.isArray(newData) ? newData : []);
+    } catch (error) {
+      console.error("Fetch rooms error:", error);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get(
-        `/settings/item-price?&limit=${rowsPerPage}&page=${page}`,
-        {
-          Item_ID: itemID,
-        },
-      );
+      let url = `/settings/item-price?&limit=${rowsPerPage}&page=${page}`;
 
-      // console.log(response);
+      if (roomType) url += `&Room_Type=${roomType?.id}`;
+      if (hostel) url += `&Hostel_ID=${hostel?.id}`;
+      if (block) url += `&Block_ID=${block?.id}`;
+      if (floor) url += `&Flow_ID=${floor?.id}`;
+      if (room) url += `&Room_ID=${room?.id}`;
+
+      const response = await apiClient.get(url, {
+        Item_ID: itemID,
+      });
 
       if (!response.ok) {
         setLoading(false);
-        toast.error("Failed to fetch mapped prices");
-        return;
-      }
 
-      if (response?.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error("Failed to fetch mapped prices");
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to fetch mapped items";
+          }
+
+          toast.error(errorText);
+        }
         return;
       }
 
@@ -186,6 +386,28 @@ export default function MappedItems() {
     [loadData],
   ); // Add loadData as dependency
 
+  useEffect(() => {
+    loadHostels();
+  }, []);
+
+  useEffect(() => {
+    if (hostel) {
+      loadBlocks();
+    }
+  }, [hostel]);
+
+  useEffect(() => {
+    if (block) {
+      loadFloors();
+    }
+  }, [block]);
+
+  useEffect(() => {
+    if (floor) {
+      loadRooms();
+    }
+  }, [floor]);
+
   return (
     <>
       <Breadcrumb />
@@ -194,6 +416,69 @@ export default function MappedItems() {
           <h4>Mapped Items List</h4>
           <MapItem loadData={loadData} />
         </div>
+      </div>
+
+      <div className="w-full py-1 flex flex-row gap-2">
+        <Autocomplete
+          id="hostel-filter"
+          options={sortedRoomTypes}
+          size="small"
+          freeSolo
+          className="w-[25%]"
+          value={roomType}
+          onChange={roomTypeOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Select Room Type" />
+          )}
+        />
+        <Autocomplete
+          id="bank-filter"
+          options={sortedHostels}
+          size="small"
+          freeSolo
+          className="w-[25%]"
+          value={hostel}
+          onChange={hostelOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Select Hostel" />
+          )}
+        />
+        <Autocomplete
+          id="bank-filter"
+          options={sortedBlocks}
+          size="small"
+          freeSolo
+          className="w-[25%]"
+          value={block}
+          onChange={blockOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Select Block" />
+          )}
+        />
+        <Autocomplete
+          id="bank-filter"
+          options={sortedFloors}
+          size="small"
+          freeSolo
+          className="w-[25%]"
+          value={floor}
+          onChange={floorOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Select Floor" />
+          )}
+        />
+        <Autocomplete
+          id="bank-filter"
+          options={sortedRooms}
+          size="small"
+          freeSolo
+          className="w-[25%]"
+          value={room}
+          onChange={roomOnChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Select Room" />
+          )}
+        />
       </div>
 
       <Paper sx={{ width: "100%", overflow: "hidden" }}>

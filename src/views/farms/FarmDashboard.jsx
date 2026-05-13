@@ -48,7 +48,7 @@ const FarmDashboard = () => {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        "/customer/customer-request?&Request_Type=farm",
+        "/customer/customer-request?&Request_Type=farm&Customer_Status=paid",
       );
 
       if (!response.ok) {
@@ -345,7 +345,7 @@ const FarmDashboard = () => {
                   return {
                     label: "Payment Pending",
                     color: "text-yellow-600 bg-yellow-50",
-                  };
+                  }; 
                 } else if (
                   item?.Customer_Status === "requested" &&
                   item?.Received_Time

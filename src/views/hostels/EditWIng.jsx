@@ -62,6 +62,10 @@ const EditWing = ({ wing, loadData }) => {
       id: "female",
       label: "Female",
     },
+    {
+      id: "both",
+      label: "Both",
+    },
   ];
 
   const statusOnChange = (e, value) => {
@@ -114,30 +118,24 @@ const EditWing = ({ wing, loadData }) => {
       console.log("Submitting hostel block data:", data);
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.put(`/settings/block`, data);
+      const response = await apiClient.put(`/settings/wing`, data);
 
-      console.log("Response:", response);
-
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to update block wing");
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to update wing",
+          );
         }
-        return;
-      }
-
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to update block wing";
-        toast.error(errorMessage);
         return;
       }
 

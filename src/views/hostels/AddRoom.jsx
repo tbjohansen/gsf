@@ -98,46 +98,22 @@ const AddRoom = ({ loadData }) => {
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/settings/room", data);
 
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          if (typeof response?.data?.error === "string") {
-            // error is a string
-            console.log("Error message:", response.data?.error);
-            const errorMessage = response.data?.error;
-            toast.error(errorMessage);
-          } else {
-            // it's not a string
-            console.log("Error is not a string:", response.data?.error);
-            const errorMessage = "Failed to create room";
-            toast.error(errorMessage);
-          }
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to create room",
+          );
         }
-        return;
-      }
-
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        if (typeof response?.data?.error === "string") {
-          // error is a string
-          console.log("Error message:", resp.error);
-          const errorMessage = response.data?.error;
-          toast.error(errorMessage);
-        } else {
-          // it's not a string
-          console.log("Error is not a string:", resp.error);
-          const errorMessage = "Failed to create room";
-          toast.error(errorMessage);
-        }
-
         return;
       }
 

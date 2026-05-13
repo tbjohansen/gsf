@@ -176,28 +176,28 @@ export default function PendingAllocations({ status }) {
         label: "Student / Admission ID",
         minWidth: 170,
         format: (row, value) => (
-          <span>{capitalize(value?.customer?.Student_ID || value?.customer?.Admission_ID)}</span>
+          <span>{value?.customer?.Student_ID || value?.customer?.Admission_ID}</span>
         ),
       },
       {
         id: "Program_Study",
         label: "Program",
         format: (row, value) => (
-          <span>{capitalize(value?.customer?.Program_Study)}</span>
+          <span>{value?.customer?.Program_Study}</span>
         ),
       },
       {
         id: "Year_Study",
         label: "Year",
         format: (row, value) => (
-          <span>{capitalize(value?.customer?.Year_Study)}</span>
+          <span>{value?.customer?.Year_Study}</span>
         ),
       },
       {
         id: "Semester",
         label: "Semester",
         format: (row, value) => (
-          <span>{capitalize(value?.customer?.Semester)}</span>
+          <span>{value?.customer?.Semester}</span>
         ),
       },
       {
