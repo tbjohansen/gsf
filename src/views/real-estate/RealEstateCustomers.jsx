@@ -16,9 +16,10 @@ import { useNavigate } from "react-router-dom";
 import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import UploadEstatesCustomers from "./UploadEstatesCustomers";
-import { TextField } from "@mui/material";
+import { Autocomplete, TextField } from "@mui/material";
 import Breadcrumb from "../../components/Breadcrumb";
 import AddCustomerDetails from "./AddCustomerDetails";
+import EditCustomerDetails from "./EditCustomerDetails";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -38,6 +39,7 @@ export default function RealEstateCustomers() {
   const [name, setName] = React.useState("");
   const [customerID, setCustomerID] = React.useState("");
   const [phoneNumber, setPhoneNumber] = React.useState("");
+  const [customer_origin, setCustomerOrigin] = React.useState("");
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const [pagination, setPagination] = React.useState({
@@ -54,18 +56,22 @@ export default function RealEstateCustomers() {
   const hasFetchedData = React.useRef(false);
 
   React.useEffect(() => {
-    if (!hasFetchedData.current) {
-      hasFetchedData.current = true;
-      loadData();
-    }
-  }, [rowsPerPage, page]);
+    loadData();
+  }, [rowsPerPage, page, name, phoneNumber, customerID, customer_origin]);
+
+  const sortedCustomerType = [
+    { id: "inside", label: "Internal (Employee)" },
+    { id: "outside", label: "External" },
+  ];
+
+  const handleTypeChange = (e, value) => {
+    setCustomerOrigin(value?.id);
+  };
 
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer?&page=${page}&limit=${rowsPerPage}`;
-
-      url += `&Customer_Nature=${"house_rent"}`;
+      let url = `/customer/customer?&Customer_Nature=house_rent&page=${page}&limit=${rowsPerPage}`;
 
       if (name) {
         url += `&Customer_Name=${name}`;
@@ -79,43 +85,52 @@ export default function RealEstateCustomers() {
         url += `&Phone_Number=${phoneNumber}`;
       }
 
+      if (customer_origin) {
+        url += `&customer_origin=${customer_origin}`;
+      }
+
       const response = await apiClient.get(url);
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch customers");
-        return;
-      }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response.data.error || "Failed to fetch customers");
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to fetch customers";
+          }
+
+          toast.error(errorText);
+        }
         return;
       }
 
       const responseData = response?.data?.data;
       const userData = responseData?.data || [];
 
-      const employeesArray = [];
-
-      userData?.forEach((user, index) => {
-        if (user?.Student_ID == null || user?.Student_ID === "") {
-          employeesArray.push(user);
-        }
-      });
-
       // Adjust based on your API response structure
-      if (employeesArray?.length > 0) {
-        const newData = userData.map((user, index) => ({
-          ...user,
-          key:
-            (responseData?.current_page - 1) * responseData?.per_page +
-            index +
-            1,
-        }));
 
-        setUsers(Array.isArray(newData) ? newData : []);
-      }
+      const newData = userData?.map((user, index) => ({
+        ...user,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
+      }));
+
+      setUsers(Array.isArray(newData) ? newData : []);
 
       setPagination({
         total: responseData?.total || 0,
@@ -150,7 +165,8 @@ export default function RealEstateCustomers() {
       { id: "key", label: "S/N" },
       {
         id: "Customer_Name",
-        label: "Name",
+        label: "Customer Name",
+        minWidth: 170,
         format: (value) => <span>{capitalize(value)}</span>,
       },
       {
@@ -166,6 +182,14 @@ export default function RealEstateCustomers() {
       { id: "Phone_Number", label: "Phone" },
       { id: "Email", label: "Email" },
       {
+        id: "customer_origin",
+        label: "Customer Type",
+        minWidth: 150,
+        format: (value) => (
+          <span>{value === "inside" ? "Internal (Employee)" : "External"}</span>
+        ),
+      },
+      {
         id: "Customer_Status",
         label: "Status",
         format: (value) => (
@@ -180,6 +204,21 @@ export default function RealEstateCustomers() {
         label: "Created At",
         minWidth: 170,
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        minWidth: 110,
+        align: "center",
+        format: (value, row) => (
+          <div className="flex gap-4 justify-center">
+            <EditCustomerDetails
+              customerData={row}
+              customerId={row?.Customer_ID}
+              loadData={loadData}
+            />
+          </div>
+        ),
       },
     ],
     [loadData],
@@ -201,9 +240,9 @@ export default function RealEstateCustomers() {
         <TextField
           size="small"
           id="outlined-basic"
-          label={"Name"}
+          label={"Customer Name"}
           variant="outlined"
-          className="w-[33%]"
+          className="w-[25%]"
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoFocus
@@ -213,7 +252,7 @@ export default function RealEstateCustomers() {
           id="outlined-basic"
           label={"Customer ID"}
           variant="outlined"
-          className="w-[33%]"
+          className="w-[25%]"
           value={customerID}
           onChange={(e) => setCustomerID(e.target.value)}
           autoFocus
@@ -223,10 +262,24 @@ export default function RealEstateCustomers() {
           id="outlined-basic"
           label="Phone Number"
           variant="outlined"
-          className="w-[33%]"
+          className="w-[25%]"
           value={phoneNumber}
           onChange={(e) => setPhoneNumber(e.target.value)}
           autoFocus
+        />
+        <Autocomplete
+          id="combo-box-demo"
+          options={sortedCustomerType}
+          size="small"
+          className="w-[25%]"
+          freeSolo
+          value={sortedCustomerType.find(
+            (option) => option.id === customer_origin,
+          )}
+          onChange={handleTypeChange}
+          renderInput={(params) => (
+            <TextField {...params} label="Select Customer Type" />
+          )}
         />
       </div>
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -295,7 +348,7 @@ export default function RealEstateCustomers() {
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[25, 50, 100, 1000]}
+          rowsPerPageOptions={[25, 50, 100, 500, 1000]}
           component="div"
           count={pagination.total}
           rowsPerPage={rowsPerPage}

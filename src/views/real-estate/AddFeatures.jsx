@@ -31,7 +31,6 @@ const AddFeature = ({ loadData }) => {
 
   const dispatch = useDispatch();
 
-
   const submit = async (e) => {
     e.preventDefault();
 
@@ -58,38 +57,35 @@ const AddFeature = ({ loadData }) => {
       };
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.post("/settings/real-estate-feature", data);
+      const response = await apiClient.post(
+        "/settings/real-estate-feature",
+        data,
+      );
 
-
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error(response.data?.error || "Failed to create feature");
-        }
-        return;
-      }
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
 
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to add feature";
+          }
 
-        // Handle validation errors (nested error object)
-        if (response.data?.error && typeof response.data.error === "object") {
-          // Extract first validation error message
-          const firstErrorKey = Object.keys(response.data.error)[0];
-          const firstErrorMessage = response.data.error[firstErrorKey][0];
-          toast.error("Failed to create feature");
-        } else {
-          // Handle simple error string
-          const errorMessage = response.data.error || "Failed to create feature";
-          toast.error(errorMessage);
+          toast.error(errorText);
         }
         return;
       }

@@ -35,6 +35,7 @@ const AddUnit = ({ loadData }) => {
   const [name, setName] = useState("");
   const [unitType, setUnitType] = useState("");
   const [price, setPrice] = useState("");
+  const [usdPrice, setUsdPrice] = useState("");
   const [location, setLocation] = useState("");
   const [locations, setLocations] = useState([]);
   const [description, setDescription] = useState("");
@@ -44,10 +45,16 @@ const AddUnit = ({ loadData }) => {
   const hasFetchedData = useRef(false);
 
   useEffect(() => {
-    if(open){
+    if (open) {
       loadLocations();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (unitType?.id !== "house") {
+      setUsdPrice("");
+    }
+  }, [unitType]);
 
   const loadLocations = async () => {
     // Get employee info from localStorage
@@ -119,6 +126,11 @@ const AddUnit = ({ loadData }) => {
       return;
     }
 
+    if (unitType?.id === "house" && !usdPrice) {
+      toast.error("Please enter usd price");
+      return;
+    }
+
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
 
@@ -138,6 +150,7 @@ const AddUnit = ({ loadData }) => {
         description,
         Unit_Location_ID: location?.id,
         Employee_ID: employeeId,
+        ...(unitType?.id === "house" && { usd_price: usdPrice }),
       };
 
       // Make API request - Bearer token is automatically included by apiClient
@@ -215,36 +228,6 @@ const AddUnit = ({ loadData }) => {
             <h3 className="text-center text-xl py-4">Add New Unit</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
-                <TextField
-                  size="small"
-                  id="outlined-basic"
-                  label="Unit Name"
-                  variant="outlined"
-                  className="w-[92%]"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={loading}
-                  autoFocus
-                />
-              </div>
-              <div className="w-full py-2 flex justify-center">
-                <TextField
-                  size="small"
-                  id="outlined-basic"
-                  label="Unit Price"
-                  variant="outlined"
-                  className="w-[92%]"
-                  value={price ? formatter.format(Number(price)) : ""}
-                  onChange={(e) => {
-                    // Remove any non-digit characters except decimal point
-                    const rawValue = e.target.value.replace(/[^\d.]/g, "");
-                    setPrice(rawValue);
-                  }}
-                  disabled={loading}
-                  autoFocus
-                />
-              </div>
-              <div className="w-full py-2 flex justify-center">
                 <Autocomplete
                   id="combo-box-demo"
                   options={sortedTypes}
@@ -258,6 +241,57 @@ const AddUnit = ({ loadData }) => {
                   )}
                 />
               </div>
+              <div className="w-full py-2 flex justify-center">
+                <TextField
+                  size="small"
+                  id="outlined-basic"
+                  label="Unit Name"
+                  variant="outlined"
+                  className="w-[92%]"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+
+              <div className="w-full py-2 flex justify-center">
+                <TextField
+                  size="small"
+                  id="outlined-basic"
+                  label="Unit Price (TZS)"
+                  variant="outlined"
+                  className="w-[92%]"
+                  value={price ? formatter.format(Number(price)) : ""}
+                  onChange={(e) => {
+                    // Remove any non-digit characters except decimal point
+                    const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                    setPrice(rawValue);
+                  }}
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+              {unitType?.id === "house" && (
+                <div className="w-full py-2 flex justify-center">
+                  <TextField
+                    size="small"
+                    id="outlined-basic"
+                    label="Unit Price (USD)"
+                    variant="outlined"
+                    className="w-[92%]"
+                    value={price ? formatter.format(Number(price)) : ""}
+                    onChange={(e) => {
+                      // Remove any non-digit characters except decimal point
+                      const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                      setUsdPrice(rawValue);
+                    }}
+                    disabled={loading}
+                    autoFocus
+                  />
+                </div>
+              )}
+
               <div className="w-full py-2 flex justify-center">
                 <Autocomplete
                   id="combo-box-demo"

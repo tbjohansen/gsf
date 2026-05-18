@@ -89,7 +89,7 @@ const EstateDashboard = () => {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        "/settings/real-estate?&all_real_estate=yes",
+        "/settings/real-estate?&all_real_estate=yes&limit=1000",
       );
 
       if (!response.ok) {
@@ -217,7 +217,7 @@ const EstateDashboard = () => {
   const loadCustomers = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer?&Customer_Nature=house_rent`;
+      let url = `/customer/customer?&Customer_Nature=house_rent&limit=1000`;
 
       const response = await apiClient.get(url);
 
@@ -663,14 +663,14 @@ const EstateDashboard = () => {
               route="/projects/real-estates/rented-spaces"
               rental={true}
             />
-            <ManagementCard
+            {/* <ManagementCard
               title="Employees"
               icon={MdOutlineWorkOutline}
               items={employees}
               route="/projects/real-estates/employees"
               header={"Status"}
               headerValue={"Customer_Status"}
-            />
+            /> */}
             <ManagementCard
               title="Customers"
               icon={BsPeople}

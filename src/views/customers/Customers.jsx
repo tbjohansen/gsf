@@ -55,7 +55,7 @@ export default function Customers({ status }) {
   // Fetch hostels from API
   React.useEffect(() => {
     loadData();
-  }, [name, customerID, phoneNumber, rowsPerPage, page]);
+  }, [status, name, customerID, phoneNumber, rowsPerPage, page]);
 
   const loadData = async () => {
     setLoading(true);
@@ -155,6 +155,7 @@ export default function Customers({ status }) {
       {
         id: "Customer_Name",
         label: "Name",
+        minWidth: 170,
         format: (value) => <span>{capitalize(value)}</span>,
       },
       {
@@ -171,6 +172,13 @@ export default function Customers({ status }) {
       },
       { id: "Phone_Number", label: "Phone" },
       { id: "Email", label: "Email" },
+      {
+        id: "Payment_Method",
+        label: "Payment",
+        show: status === "oxygen",
+        minWidth: 110,
+        format: (value) => <span>{capitalize(value)}</span>,
+      },
       {
         id: "Student_ID",
         label: `${status === "student" ? "Student ID" : "Customer ID"}`,

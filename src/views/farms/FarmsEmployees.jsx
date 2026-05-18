@@ -31,8 +31,8 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function FarmsEmployees() {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [page, setPage] = React.useState(1);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [employees, setEmployees] = React.useState([]);
   const [name, setName] = React.useState("");
   const [customerID, setCustomerID] = React.useState("");
@@ -40,6 +40,15 @@ export default function FarmsEmployees() {
   const [loading, setLoading] = React.useState(false);
   const [syncLoading, setSyncLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
+
+  const [pagination, setPagination] = React.useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
 
   const navigate = useNavigate();
 
@@ -73,35 +82,52 @@ export default function FarmsEmployees() {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response?.data?.error || "Failed to fetch employees");
-        return;
-      }
 
-      if (response.data?.error || response?.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response?.data?.error || "Failed to fetch employees");
-        return;
-      }
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
 
-      const userData = response?.data?.data?.data || [];
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to fetch employees";
+          }
 
-      const employeesArray = [];
-
-      userData.forEach((user, index) => {
-        if (user?.Student_ID != null) {
-          employeesArray.push(user);
+          toast.error(errorText);
         }
+        return;
+      }
+
+      const responseData = response?.data?.data;
+      const userData = responseData?.data || [];
+
+      const newData = userData?.map((user, index) => ({
+        ...user,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
+      }));
+
+      setEmployees(Array.isArray(newData) ? newData : []);
+
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
       });
 
-      // Adjust based on your API response structure
-      if (employeesArray?.length > 0) {
-        const newData = employeesArray?.map((user, index) => ({
-          ...user,
-          key: index + 1,
-        }));
-        // console.log(newData);
-        setEmployees(Array.isArray(newData) ? newData : []);
-      }
       setLoading(false);
     } catch (error) {
       console.error("Fetch employees error:", error);
@@ -127,17 +153,29 @@ export default function FarmsEmployees() {
 
       if (!response.ok) {
         setSyncLoading(false);
-        toast.error(
-          response?.data?.error || "Failed to fetch employees from eHMS"
-        );
-        return;
-      }
 
-      if (response.data?.error || response?.data?.code >= 400) {
-        setSyncLoading(false);
-        toast.error(
-          response?.data?.error || "Failed to fetch employees from eHMS"
-        );
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to synchronize employees from eHMS";
+          }
+
+          toast.error(errorText);
+        }
         return;
       }
 
@@ -154,12 +192,13 @@ export default function FarmsEmployees() {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event?.target?.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
   // Inside the users component, replace the columns definition with:
@@ -215,7 +254,7 @@ export default function FarmsEmployees() {
       //   ),
       // },
     ],
-    []
+    [],
   );
 
   return (
@@ -228,11 +267,12 @@ export default function FarmsEmployees() {
             <button
               onClick={() => onSyncEmployees()}
               disabled={syncLoading}
-              className="group h-10 w-64 flex justify-center bg-gradient-to-r from-blue-900 to-sky-600 text-white rounded-xl cursor-pointer hover:from-blue-800"
+              className="group h-10 w-32 sm:w-48 md:w-56 lg:w-64 flex justify-center bg-gradient-to-r from-blue-900 to-sky-600 text-white rounded-xl cursor-pointer hover:from-blue-800 hover:to-sky-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="flex text-sm items-center text-white gap-2">
-                <FcSynchronize className="w-5 h-5" />
-                Synchronize Employees
+              <div className="flex text-xs sm:text-sm items-center text-white gap-1 sm:gap-2">
+                <FcSynchronize className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Synchronize Employees</span>
+                <span className="sm:hidden">Sync</span>
               </div>
             </button>
             <AddEmployee loadData={loadData} />
@@ -297,57 +337,60 @@ export default function FarmsEmployees() {
                   </TableCell>
                 </TableRow>
               )}
-              {employees
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      sx={{
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format ? column.format(value, row) : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
+              {employees?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    sx={{
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell
+                          key={column.id}
+                          align={column.align}
+                          onClick={(e) => {
+                            // Prevent click event from bubbling up to the row
+                            // when clicking on action buttons
+                            if (column.id === "actions") {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
+                          {column.format ? column.format(value, row) : value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 500, 1000]}
           component="div"
-          count={employees?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

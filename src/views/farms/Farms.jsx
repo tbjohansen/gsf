@@ -8,7 +8,11 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import { currencyFormatter, formatDateTimeForDb, formatter } from "../../../helpers";
+import {
+  currencyFormatter,
+  formatDateTimeForDb,
+  formatter,
+} from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -18,6 +22,14 @@ import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import AddFarm from "./AddFarm";
 import EditFarm from "./EditFarm";
+
+// Add these Material-UI dialog imports
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import Button from "@mui/material/Button";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -36,6 +48,10 @@ export default function Farms() {
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
 
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [farmToFree, setFarmToFree] = React.useState(null);
+  const [farmToFreeName, setFarmToFreeName] = React.useState("");
+
   const navigate = useNavigate();
 
   const hasFetchedData = React.useRef(false);
@@ -47,12 +63,81 @@ export default function Farms() {
     }
   }, []);
 
+  // Open confirmation dialog
+  const openDialog = (farmId, farmName) => {
+    setFarmToFree(farmId);
+    setFarmToFreeName(farmName);
+    setDialogOpen(true);
+  };
+
+  // Close confirmation dialog
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setFarmToFree(null);
+    setFarmToFreeName("");
+  };
+
+  // Handle free up farm after confirmation
+  const handleFreeUpFarmPlots = async () => {
+    if (!farmToFree) return;
+
+    // Get employee info from localStorage
+    const employeeId = localStorage.getItem("employeeId");
+
+    if (!employeeId) {
+      toast.error("User information not found. Please login again.");
+      return;
+    }
+
+    try {
+      const response = await apiClient.post(`/estate/offset-farm`, {
+        Item_ID: [farmToFree],
+        Employee_ID: employeeId,
+      });
+
+      // Check if request was successful
+      if (!response.ok) {
+        setLoading(false);
+
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to free up farm plots";
+          }
+
+          toast.error(errorText);
+        }
+        return;
+      }
+
+      toast.success("Farm plots free up successfully");
+      loadData(); // Reload data to update UI (preserves current page)
+    } catch (error) {
+      console.error("Free up farm plots error:", error);
+      toast.error("Failed to free up farm plots");
+    } finally {
+      closeDialog();
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/settings/item", {
-        Item_Type: "farm",
-      });
+      const response = await apiClient.get(`/settings/item?Item_Type=farm`);
 
       if (!response.ok) {
         setLoading(false);
@@ -107,12 +192,12 @@ export default function Farms() {
       },
       {
         id: "Item_Price",
-        label: "Price Per 0.25 (¼) Hectare",
+        label: "Price Per (¼) Hectare",
         format: (value) => <span>{currencyFormatter.format(value)}</span>,
       },
       {
         id: "Item_Status",
-        label: "Farm Status",
+        label: "Status",
         format: (value) => (
           <span>
             <Badge
@@ -126,6 +211,21 @@ export default function Farms() {
               }
             />
           </span>
+        ),
+      },
+      {
+        id: "plotss",
+        label: "Occupied Plots",
+        format: (value, row) => (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openDialog(row?.Item_ID, row?.Item_Name);
+            }}
+            className="flex h-8 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-1.5 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Free Up Plots
+          </button>
         ),
       },
       {
@@ -234,6 +334,38 @@ export default function Farms() {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Paper>
+
+      {/* free up occupied farm confirmation dialog */}
+      <Dialog
+        open={dialogOpen}
+        onClose={closeDialog}
+        aria-labelledby="delete-image-dialog-title"
+        aria-describedby="delete-image-dialog-description"
+      >
+        <DialogTitle id="delete-image-dialog-title">
+          Free Up Occupied Farm Plots Confirmation
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-image-dialog-description">
+            Are you sure you want to free up occupied plots on "{farmToFreeName}
+            "? <br />
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDialog} color="primary">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleFreeUpFarmPlots}
+            color="success"
+            variant="contained"
+            autoFocus
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

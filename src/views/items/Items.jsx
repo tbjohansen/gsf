@@ -140,6 +140,18 @@ export default function Items({ status }) {
     return [
       { id: "key", label: "S/N" },
       { id: "Item_Name", label: "Item Name" },
+
+      status === "oxygen" && {
+        id: "Item_Price_Inside",
+        label: "Internal Price",
+        format: (value) => <span>{currencyFormatter.format(value || 0)}</span>,
+        show: status === "oxygen",
+      },
+      status === "oxygen" && {
+        id: "Item_Price_Outside",
+        label: "External Price",
+        format: (value) => <span>{currencyFormatter.format(value || 0)}</span>,
+      },
       {
         id: "Item_Status",
         label: "Status",
@@ -149,17 +161,6 @@ export default function Items({ status }) {
             color={value === "active" ? "green" : "red"}
           />
         ),
-      },
-      status === "oxygen" && {
-        id: "Item_Price_Inside",
-        label: "Inside Price (TZS)",
-        format: (value) => <span>{formatter.format(value || 0)}</span>,
-        show: status === "oxygen",
-      },
-      status === "oxygen" && {
-        id: "Item_Price_Outside",
-        label: "Outside Price (TZS)",
-        format: (value) => <span>{formatter.format(value || 0)}</span>,
       },
       {
         id: "created_at",

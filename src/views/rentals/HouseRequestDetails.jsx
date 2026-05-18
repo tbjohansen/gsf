@@ -15,6 +15,7 @@ import { GrDocumentUpdate } from "react-icons/gr";
 import {
   capitalize,
   currencyFormatter,
+  formatter,
   removeUnderscore,
 } from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
@@ -196,7 +197,11 @@ export default function HouseRequestDetails() {
           <div>
             <p className="text-sm text-gray-600">Price</p>
             <p className="font-semibold text-green-600 text-lg">
-              {currencyFormatter.format(requestData?.Price)}{" "}
+              {requestData?.customer?.Customer_Type === "local" ? (
+                <>{currencyFormatter.format(requestData?.Price)}</>
+              ) : (
+                <>USD {formatter?.format(requestData?.Price)}</>
+              )}{" "}
               <span className="text-black">/ Month</span>
             </p>
           </div>

@@ -85,7 +85,7 @@ const HouseRequestLetter = () => {
         Description: letterContent.trim(),
         real_estate_id: unitID,
         Phone_Number: customer?.phone,
-        Price: unit?.price,
+        Price: customer?.Customer_Type === "local" ? unit?.price : unit?.usd_price || unit?.price,
         Request_Type: "house_rent",
         Employee_ID: customer?.Employee_ID,
       };

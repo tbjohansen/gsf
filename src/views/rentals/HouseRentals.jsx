@@ -15,8 +15,8 @@ import {
 import apiClient, { baseURL } from "../../api/Client";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { currencyFormatter } from "../../../helpers";
-import houseImage from '../../assets/images/house3.svg';
+import { currencyFormatter, formatter } from "../../../helpers";
+import houseImage from "../../assets/images/house3.svg";
 
 const HouseRentals = () => {
   const [selectedHouse, setSelectedHouse] = useState(null);
@@ -29,6 +29,11 @@ const HouseRentals = () => {
 
   const hasFetchedData = useRef(false);
   const navigate = useNavigate();
+
+  const storedUserInfo = localStorage.getItem("userInfo");
+  const parsedUserInfo = JSON.parse(storedUserInfo);
+  const customer = parsedUserInfo?.customer;
+  console.log(customer);
 
   // Default placeholder image for properties without images
   const DEFAULT_HOUSE_IMAGE = houseImage;
@@ -120,7 +125,7 @@ const HouseRentals = () => {
 
   const toggleFavorite = (id) => {
     setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id],
     );
   };
 
@@ -144,10 +149,10 @@ const HouseRentals = () => {
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  const filteredHouses = houses.filter(
+  const filteredHouses = houses?.filter(
     (house) =>
       house.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      house.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      house.description?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const getFeatureIcon = (description) => {
@@ -242,7 +247,7 @@ const HouseRentals = () => {
             <LuSearch className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search by name or location..."
+              placeholder="Search by name ..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -304,7 +309,9 @@ const HouseRentals = () => {
                     />
                   </button>
                   <div className="absolute bottom-3 left-3 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                    {currencyFormatter.format(house?.price)}
+                    {customer?.Customer_Type === "local" || customer?.Customer_Type === null
+                      ? currencyFormatter.format(house?.price)
+                      : `USD ${formatter.format(house?.usd_price || 0)}`}
                   </div>
                   {house?.status === "active" && (
                     <>
@@ -386,7 +393,7 @@ const HouseRentals = () => {
                   href="tel:+255123456789"
                   className="text-lg font-semibold text-blue-600 hover:text-blue-700"
                 >
-                  +255 123 456 789
+                  +255 747 543 726
                 </a>
               </div>
             </div>
@@ -401,7 +408,7 @@ const HouseRentals = () => {
                   href="mailto:housemanager@example.com"
                   className="text-lg font-semibold text-blue-600 hover:text-blue-700 break-all"
                 >
-                  housemanager@example.com
+                 emanuel.magogo@kcmc.ac.tz
                 </a>
               </div>
             </div>
@@ -473,9 +480,11 @@ const HouseRentals = () => {
                   </h2>
                   <div className="flex items-center text-gray-600">
                     <LuMapPin className="w-5 h-5 mr-1" />
-                    <span>{selectedHouse?.location
+                    <span>
+                      {selectedHouse?.location
                         ? selectedHouse?.location?.Unit_Location
-                        : selectedHouse?.description}</span>
+                        : selectedHouse?.description}
+                    </span>
                   </div>
                   <div className="mt-2">
                     <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full capitalize">
@@ -485,7 +494,9 @@ const HouseRentals = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-blue-600">
-                    {currencyFormatter.format(selectedHouse?.price)}
+                   {customer?.Customer_Type === "local" || customer?.Customer_Type === null
+                      ? currencyFormatter.format(selectedHouse?.price)
+                      : `USD ${formatter.format(selectedHouse?.usd_price || 0)}`}
                   </div>
                   <div className="text-sm text-gray-600">Price/Month</div>
                 </div>

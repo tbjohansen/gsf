@@ -13,6 +13,7 @@ import {
   capitalize,
   currencyFormatter,
   formatDateForDb,
+  formatter,
 } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
@@ -236,7 +237,19 @@ export default function CustomerHouseRequests({ status }) {
         minWidth: 170,
         format: (row, value) => (
           <span>
-            {currencyFormatter?.format(value?.estate?.price || value?.Price)}
+            {value?.customer?.Customer_Type === "local" ? (
+              <>
+                {" "}
+                {currencyFormatter?.format(
+                  value?.estate?.price || value?.Price,
+                )}
+              </>
+            ) : (
+              <>
+                USD{" "}
+                {formatter?.format(value?.Price || value?.estate?.usd_price)}
+              </>
+            )}
           </span>
         ),
       },

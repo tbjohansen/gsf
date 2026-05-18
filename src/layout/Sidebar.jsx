@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  LuLayoutDashboard,
-  LuUsers,
-  LuFileUser,
-} from "react-icons/lu";
-import {
-  MdOutlineListAlt,
-  MdOutlinePropaneTank,
-} from "react-icons/md";
+import { LuLayoutDashboard, LuUsers, LuFileUser } from "react-icons/lu";
+import { MdOutlineListAlt, MdOutlinePropaneTank } from "react-icons/md";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FcMoneyTransfer } from "react-icons/fc";
 import { AiOutlineFundProjectionScreen } from "react-icons/ai";
@@ -33,18 +26,33 @@ const SideBar = ({
   // Default main links
   const mainLinks = [
     { id: 1, name: "Overview", icon: LuLayoutDashboard, url: "/home" },
-    { id: 70, name: "Projects", icon: AiOutlineFundProjectionScreen, url: "/projects" },
+    {
+      id: 70,
+      name: "Projects",
+      icon: AiOutlineFundProjectionScreen,
+      url: "/projects",
+    },
     { id: 6, name: "Customers", icon: LuFileUser, url: "/customers" },
     { id: 7, name: "Payments", icon: FcMoneyTransfer, url: "/payments" },
-    { id: 8, name: "Items", icon: MdOutlineListAlt, url: "/items" }, 
+    { id: 8, name: "Items", icon: MdOutlineListAlt, url: "/items" },
     { id: 9, name: "Users", icon: LuUsers, url: "/users" },
   ];
 
   // Oxygen customer links
   const oxygenCustomerLinks = [
     { id: 1, name: "POS", icon: LuLayoutDashboard, url: "/pos" },
-    { id: 2, name: "Orders", icon: MdOutlinePropaneTank, url: "/oxygen-customer/orders" },
-    { id: 3, name: "Payments", icon: FcMoneyTransfer, url: "/oxygen-customer/payments" },
+    {
+      id: 2,
+      name: "Orders",
+      icon: MdOutlinePropaneTank,
+      url: "/oxygen-customer/orders",
+    },
+    {
+      id: 3,
+      name: "Payments",
+      icon: FcMoneyTransfer,
+      url: "/oxygen-customer/payments",
+    },
     { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
   ];
 
@@ -52,39 +60,64 @@ const SideBar = ({
   const housesCustomerLinks = [
     { id: 1, name: "Units", icon: LuLayoutDashboard, url: "/units" },
     { id: 82, name: "Farm Plots", icon: GiFarmTractor, url: "/customer-farms" },
-    { id: 83, name: "Requests", icon: HiOutlineInboxArrowDown, url: "/customer-requests" },
-    { id: 84, name: "Payments", icon: FcMoneyTransfer, url: "/customer-payments" },
+    {
+      id: 83,
+      name: "Requests",
+      icon: HiOutlineInboxArrowDown,
+      url: "/customer-requests",
+    },
+    {
+      id: 84,
+      name: "Payments",
+      icon: FcMoneyTransfer,
+      url: "/customer-payments",
+    },
     { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
   ];
 
-
-    // Spaces customer links
+  // Spaces customer links
   const spacesCustomerLinks = [
     { id: 1, name: "Units", icon: LuLayoutDashboard, url: "/space-units" },
-    { id: 85, name: "Requests", icon: HiOutlineInboxArrowDown, url: "/space-customer-requests" },
-    { id: 86, name: "Payments", icon: FcMoneyTransfer, url: "/space-customer-payments" },
+    {
+      id: 85,
+      name: "Requests",
+      icon: HiOutlineInboxArrowDown,
+      url: "/space-customer-requests",
+    },
+    {
+      id: 86,
+      name: "Payments",
+      icon: FcMoneyTransfer,
+      url: "/space-customer-payments",
+    },
     { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
   ];
 
   // Check employee data and set appropriate links
   useEffect(() => {
-    const employeeData = localStorage.getItem('userInfo');
+    const employeeData = localStorage.getItem("userInfo");
 
     // console.log(employeeData);
-    
+
     if (employeeData) {
       try {
         const employee = JSON.parse(employeeData);
         const customer = employee?.customer;
-        
+
         if (customer && customer?.Customer_Nature) {
           const customerNature = customer?.Customer_Nature.toLowerCase();
-          
+
           if (customerNature === "oxygen") {
             setCurrentLinks(oxygenCustomerLinks);
-          } else if (customerNature === "house_rent" && customer?.Student_ID) {
+          } else if (
+            customerNature === "house_rent" &&
+            customer?.customer_origin === "inside"
+          ) {
             setCurrentLinks(housesCustomerLinks);
-          } else if (customerNature === "house_rent" && !customer?.Student_ID) {
+          } else if (
+            customerNature === "house_rent" &&
+            !customer?.customer_origin === "outside"
+          ) {
             setCurrentLinks(spacesCustomerLinks);
           } else {
             setCurrentLinks(mainLinks);
@@ -113,7 +146,7 @@ const SideBar = ({
     // Navigate after a short delay for smooth effect
     setTimeout(() => {
       navigate(url);
-      
+
       // End transition
       setTimeout(() => {
         setIsTransitioning(false);

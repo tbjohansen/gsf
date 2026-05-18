@@ -66,7 +66,7 @@ export default function SalesOrders({ status }) {
   const loadCustomers = async () => {
     try {
       const response = await apiClient.get(
-        `/customer/customer?Customer_Nature=oxygen&limit=100&page=1`
+        `/customer/customer?Customer_Nature=oxygen&limit=100&page=1`,
       );
 
       if (response.ok && !response.data?.error) {
@@ -76,7 +76,9 @@ export default function SalesOrders({ status }) {
           ...cust,
           label: cust.Customer_Name,
         }));
-        setCustomers(Array.isArray(formattedCustomers) ? formattedCustomers : []);
+        setCustomers(
+          Array.isArray(formattedCustomers) ? formattedCustomers : [],
+        );
       }
     } catch (error) {
       console.error("Fetch customers error:", error);
@@ -168,6 +170,7 @@ export default function SalesOrders({ status }) {
 
   const handleRowClick = (row) => {
     setSelectedRow(row);
+    navigate(`/projects/oxygen/sales-orders/${row.Request_Batch_ID}`);
   };
 
   const columns = React.useMemo(() => {
@@ -176,6 +179,7 @@ export default function SalesOrders({ status }) {
       {
         id: "Request_Batch_ID",
         label: "Order ID",
+        minWidth: 110,
       },
       {
         id: "customer",
@@ -192,7 +196,7 @@ export default function SalesOrders({ status }) {
       {
         id: "request_items",
         label: "Items",
-        minWidth: 110,
+        minWidth: 130,
         format: (value, row) => {
           if (!row.request || !Array.isArray(row.request)) {
             return <span className="text-gray-400">No items</span>;
@@ -202,7 +206,8 @@ export default function SalesOrders({ status }) {
             <div className="flex flex-col gap-1">
               {row.request.map((reqItem, idx) => (
                 <div key={idx} className="text-sm">
-                  • {reqItem?.item?.Item_Name} ({formatter.format(Number(reqItem?.Quantity))} units)
+                  • {reqItem?.item?.Item_Name} (
+                  {formatter.format(Number(reqItem?.Quantity))} units)
                 </div>
               ))}
             </div>
@@ -218,10 +223,14 @@ export default function SalesOrders({ status }) {
           }
 
           const total = row.request.reduce(
-            (sum, item) => sum + (item.Price * item.Quantity),
-            0
+            (sum, item) => sum + item.Price * item.Quantity,
+            0,
           );
-          return <span className="font-semibold">{currencyFormatter.format(total)}</span>;
+          return (
+            <span className="font-semibold">
+              {currencyFormatter.format(total)}
+            </span>
+          );
         },
       },
       {
@@ -235,10 +244,10 @@ export default function SalesOrders({ status }) {
                 status === "active"
                   ? "bg-green-100 text-green-800"
                   : status === "pending"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : status === "inactive"
-                  ? "bg-red-100 text-red-800"
-                  : "bg-gray-100 text-gray-800"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : status === "inactive"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-gray-100 text-gray-800"
               }`}
             >
               {capitalize(status)}
@@ -248,7 +257,7 @@ export default function SalesOrders({ status }) {
       },
       {
         id: "employee",
-        label: "Employee",
+        label: "Ordered By",
         format: (value, row) => (
           <span>{capitalize(row?.employee?.name || "N/A")}</span>
         ),
@@ -307,7 +316,9 @@ export default function SalesOrders({ status }) {
           className={`w-[25%]`}
           value={customer}
           onChange={customerOnChange}
-          getOptionLabel={(option) => option.label || option.Customer_Name || ""}
+          getOptionLabel={(option) =>
+            option.label || option.Customer_Name || ""
+          }
           isOptionEqualToValue={(option, value) =>
             option.Customer_ID === value?.Customer_ID
           }
@@ -370,7 +381,7 @@ export default function SalesOrders({ status }) {
                     >
                       {columns
                         .filter(
-                          (e) => typeof e.show === "undefined" || !!e.show
+                          (e) => typeof e.show === "undefined" || !!e.show,
                         )
                         .map((column) => {
                           const value = row[column.id];

@@ -40,6 +40,11 @@ const PointOfSale = () => {
   const [previousRequests, setPreviousRequests] = useState([]);
   const [loadingPreviousRequests, setLoadingPreviousRequests] = useState(false);
 
+  const storedUserInfo = localStorage.getItem("userInfo");
+  const parsedUserInfo = JSON.parse(storedUserInfo);
+  const customer = parsedUserInfo?.customer;
+  console.log(customer);
+
   // Fetch items and customers from API
   useEffect(() => {
     loadItems();
@@ -95,7 +100,7 @@ const PointOfSale = () => {
     setLoadingCustomers(true);
     try {
       const response = await apiClient.get(
-        `/customer/customer?Customer_Nature=oxygen&limit=100&page=1`
+        `/customer/customer?Customer_Nature=oxygen&limit=1000&page=1`,
       );
 
       if (response.data?.error || response.data?.code >= 400) {
@@ -137,7 +142,7 @@ const PointOfSale = () => {
     setLoadingPreviousRequests(true);
     try {
       const response = await apiClient.get(
-        `/oxygen/oxygen-request?Customer_ID=${customerId}&Customer_Status=active`
+        `/oxygen/oxygen-request?Customer_ID=${customerId}&Customer_Status=active`,
       );
 
       if (response.data?.error || response.data?.code >= 400) {
@@ -149,7 +154,7 @@ const PointOfSale = () => {
       if (!response.ok) {
         setLoadingPreviousRequests(false);
         toast.error(
-          response.data?.error || "Failed to fetch previous requests"
+          response.data?.error || "Failed to fetch previous requests",
         );
         return;
       }
@@ -171,14 +176,14 @@ const PointOfSale = () => {
       return items;
     }
     return items.filter((item) =>
-      item.Item_Name?.toLowerCase().includes(searchQuery.toLowerCase())
+      item.Item_Name?.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [items, searchQuery]);
 
   // Add item to selected items
   const handleAddItem = (item) => {
     const existingItem = selectedItems.find(
-      (selected) => selected.Item_ID === item.Item_ID
+      (selected) => selected.Item_ID === item.Item_ID,
     );
 
     if (existingItem) {
@@ -187,8 +192,8 @@ const PointOfSale = () => {
         prev.map((selected) =>
           selected.Item_ID === item.Item_ID
             ? { ...selected, quantity: selected.quantity + 1 }
-            : selected
-        )
+            : selected,
+        ),
       );
     } else {
       // Add new item with default quantity of 1
@@ -213,8 +218,8 @@ const PointOfSale = () => {
     const quantity = Math.max(0, Number(newQuantity) || 0);
     setSelectedItems((prev) =>
       prev.map((item) =>
-        item.Item_ID === itemId ? { ...item, quantity } : item
-      )
+        item.Item_ID === itemId ? { ...item, quantity } : item,
+      ),
     );
   };
 
@@ -222,7 +227,7 @@ const PointOfSale = () => {
   const handlePriceChange = (itemId, newPrice) => {
     const price = Math.max(0, Number(newPrice) || 0);
     setSelectedItems((prev) =>
-      prev.map((item) => (item.Item_ID === itemId ? { ...item, price } : item))
+      prev.map((item) => (item.Item_ID === itemId ? { ...item, price } : item)),
     );
   };
 
@@ -232,8 +237,8 @@ const PointOfSale = () => {
       prev.map((item) =>
         item.Item_ID === itemId
           ? { ...item, quantity: (item.quantity || 0) + 1 }
-          : item
-      )
+          : item,
+      ),
     );
   };
 
@@ -246,8 +251,8 @@ const PointOfSale = () => {
               ...item,
               quantity: Math.max(0, (item.quantity || 0) - 1),
             }
-          : item
-      )
+          : item,
+      ),
     );
   };
 
@@ -260,7 +265,7 @@ const PointOfSale = () => {
   const grandTotal = useMemo(() => {
     return selectedItems.reduce(
       (sum, item) => sum + calculateItemTotal(item),
-      0
+      0,
     );
   }, [selectedItems]);
 
@@ -273,7 +278,7 @@ const PointOfSale = () => {
 
     // Validate that all items have quantity > 0
     const invalidItems = selectedItems.filter(
-      (item) => !item.quantity || item.quantity <= 0
+      (item) => !item.quantity || item.quantity <= 0,
     );
     if (invalidItems.length > 0) {
       toast.error("Please ensure all items have a quantity greater than 0");
@@ -306,6 +311,8 @@ const PointOfSale = () => {
           Item_ID: item.Item_ID,
         })),
         Request_Type: "oxygen",
+        Customer_Status: "active",
+        Billing_Type: customer?.Payment_Method,
       };
 
       console.log("Submitting order data:", requestData);
@@ -313,7 +320,7 @@ const PointOfSale = () => {
       // Make API request
       const response = await apiClient.post(
         "/oxygen/oxygen-request",
-        requestData
+        requestData,
       );
 
       // Check if request was successful
@@ -427,7 +434,8 @@ const PointOfSale = () => {
                           "&:hover": {
                             backgroundColor: "rgba(0, 0, 0, 0.04)",
                           },
-                        }}>
+                        }}
+                      >
                         <TableCell>{item.Item_Name}</TableCell>
                         <TableCell align="right">
                           {formatter.format(item.Item_Price || 0)}
@@ -435,7 +443,8 @@ const PointOfSale = () => {
                         <TableCell align="center">
                           <button
                             onClick={() => handleAddItem(item)}
-                            className="w-10 h-10 bg-white cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group">
+                            className="w-10 h-10 bg-white cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group"
+                          >
                             <MdAdd className="w-6 h-6 text-gray-800 group-hover:text-blue-600 transition-colors" />
                           </button>
                         </TableCell>
@@ -488,7 +497,8 @@ const PointOfSale = () => {
                             "&:hover": {
                               backgroundColor: "rgba(0, 0, 0, 0.04)",
                             },
-                          }}>
+                          }}
+                        >
                           <TableCell>{item.Item_Name}</TableCell>
                           <TableCell align="center">
                             <div className="flex items-center justify-center gap-2">
@@ -496,7 +506,8 @@ const PointOfSale = () => {
                                 onClick={() =>
                                   handleDecreaseQuantity(item.Item_ID)
                                 }
-                                className="w-8 h-8 bg-white cursor-pointer rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group">
+                                className="w-8 h-8 bg-white cursor-pointer rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group"
+                              >
                                 <MdRemove className="w-4 h-4 text-gray-800 group-hover:text-red-600 transition-colors" />
                               </button>
                               <TextField
@@ -506,7 +517,7 @@ const PointOfSale = () => {
                                 onChange={(e) =>
                                   handleQuantityChange(
                                     item.Item_ID,
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 inputProps={{
@@ -523,7 +534,8 @@ const PointOfSale = () => {
                                 onClick={() =>
                                   handleIncreaseQuantity(item.Item_ID)
                                 }
-                                className="w-8 h-8 bg-white cursor-pointer rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group">
+                                className="w-8 h-8 bg-white cursor-pointer rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group"
+                              >
                                 <MdAdd className="w-4 h-4 text-gray-800 group-hover:text-blue-600 transition-colors" />
                               </button>
                             </div>
@@ -556,7 +568,8 @@ const PointOfSale = () => {
                           <TableCell align="center">
                             <button
                               onClick={() => handleRemoveItem(item.Item_ID)}
-                              className="w-10 h-10 bg-white cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group">
+                              className="w-10 h-10 bg-white cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group"
+                            >
                               <MdDeleteForever className="w-6 h-6 text-red-600 group-hover:text-red-400 transition-colors" />
                             </button>
                           </TableCell>
@@ -590,7 +603,8 @@ const PointOfSale = () => {
                         paddingY: 1.5,
                         fontSize: "1rem",
                         fontWeight: 600,
-                      }}>
+                      }}
+                    >
                       {submitting ? "Submitting..." : "Submit Order"}
                     </Button>
                   </div>
@@ -599,7 +613,6 @@ const PointOfSale = () => {
             </Paper>
           </div>
         </div>
-
       </div>
     </>
   );

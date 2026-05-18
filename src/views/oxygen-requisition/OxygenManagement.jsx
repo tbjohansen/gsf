@@ -216,23 +216,7 @@ const OxygenManagement = () => {
 
   return (
     <section className="p-6 space-y-6 bg-slate-50 min-h-full">
-      <header className="flex flex-wrap justify-between gap-4 items-end">
-        <div>
-          <p className="text-xs font-semibold text-sky-600 uppercase">
-            Oxygen & Liquid nitrogen management
-          </p>
-          <h1 className="text-2xl font-semibold text-slate-900">
-            Daily dashboard
-          </h1>
-          <p className="text-sm text-slate-500">
-            Monitor operations, sales, and revenue activity.
-          </p>
-        </div>
-        {/* <div className="text-xs text-slate-500">
-          Dummy metrics · endpoints coming soon
-        </div> */}
-      </header>
-
+     
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between mb-2">
@@ -443,6 +427,15 @@ const OxygenManagement = () => {
           />
           <ManagementCard
             title="Sales Orders"
+            icon={FiPackage}
+            items={productions}
+            tableHeader={"Date"}
+            headerValue={"Cache_Status"}
+            route="/projects/oxygen/sales-orders"
+          />
+
+           <ManagementCard
+            title="Cylinders Inventory"
             icon={FiPackage}
             items={productions}
             tableHeader={"Date"}

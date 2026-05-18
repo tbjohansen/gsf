@@ -108,16 +108,15 @@ export default function RentalSpaceRequests() {
         ),
       },
       {
-        id: "student_id",
-        label: "Customer ID",
+        id: "phone",
+        label: "Phone",
         minWidth: 140,
-        format: (row, value) => <span>{value?.customer?.Customer_ID}</span>,
+        format: (row, value) => <span>{value?.customer?.Phone_Number}</span>,
       },
       {
         id: "Customer_Status",
         label: "Request Status",
-        minWidth: 170,
-        align: "center",
+        minWidth: 150,
         format: (row, value) => (
           <Badge
             name={
@@ -143,7 +142,7 @@ export default function RentalSpaceRequests() {
       {
         id: "estate",
         label: "Unit Type",
-        minWidth: 170,
+        minWidth: 150,
         format: (row, value) => (
           <span>{capitalize(value?.estate?.real_estate_type)}</span>
         ),
@@ -164,7 +163,8 @@ export default function RentalSpaceRequests() {
       },
       {
         id: "total_amount",
-        label: "Amount",
+        label: "Total Amount",
+        minWidth: 170,
         format: (row, value) => (
           <span>
             {value?.Sangira
@@ -192,7 +192,6 @@ export default function RentalSpaceRequests() {
         id: "status",
         label: "Payment Status",
         minWidth: 170,
-        align: "center",
         format: (row, value) => (
           <>
             {value?.Sangira ? (

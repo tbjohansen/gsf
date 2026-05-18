@@ -28,8 +28,8 @@ const AddCustomerDetails = ({ loadData, status }) => {
     setOpen(false);
     setFormData({
       Customer_Name: "",
-      Gender: "",
-      Nationality: "",
+      Gender: null,
+      Nationality: null,
       Phone_Number: "",
       Email: "",
       Student_ID: "",
@@ -37,7 +37,7 @@ const AddCustomerDetails = ({ loadData, status }) => {
       Year_Study: "",
       Customer_Status: "active",
       Customer_Nature: "house_rent",
-      customer_origin: "inside",
+      customer_origin: null,
       Customer_Type: "",
       Admission_ID: "",
       Semester: "",
@@ -46,8 +46,8 @@ const AddCustomerDetails = ({ loadData, status }) => {
   };
   const [formData, setFormData] = useState({
     Customer_Name: "",
-    Gender: "",
-    Nationality: "",
+    Gender: null,
+    Nationality: null,
     Phone_Number: "",
     Email: "",
     Student_ID: "",
@@ -55,7 +55,7 @@ const AddCustomerDetails = ({ loadData, status }) => {
     Year_Study: "",
     Customer_Status: "active",
     Customer_Nature: "house_rent",
-    customer_origin: "inside",
+    customer_origin: null,
     Customer_Type: "",
     Admission_ID: "",
     Semester: "",
@@ -249,7 +249,12 @@ const AddCustomerDetails = ({ loadData, status }) => {
 
   const sortedGender = [
     { id: "male", label: "Male" },
-    { id: "femal", label: "Female" },
+    { id: "female", label: "Female" },
+  ];
+
+  const sortedCustomerType = [
+    { id: "inside", label: "Internal (Employee)" },
+    { id: "outside", label: "External" },
   ];
 
   const [loading, setLoading] = useState(false);
@@ -295,6 +300,11 @@ const AddCustomerDetails = ({ loadData, status }) => {
       return;
     }
 
+    if (!formData?.customer_origin) {
+      toast.error("Please select customer type");
+      return;
+    }
+
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
 
@@ -310,7 +320,8 @@ const AddCustomerDetails = ({ loadData, status }) => {
       const data = {
         ...formData,
         Customer_Name: formData.Customer_Name.trim(),
-        Customer_Type: "",
+        Customer_Type:
+          formData?.Nationality === "Tanzanian" ? "local" : "foreigner",
         Phone_Number: formData.Phone_Number.startsWith("0")
           ? formData.Phone_Number
           : `0${formData.Phone_Number}`,
@@ -323,24 +334,28 @@ const AddCustomerDetails = ({ loadData, status }) => {
       // Check if request was successful
       if (!response.ok) {
         setLoading(false);
+
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to create customer");
-        }
-        return;
-      }
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
 
-      // Check if response contains an error
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        if (response.data?.error && typeof response.data.error === "object") {
-          toast.error("Failed to create customer");
-        } else {
-          const errorMessage = "Failed to create customer";
-          toast.error(errorMessage);
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to add customer";
+          }
+
+          toast.error(errorText);
         }
         return;
       }
@@ -352,8 +367,8 @@ const AddCustomerDetails = ({ loadData, status }) => {
       // Reset form
       setFormData({
         Customer_Name: "",
-        Gender: "",
-        Nationality: "",
+        Gender: null,
+        Nationality: null,
         Phone_Number: "",
         Email: "",
         Student_ID: "",
@@ -362,7 +377,7 @@ const AddCustomerDetails = ({ loadData, status }) => {
         Customer_Status: "active",
         Customer_Nature: "house_rent",
         Customer_Type: "",
-        customer_origin: "inside",
+        customer_origin: null,
         Admission_ID: "",
         Semester: "",
         Date_Birth: null,
@@ -410,6 +425,21 @@ const AddCustomerDetails = ({ loadData, status }) => {
               Add Customer
             </h3>
             <form onSubmit={submit} className="space-y-4">
+              <Autocomplete
+                id="combo-box-demo"
+                options={sortedCustomerType}
+                size="small"
+                className="w-full"
+                freeSolo
+                fullWidth
+                value={sortedCustomerType.find(
+                  (option) => option.id === formData?.customer_origin,
+                )}
+                onChange={handleChange("customer_origin")}
+                renderInput={(params) => (
+                  <TextField {...params} label="Select Customer Type" />
+                )}
+              />
               <TextField
                 size="small"
                 label={"Customer Name"}
@@ -474,23 +504,23 @@ const AddCustomerDetails = ({ loadData, status }) => {
                   onChange={handleChange("Email")}
                   disabled={loading}
                 />
-                 <Autocomplete
-                id="combo-box-demo"
-                options={sortedNationalities}
-                size="small"
-                className="w-full"
-                freeSolo
-                fullWidth
-                value={sortedNationalities.find(
-                  (option) => option.id === formData?.Nationality,
-                )}
-                onChange={handleChange("Nationality")}
-                renderInput={(params) => (
-                  <TextField {...params} label="Select Nationality" />
-                )}
-              />
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedNationalities}
+                  size="small"
+                  className="w-full"
+                  freeSolo
+                  fullWidth
+                  value={sortedNationalities.find(
+                    (option) => option.id === formData?.Nationality,
+                  )}
+                  onChange={handleChange("Nationality")}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Nationality" />
+                  )}
+                />
               </div>
-             
+
               <div className="pt-2">
                 <button
                   type="submit"

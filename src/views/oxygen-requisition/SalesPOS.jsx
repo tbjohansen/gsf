@@ -15,7 +15,12 @@ import { MdAdd, MdRemove, MdDeleteForever } from "react-icons/md";
 import { FiSearch } from "react-icons/fi";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
-import { capitalize, formatDateTimeForDb, formatter } from "../../../helpers";
+import {
+  capitalize,
+  formatDateTimeForDb,
+  formatter,
+  reportError,
+} from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -95,7 +100,7 @@ const SalesPOS = () => {
     setLoadingCustomers(true);
     try {
       const response = await apiClient.get(
-        `/customer/customer?Customer_Nature=oxygen&limit=100&page=1`
+        `/customer/customer?Customer_Nature=oxygen&limit=1000&page=1`,
       );
 
       if (response.data?.error || response.data?.code >= 400) {
@@ -147,7 +152,7 @@ const SalesPOS = () => {
       if (!response.ok) {
         setLoadingPreviousRequests(false);
         toast.error(
-          response.data?.error || "Failed to fetch previous requests"
+          response.data?.error || "Failed to fetch previous requests",
         );
         return;
       }
@@ -169,7 +174,7 @@ const SalesPOS = () => {
       return items;
     }
     return items.filter((item) =>
-      item.Item_Name?.toLowerCase().includes(searchQuery.toLowerCase())
+      item.Item_Name?.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [items, searchQuery]);
 
@@ -183,7 +188,7 @@ const SalesPOS = () => {
     }
 
     const existingItem = selectedItems.find(
-      (selected) => selected.Item_ID === item.Item_ID
+      (selected) => selected.Item_ID === item.Item_ID,
     );
 
     if (existingItem) {
@@ -192,8 +197,8 @@ const SalesPOS = () => {
         prev.map((selected) =>
           selected.Item_ID === item.Item_ID
             ? { ...selected, quantity: selected.quantity + 1 }
-            : selected
-        )
+            : selected,
+        ),
       );
     } else {
       // Add new item with default quantity of 1
@@ -218,8 +223,8 @@ const SalesPOS = () => {
     const quantity = Math.max(0, Number(newQuantity) || 0);
     setSelectedItems((prev) =>
       prev.map((item) =>
-        item.Item_ID === itemId ? { ...item, quantity } : item
-      )
+        item.Item_ID === itemId ? { ...item, quantity } : item,
+      ),
     );
   };
 
@@ -227,7 +232,7 @@ const SalesPOS = () => {
   const handlePriceChange = (itemId, newPrice) => {
     const price = Math.max(0, Number(newPrice) || 0);
     setSelectedItems((prev) =>
-      prev.map((item) => (item.Item_ID === itemId ? { ...item, price } : item))
+      prev.map((item) => (item.Item_ID === itemId ? { ...item, price } : item)),
     );
   };
 
@@ -237,8 +242,8 @@ const SalesPOS = () => {
       prev.map((item) =>
         item.Item_ID === itemId
           ? { ...item, quantity: (item.quantity || 0) + 1 }
-          : item
-      )
+          : item,
+      ),
     );
   };
 
@@ -251,8 +256,8 @@ const SalesPOS = () => {
               ...item,
               quantity: Math.max(0, (item.quantity || 0) - 1),
             }
-          : item
-      )
+          : item,
+      ),
     );
   };
 
@@ -265,7 +270,7 @@ const SalesPOS = () => {
   const grandTotal = useMemo(() => {
     return selectedItems.reduce(
       (sum, item) => sum + calculateItemTotal(item),
-      0
+      0,
     );
   }, [selectedItems]);
 
@@ -278,7 +283,7 @@ const SalesPOS = () => {
 
     // Validate that all items have quantity > 0
     const invalidItems = selectedItems.filter(
-      (item) => !item.quantity || item.quantity <= 0
+      (item) => !item.quantity || item.quantity <= 0,
     );
     if (invalidItems.length > 0) {
       toast.error("Please ensure all items have a quantity greater than 0");
@@ -312,6 +317,8 @@ const SalesPOS = () => {
           Item_ID: item.Item_ID,
         })),
         Request_Type: "oxygen",
+        Customer_Status: "approved",
+        Billing_Type: selectedCustomer?.Payment_Method,
       };
 
       console.log("Submitting order data:", requestData);
@@ -319,30 +326,13 @@ const SalesPOS = () => {
       // Make API request
       const response = await apiClient.post(
         "/oxygen/oxygen-request",
-        requestData
+        requestData,
       );
 
       // Check if request was successful
       if (!response.ok) {
         setSubmitting(false);
-
-        // Handle apisauce errors
-        if (response.problem === "NETWORK_ERROR") {
-          toast.error("Network error. Please check your connection");
-        } else if (response.problem === "TIMEOUT_ERROR") {
-          toast.error("Request timeout. Please try again");
-        } else if (response.problem === "CONNECTION_ERROR") {
-          toast.error("Connection error. Please check your internet");
-        } else {
-          toast.error(response.data?.error || "Failed to submit order");
-        }
-        return;
-      }
-
-      // Check if response contains an error
-      if (response.data?.error || response.data?.code >= 400) {
-        setSubmitting(false);
-        toast.error(response.data?.error || "Failed to submit order");
+        reportError(response, "Failed to submit order");
         return;
       }
 
@@ -547,7 +537,7 @@ const SalesPOS = () => {
                                 onChange={(e) =>
                                   handleQuantityChange(
                                     item.Item_ID,
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 inputProps={{
@@ -686,10 +676,9 @@ const SalesPOS = () => {
                     const totalAmount =
                       batch?.request?.reduce(
                         (sum, item) => sum + item?.Price * item?.Quantity,
-                        0
+                        0,
                       ) || 0;
 
-                    
                     const sn = index + 1;
 
                     // Get status from first request item
@@ -714,8 +703,8 @@ const SalesPOS = () => {
                           {batch?.Request_Batch_Date
                             ? batch?.Request_Batch_Date
                             : batch?.created_at
-                            ? formatDateTimeForDb(batch?.created_at)
-                            : "N/A"}
+                              ? formatDateTimeForDb(batch?.created_at)
+                              : "N/A"}
                         </TableCell>
                         <TableCell>
                           {batch?.request && Array.isArray(batch?.request) ? (
@@ -737,10 +726,10 @@ const SalesPOS = () => {
                               status === "active"
                                 ? "bg-blue-100 text-green-800"
                                 : status === "pending"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : status === "inactive"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-gray-100 text-gray-800"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : status === "inactive"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-gray-100 text-gray-800"
                             }`}
                           >
                             {capitalize(status)}

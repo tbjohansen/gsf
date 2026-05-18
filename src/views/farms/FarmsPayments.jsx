@@ -12,6 +12,7 @@ import {
   capitalize,
   currencyFormatter,
   extractBank,
+  formatDateForDb,
   formatDateTimeForDb,
 } from "../../../helpers";
 import apiClient from "../../api/Client";
@@ -24,6 +25,7 @@ import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { TbDownload } from "react-icons/tb";
+import * as XLSX from "xlsx";
 import moment from "moment";
 import DatePick from "../../components/DatePicker";
 
@@ -52,6 +54,7 @@ export default function FarmsPayments() {
   const [sangiraNumber, setSangiraNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [farmsDetails, setFarmsDetails] = useState("");
 
   const [pagination, setPagination] = useState({
     total: 0,
@@ -66,6 +69,7 @@ export default function FarmsPayments() {
 
   useEffect(() => {
     loadFarms();
+    loadFarmsDetails();
   }, []);
 
   const sortedPaymentStatus = [
@@ -124,18 +128,35 @@ export default function FarmsPayments() {
     }
   };
 
+  const loadFarmsDetails = async () => {
+    // setLoading(true);
+    try {
+      const response = await apiClient.get("/estate/farm-details");
+
+      if (!response.ok) {
+        // setLoading(false);
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        // setLoading(false);
+        return;
+      }
+
+      // Adjust based on your API response structure
+      //  console.log(response);
+      setFarmsDetails(response?.data?.data);
+
+      // setLoading(false);
+    } catch (error) {
+      console.error("Fetch farms error:", error);
+      // setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
-  }, [
-    name,
-    sangiraNumber,
-    farm,
-    bank,
-    startDate,
-    endDate,
-    page,
-    rowsPerPage,
-  ]);
+  }, [name, sangiraNumber, farm, bank, startDate, endDate, page, rowsPerPage]);
 
   const loadData = async () => {
     setLoading(true);
@@ -335,7 +356,7 @@ export default function FarmsPayments() {
     }
 
     const summaryStartRow = totalRow + 2;
-    const occupiedFarms = payments?.length ?? 0;
+    const occupiedFarms = farmsDetails?.occupiedHectares ?? 0;
     const seenSangiraNumbers = new Set();
 
     const totalPaid = payments?.reduce((sum, r) => {
@@ -369,10 +390,12 @@ export default function FarmsPayments() {
 
     summaryRows.push(
       ["Total Transactions Recorded", totalRows],
+      ["Total Farms Costs (TZS)", farmsDetails?.totalAmount || 0],
       ["Total Amount Collected (TZS)", totalPaid],
-      ["Total Farms", 0 || 0],
-      ["Occupied Farms", 0 || 0],
-      ["Available Farms", 0 || 0],
+      ["Total Farms", farmsDetails?.totalFarm || 0],
+      ["Total Hectares", farmsDetails?.farmSize || 0],
+      ["Occupied Hectares", farmsDetails?.occupiedHectares || 0],
+      ["Available Hectares", farmsDetails?.availableHectares || 0],
     );
 
     summaryRows.forEach((rowData, i) => {

@@ -32,6 +32,11 @@ const SpaceRentals = () => {
   const hasFetchedData = useRef(false);
   const navigate = useNavigate();
 
+    const storedUserInfo = localStorage.getItem("userInfo");
+  const parsedUserInfo = JSON.parse(storedUserInfo);
+  const customer = parsedUserInfo?.customer;
+  console.log(customer);
+
   // Default placeholder image for properties without images
   const DEFAULT_HOUSE_IMAGE = houseImage;
 

@@ -140,15 +140,16 @@ export default function RentedSpaces() {
         ),
       },
       {
-        id: "student_id",
-        label: "Customer ID",
+        id: "phone",
+        label: "Phone Number",
         minWidth: 140,
-        format: (row, value) => <span>{value?.customer?.Customer_ID}</span>,
+        format: (row, value) => <span>{value?.customer?.Phone_Number}</span>,
       },
 
       {
         id: "total_amount",
-        label: "Amount",
+        label: "Total Amount",
+        minWidth: 170,
         format: (row, value) => (
           <span>
             {value?.Sangira
@@ -162,6 +163,7 @@ export default function RentedSpaces() {
       {
         id: "sangira_number",
         label: "Sangira",
+        minWidth: 170,
         format: (row, value) => (
           <span>{value?.Sangira?.Sangira_Number || ""}</span>
         ),
@@ -176,7 +178,6 @@ export default function RentedSpaces() {
         id: "status",
         label: "Payment Status",
         minWidth: 170,
-        align: "center",
         format: (row, value) => (
           <>
             {value?.Sangira ? (

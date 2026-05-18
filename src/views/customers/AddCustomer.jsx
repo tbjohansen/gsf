@@ -39,7 +39,7 @@ const AddCustomer = ({ loadData, status }) => {
       Year_Study: "",
       Customer_Status: "active",
       Customer_Nature: status || "student",
-      customer_origin: "",
+      customer_origin: null,
       Customer_Type: "",
       Admission_ID: "",
       Semester: "",
@@ -47,6 +47,7 @@ const AddCustomer = ({ loadData, status }) => {
       Emergency_Contact_Name: "",
       Next_Kin_Relationship: "",
       Emergency_Contact_Phone: "",
+      Payment_Method: null,
     });
   };
   const [formData, setFormData] = useState({
@@ -60,7 +61,7 @@ const AddCustomer = ({ loadData, status }) => {
     Year_Study: "",
     Customer_Status: "active",
     Customer_Nature: status || "student",
-    customer_origin: "",
+    customer_origin: null,
     Customer_Type: "",
     Admission_ID: "",
     Semester: "",
@@ -68,6 +69,7 @@ const AddCustomer = ({ loadData, status }) => {
     Emergency_Contact_Name: "",
     Next_Kin_Relationship: "",
     Emergency_Contact_Phone: "",
+    Payment_Method: null,
   });
 
   const sortedPrograms = [
@@ -146,8 +148,13 @@ const AddCustomer = ({ loadData, status }) => {
   ];
 
   const sortedOrigin = [
-    { id: "inside", label: "Inside" },
-    { id: "outside", label: "Outside" },
+    { id: "inside", label: "Internal" },
+    { id: "outside", label: "External" },
+  ];
+
+  const sortedPaymentMethod = [
+    { id: "cash", label: "Cash" },
+    { id: "credit", label: "Credit" },
   ];
 
   const sortedNationalities = [
@@ -367,8 +374,6 @@ const AddCustomer = ({ loadData, status }) => {
   const submit = async (e) => {
     e.preventDefault();
 
-    console.log("yess");
-
     if (!formData.Customer_Name || formData.Customer_Name.trim() === "") {
       toast.error("Please enter customer name");
       return;
@@ -396,6 +401,16 @@ const AddCustomer = ({ loadData, status }) => {
 
     if (!validPhoneNumber(formData?.Phone_Number)) {
       toast.error("Please enter a valid phone number");
+      return;
+    }
+
+    if (status === "oxygen" && !formData?.customer_origin) {
+      toast.error("Please select customer type");
+      return;
+    }
+
+    if (status === "oxygen" && !formData?.Payment_Method) {
+      toast.error("Please select payment method");
       return;
     }
 
@@ -448,7 +463,8 @@ const AddCustomer = ({ loadData, status }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          const serverMessage = response?.data?.error || response?.data?.message;
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
           toast.error(
             typeof serverMessage === "string"
               ? serverMessage
@@ -475,12 +491,13 @@ const AddCustomer = ({ loadData, status }) => {
         Customer_Status: "active",
         Customer_Nature: status || "student",
         Customer_Type: "",
-        customer_origin: "",
+        customer_origin: null,
         Semester: "",
         Date_Birth: null,
         Emergency_Contact_Name: "",
         Emergency_Contact_Phone: "",
         Next_Kin_Relationship: "",
+        Payment_Method: null,
       });
 
       // Trigger parent component refresh
@@ -615,20 +632,37 @@ const AddCustomer = ({ loadData, status }) => {
                 )}
 
                 {status === "oxygen" && (
-                  <Autocomplete
-                    id="combo-box-demo"
-                    options={sortedOrigin}
-                    size="small"
-                    freeSolo
-                    fullWidth
-                    value={sortedOrigin.find(
-                      (option) => option.id === formData?.customer_origin,
-                    )}
-                    onChange={handleChange("customer_origin")}
-                    renderInput={(params) => (
-                      <TextField {...params} label="Select Customer Origin" />
-                    )}
-                  />
+                  <>
+                    <Autocomplete
+                      id="combo-box-demo"
+                      options={sortedOrigin}
+                      size="small"
+                      freeSolo
+                      fullWidth
+                      value={sortedOrigin.find(
+                        (option) => option.id === formData?.customer_origin,
+                      )}
+                      onChange={handleChange("customer_origin")}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Select Customer Type" />
+                      )}
+                    />
+
+                    <Autocomplete
+                      id="combo-box-demo"
+                      options={sortedPaymentMethod}
+                      size="small"
+                      freeSolo
+                      fullWidth
+                      value={sortedPaymentMethod.find(
+                        (option) => option.id === formData?.Payment_Method,
+                      )}
+                      onChange={handleChange("Payment_Method")}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Select Payment Method" />
+                      )}
+                    />
+                  </>
                 )}
 
                 {status === "student" && (

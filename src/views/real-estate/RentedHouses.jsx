@@ -37,7 +37,7 @@ export default function RentedHouses() {
   const [requestsList, setList] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
-  
+
   // Add pagination state from backend
   const [pagination, setPagination] = React.useState({
     total: 0,
@@ -52,21 +52,14 @@ export default function RentedHouses() {
 
   React.useEffect(() => {
     loadData();
-  }, [page, rowsPerPage]); // Reload when page or rowsPerPage changes
+  }, [page, rowsPerPage]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get(
-        `/customer/customer-request`,
-        {
-          params: {
-            Request_Type: "house_rent",
-            page: page,
-            limit: rowsPerPage,
-          },
-        }
-      );
+      let url = `/customer/customer-request?&Request_Type=house_rent&page=${page}&limit=${rowsPerPage}`;
+
+      const response = await apiClient.get(url);
 
       if (!response.ok) {
         setLoading(false);
@@ -83,23 +76,24 @@ export default function RentedHouses() {
       // Adjust based on your API response structure
       const responseData = response?.data?.data;
       const paymentsData = responseData?.data || [];
-      
+
       const filteredData = paymentsData?.filter(
         (house) =>
           house?.Customer_Status === "served" ||
           house?.Customer_Status === "assign" ||
           house?.Customer_Status === "requested",
       );
-      
+
       // Calculate sequential keys based on pagination
       const newData = filteredData?.map((payment, index) => ({
         ...payment,
-        key: (responseData?.current_page - 1) * (responseData?.per_page) + index + 1,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
-      
+
       console.log(newData);
       setList(Array.isArray(newData) ? newData : []);
-      
+
       // Update pagination state
       setPagination({
         total: responseData?.total || 0,
@@ -109,7 +103,7 @@ export default function RentedHouses() {
         from: responseData?.from || 0,
         to: responseData?.to || 0,
       });
-      
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch requests error:", error);
@@ -174,16 +168,17 @@ export default function RentedHouses() {
         ),
       },
       {
-        id: "student_id",
-        label: "Customer ID",
+        id: "phone",
+        label: "Phone Number",
         format: (row, value) => (
-          <span>{capitalize(value?.customer?.Student_ID)}</span>
+          <span>{capitalize(value?.customer?.Phone_Number)}</span>
         ),
       },
 
       {
         id: "total_amount",
-        label: "Amount",
+        label: "Total Amount",
+        minWidth: 170,
         format: (row, value) => (
           <span>
             {value?.Sangira
@@ -197,7 +192,7 @@ export default function RentedHouses() {
         ),
       },
       {
-        id: "payment+method",
+        id: "payment_method",
         label: "Payment Method",
         format: (row, value) => (
           <span>
@@ -210,6 +205,7 @@ export default function RentedHouses() {
       {
         id: "sangira_number",
         label: "Sangira",
+        minWidth: 170,
         format: (row, value) => (
           <span>{value?.Sangira?.Sangira_Number || ""}</span>
         ),
@@ -223,8 +219,7 @@ export default function RentedHouses() {
       {
         id: "status",
         label: "Payment Status",
-        minWidth: 170,
-        align: "center",
+        minWidth: 150,
         format: (row, value) => (
           <>
             {value?.Sangira ? (
@@ -352,7 +347,7 @@ export default function RentedHouses() {
           page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          labelDisplayedRows={({ from, to, count }) => 
+          labelDisplayedRows={({ from, to, count }) =>
             `${from}-${to} of ${count}`
           }
           showFirstButton
@@ -361,4 +356,4 @@ export default function RentedHouses() {
       </Paper>
     </>
   );
-} 
+}

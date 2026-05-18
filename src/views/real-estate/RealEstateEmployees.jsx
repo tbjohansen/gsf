@@ -59,7 +59,7 @@ export default function RealEstateEmployees() {
       hasFetchedData.current = true;
       loadData();
     }
-  }, [rowsPerPage, page]);
+  }, [rowsPerPage, page, name, phoneNumber]);
 
   const loadData = async () => {
     setLoading(true);
@@ -252,11 +252,12 @@ export default function RealEstateEmployees() {
             <button
               onClick={() => onSyncEmployees()}
               disabled={syncLoading}
-              className="group h-10 w-64 flex justify-center bg-gradient-to-r from-blue-900 to-sky-600 text-white rounded-xl cursor-pointer hover:from-blue-800"
+              className="group h-10 w-32 sm:w-48 md:w-56 lg:w-64 flex justify-center bg-gradient-to-r from-blue-900 to-sky-600 text-white rounded-xl cursor-pointer hover:from-blue-800 hover:to-sky-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="flex text-sm items-center text-white gap-2">
-                <FcSynchronize className="w-5 h-5" />
-                Synchronize Employees
+              <div className="flex text-xs sm:text-sm items-center text-white gap-1 sm:gap-2">
+                <FcSynchronize className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Synchronize Employees</span>
+                <span className="sm:hidden">Sync</span>
               </div>
             </button>
             <AddEmployee loadData={loadData} />

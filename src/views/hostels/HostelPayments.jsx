@@ -715,7 +715,7 @@ export default function HostelPayments() {
           <span>{extractBank(value?.payment?.Payment_Channel)}</span>
         ),
       },
-      { id: "actions", label: "Actions", align: "center" }, // no format — rendered inline below
+      { id: "actions", label: "Actions", align: "center" },
     ],
     [],
   );

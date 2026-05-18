@@ -108,17 +108,16 @@ export default function RealEsatesRequests() {
         ),
       },
       {
-        id: "student_id",
-        label: "Customer ID",
+        id: "phone",
+        label: "Phone",
         format: (row, value) => (
-          <span>{capitalize(value?.customer?.Student_ID)}</span>
+          <span>{capitalize(value?.customer?.Phone_Number)}</span>
         ),
       },
       {
         id: "Customer_Status",
         label: "Request Status",
         minWidth: 170,
-        align: "center",
         format: (row, value) => (
           <Badge
             name={
@@ -144,7 +143,7 @@ export default function RealEsatesRequests() {
       {
         id: "estate",
         label: "Unit Type",
-        minWidth: 170,
+        minWidth: 150,
         format: (row, value) => (
           <span>{capitalize(value?.estate?.real_estate_type)}</span>
         ),
@@ -160,12 +159,19 @@ export default function RealEsatesRequests() {
         label: "Monthly Price",
         minWidth: 170,
         format: (row, value) => (
-          <span>{currencyFormatter?.format(value?.estate?.price)}</span>
+          <span>
+            {value?.customer?.Customer_Type === null || value?.customer?.Customer_Type === "local" ? (
+              <>{currencyFormatter?.format(value?.estate?.price)}</>
+            ) : (
+              <>USD {formatter?.format(value?.estate?.usd_price)}</>
+            )}
+          </span>
         ),
       },
       {
         id: "total_amount",
-        label: "Amount",
+        label: "Total Amount",
+        minWidth: 170,
         format: (row, value) => (
           <span>
             {value?.Sangira
@@ -193,7 +199,6 @@ export default function RealEsatesRequests() {
         id: "status",
         label: "Payment Status",
         minWidth: 170,
-        align: "center",
         format: (row, value) => (
           <>
             {value?.Sangira ? (

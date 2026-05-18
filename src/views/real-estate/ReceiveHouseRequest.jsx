@@ -15,22 +15,53 @@ import { IoArrowUndoCircleOutline } from "react-icons/io5";
 import {
   capitalize,
   currencyFormatter,
+  formatter,
   removeUnderscore,
+  reportError,
 } from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import apiClient, { baseURL } from "../../api/Client";
 import { CgFileRemove } from "react-icons/cg";
-import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
-import { IconButton } from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  IconButton,
+  TextField,
+} from "@mui/material";
 import { MdClose } from "react-icons/md";
 import { FcMoneyTransfer } from "react-icons/fc";
+
+/* ─── Design tokens ───────────────────────────────────────────────────── */
+const C = {
+  bg: "#f0f4f8",
+  surface: "#f8fafc",
+  card: "#ffffff",
+  border: "#dce3ea",
+  primary: "#1f4389",
+  primaryLight: "#2d5bb5",
+  primaryDark: "#162d5e",
+  primaryBg: "#e8edf5",
+  accent: "#f59e0b",
+  accentLight: "#fbbf24",
+  accentBg: "#fef3c7",
+  success: "#059669",
+  successLight: "#10b981",
+  successBg: "#d1fae5",
+  warning: "#d97706",
+  warningBg: "#fef3c7",
+  danger: "#dc2626",
+  dangerBg: "#fee2e2",
+  info: "#6366f1",
+  infoBg: "#e0e7ff",
+  muted: "#64748b",
+  text: "#1e293b",
+  textDim: "#94a3b8",
+};
 
 export default function ReceiveHouseRequest() {
   const { requestID } = useParams();
@@ -41,6 +72,7 @@ export default function ReceiveHouseRequest() {
   const [declineReason, setDeclineReason] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [numberOfMonths, setNumberOfMonths] = useState(1);
+  const [exchangeRate, setExchangeRate] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
 
@@ -251,20 +283,7 @@ export default function ReceiveHouseRequest() {
 
       if (!response.ok) {
         setLoading(false);
-        if (response.problem === "NETWORK_ERROR") {
-          toast.error("Network error. Please check your connection");
-        } else if (response.problem === "TIMEOUT_ERROR") {
-          toast.error("Request timeout. Please try again");
-        } else {
-          toast.error("Failed to receive house request");
-        }
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to receive house request";
-        toast.error(errorMessage);
+        reportError(response, "Failed to receive house request");
         return;
       }
 
@@ -298,6 +317,18 @@ export default function ReceiveHouseRequest() {
       return;
     }
 
+    // Validate exchange rate for foreign customers
+    const isForeigner = requestData?.customer?.Customer_Type === "foreigner";
+    if (isForeigner && !exchangeRate) {
+      toast.error("Please enter exchange rate for foreign customer");
+      return;
+    }
+
+    if (isForeigner && exchangeRate < 1) {
+      toast.error("Please enter valid exchange rate for foreign customer");
+      return;
+    }
+
     if (!requestData) {
       toast.error(
         "Request information not found. Please refresh and try again.",
@@ -309,7 +340,6 @@ export default function ReceiveHouseRequest() {
 
     try {
       const data = {
-        // Customer_Status: paymentMethod === "cash" ? "assign" : "served",
         Customer_Status: "assign",
         Payment_Mode: paymentMethod,
         real_estate_id: requestData?.real_estate_id,
@@ -323,6 +353,12 @@ export default function ReceiveHouseRequest() {
       if (paymentMethod === "cash") {
         data.months = numberOfMonths;
         data.Grand_Total_Price = calculateGrandTotal();
+      }
+
+      // Add exchange rate for foreign customers
+      if (isForeigner) {
+        // data.Exchange_Rate = exchangeRate;
+        data.Grand_Total_Price = calculateGrandTotal() * parseFloat(exchangeRate);
       }
 
       const response = await apiClient.put(`/estate/real-estate-request`, data);
@@ -351,6 +387,7 @@ export default function ReceiveHouseRequest() {
       loadData();
       setPaymentMethod("");
       setNumberOfMonths(1);
+      setExchangeRate("");
       setShowAcceptModal(false);
     } catch (error) {
       console.error("Update unit error:", error);
@@ -664,15 +701,6 @@ export default function ReceiveHouseRequest() {
 
         {(requestData?.Customer_Status === "served" ||
           requestData?.Customer_Status === "requested") && (
-          // <div className="text-center py-4">
-          //   <LuCircleCheckBig
-          //     className="mx-auto text-green-600 mb-2"
-          //     size={48}
-          //   />
-          //   <p className="text-xl font-semibold text-green-600">
-          //     Request Accepted
-          //   </p>
-          // </div>
           <div>
             <button
               onClick={handleConfirmOpen}
@@ -683,43 +711,42 @@ export default function ReceiveHouseRequest() {
             </button>
             <Dialog
               open={open}
-              // slots={{
-              //   transition: Transition,
-              // }}
               keepMounted
               onClose={handleClose}
               aria-describedby="alert-dialog-slide-description"
+              PaperProps={{
+                className:
+                  "bg-white border border-slate-200 rounded-2xl shadow-xl",
+              }}
             >
-              <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
-                {"REVOKE HOUSE ALLOCATION"}
+              <DialogTitle className="font-bold border-b border-slate-200 flex justify-between items-center text-slate-800">
+                <span>REVOKE HOUSE ALLOCATION</span>
+                <IconButton
+                  aria-label="close"
+                  onClick={handleClose}
+                  size="small"
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <MdClose />
+                </IconButton>
               </DialogTitle>
-
-              <IconButton
-                aria-label="close"
-                color="primary"
-                onClick={handleClose}
-                sx={() => ({
-                  position: "absolute",
-                  right: 8,
-                  top: 8,
-                })}
-              >
-                <MdClose />
-              </IconButton>
-              <DialogContent>
-                <DialogContentText id="alert-dialog-slide-description">
-                  Are you sure you want to revoke this house request allocation
-                  ?
-                </DialogContentText>
+              <DialogContent className="pt-6">
+                <p className="text-slate-500 text-sm">
+                  Are you sure you want to revoke this house request allocation?
+                </p>
               </DialogContent>
-              <DialogActions>
-                <Button variant="outlined" onClick={handleClose}>
+              <DialogActions className="p-4 border-t border-slate-200 gap-2">
+                <Button
+                  onClick={handleClose}
+                  className="text-slate-500 normal-case hover:bg-slate-50"
+                >
                   Cancel
                 </Button>
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   color="error"
                   onClick={(e) => revokeAllocation(e)}
+                  className="text-white normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow"
                 >
                   REVOKE
                 </Button>
@@ -761,9 +788,6 @@ export default function ReceiveHouseRequest() {
                 <p className="text-sm text-gray-600">
                   Uploaded on: {requestData?.Contract_Attached_Time}
                 </p>
-                {/* <p className="text-sm text-gray-600">
-                  Uploaded by: {capitalize(requestData?.contract?.name)}
-                </p> */}
               </div>
             </div>
             <div className="flex gap-3">
@@ -1092,17 +1116,20 @@ export default function ReceiveHouseRequest() {
   return (
     <>
       <Breadcrumb />
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen p-6" style={{ backgroundColor: C.bg }}>
         <div className="max-w-5xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+            <div className="px-8 py-6" style={{ backgroundColor: C.primaryBg }}>
               <div className="flex justify-between items-start">
                 <div>
-                  <h1 className="text-3xl font-bold text-white mb-2">
+                  <h1
+                    className="text-3xl font-bold mb-2"
+                    style={{ color: C.text }}
+                  >
                     House Request Details
                   </h1>
-                  <p className="text-blue-100">
+                  <p className="text-slate-500">
                     Request ID: #{requestData?.Request_ID}
                   </p>
                 </div>
@@ -1144,14 +1171,14 @@ export default function ReceiveHouseRequest() {
 
             {/* Tabs */}
             {showTabs && (
-              <div className="border-b border-gray-200">
+              <div className="border-b border-slate-200">
                 <nav className="flex -mb-px">
                   <button
                     onClick={() => setActiveTab("details")}
                     className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === "details"
                         ? "border-blue-600 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                     }`}
                   >
                     Request Details
@@ -1164,7 +1191,7 @@ export default function ReceiveHouseRequest() {
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
                         activeTab === "contract"
                           ? "border-blue-600 text-blue-600"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                          : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                       }`}
                     >
                       Contract Management
@@ -1178,7 +1205,7 @@ export default function ReceiveHouseRequest() {
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
                         activeTab === "payment"
                           ? "border-blue-600 text-blue-600"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                          : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                       }`}
                     >
                       Payment Details
@@ -1190,7 +1217,7 @@ export default function ReceiveHouseRequest() {
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
                         activeTab === "rejection"
                           ? "border-blue-600 text-blue-600"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                          : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                       }`}
                     >
                       Rejection Details
@@ -1214,161 +1241,269 @@ export default function ReceiveHouseRequest() {
           </div>
         </div>
 
-        {/* Decline Modal */}
-        {showDeclineModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                Reject Request
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Please provide a reason for rejecting this request:
-              </p>
-              <textarea
-                value={declineReason}
-                onChange={(e) => setDeclineReason(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-3 mb-4 min-h-32 focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Enter reason for rejecting..."
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowDeclineModal(false);
-                    setDeclineReason("");
-                  }}
-                  className="flex-1 cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition duration-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={declineHouseRequest}
-                  disabled={!declineReason.trim()}
-                  className="flex-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Confirm Reject
-                </button>
-              </div>
+        {/* Decline Modal - Using MUI Dialog with matching theme */}
+        <Dialog
+          open={showDeclineModal}
+          onClose={() => {
+            setShowDeclineModal(false);
+            setDeclineReason("");
+          }}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            className: "bg-white border border-slate-200 rounded-2xl shadow-xl",
+          }}
+        >
+          <DialogTitle className="font-bold border-b border-slate-200 flex justify-between items-center text-slate-800">
+            <div className="flex items-center gap-2">
+              <LuCircleX style={{ color: C.danger }} size={20} />
+              <span>Reject Request</span>
             </div>
-          </div>
-        )}
+            <IconButton
+              onClick={() => {
+                setShowDeclineModal(false);
+                setDeclineReason("");
+              }}
+              size="small"
+              className="text-slate-400 hover:text-slate-600"
+            >
+              <MdClose />
+            </IconButton>
+          </DialogTitle>
 
-        {/* Accept Modal */}
-        {showAcceptModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                Accept Request
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Please select a payment method:
-              </p>
-              <div className="space-y-2 mb-4">
-                <label className="flex items-center p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+          <DialogContent className="pt-6">
+            <p className="text-slate-500 text-sm mb-5">
+              Please provide a reason for rejecting this request:
+            </p>
+            <TextField
+              fullWidth
+              multiline
+              rows={5}
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              placeholder="Enter reason for rejecting..."
+              className="bg-white"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: C.border,
+                  },
+                  "&:hover fieldset": {
+                    borderColor: C.danger,
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: C.danger,
+                  },
+                },
+              }}
+            />
+          </DialogContent>
+
+          <DialogActions className="p-4 border-t border-slate-200 gap-2">
+            <Button
+              onClick={() => {
+                setShowDeclineModal(false);
+                setDeclineReason("");
+              }}
+              className="text-slate-500 normal-case hover:bg-slate-50"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={declineHouseRequest}
+              disabled={!declineReason.trim()}
+              variant="contained"
+              className="text-white normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
+              style={{ backgroundColor: C.danger }}
+            >
+              Confirm Reject
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Accept Modal - Using MUI Dialog with matching theme */}
+        <Dialog
+          open={showAcceptModal}
+          onClose={() => {
+            setShowAcceptModal(false);
+            setPaymentMethod("");
+            setNumberOfMonths(1);
+            setExchangeRate("");
+          }}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            className: "bg-white border border-slate-200 rounded-2xl shadow-xl",
+          }}
+        >
+          <DialogTitle className="font-bold border-b border-slate-200 flex justify-between items-center text-slate-800">
+            <div className="flex items-center gap-2">
+              <LuCircleCheckBig style={{ color: C.success }} size={20} />
+              <span>Accept Request</span>
+            </div>
+            <IconButton
+              onClick={() => {
+                setShowAcceptModal(false);
+                setPaymentMethod("");
+                setNumberOfMonths(1);
+                setExchangeRate("");
+              }}
+              size="small"
+              className="text-slate-400 hover:text-slate-600"
+            >
+              <MdClose />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent className="pt-6">
+            <p className="text-slate-500 text-sm mb-5">
+              Please select a payment method:
+            </p>
+            <div className="space-y-3 mb-4">
+              <label className="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-blue-300 transition bg-white">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="free"
+                  checked={paymentMethod === "free"}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="mr-4 w-5 h-5 text-green-600 focus:ring-green-500"
+                />
+                <div>
+                  <p className="font-semibold text-slate-800">Free</p>
+                  <p className="text-sm text-slate-500">No payment required</p>
+                </div>
+              </label>
+              <label className="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-blue-300 transition bg-white">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="salary_deduction"
+                  checked={paymentMethod === "salary_deduction"}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="mr-4 w-5 h-5 text-green-600 focus:ring-green-500"
+                />
+                <div>
+                  <p className="font-semibold text-slate-800">
+                    Salary Deduction
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    Deduct from monthly salary
+                  </p>
+                </div>
+              </label>
+              <label className="block p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-blue-300 transition bg-white">
+                <div className="flex items-center mb-3">
                   <input
                     type="radio"
                     name="payment"
-                    value="free"
-                    checked={paymentMethod === "free"}
+                    value="cash"
+                    checked={paymentMethod === "cash"}
                     onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mr-3 w-4 h-4 text-green-600"
+                    className="mr-4 w-5 h-5 text-green-600 focus:ring-green-500"
                   />
                   <div>
-                    <p className="font-semibold text-gray-900">Free</p>
-                    <p className="text-sm text-gray-600">No payment required</p>
+                    <p className="font-semibold text-slate-800">Cash Payment</p>
+                    <p className="text-sm text-slate-500">Pay in cash</p>
                   </div>
-                </label>
-                <label className="flex items-center p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="salary_deduction"
-                    checked={paymentMethod === "salary_deduction"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mr-3 w-4 h-4 text-green-600"
-                  />
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      Salary Deduction
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Deduct from monthly salary
-                    </p>
-                  </div>
-                </label>
-                <label className="block p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                  <div className="flex items-center mb-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cash"
-                      checked={paymentMethod === "cash"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="mr-3 w-4 h-4 text-green-600"
-                    />
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        Cash Payment
-                      </p>
-                      <p className="text-sm text-gray-600">Pay in cash</p>
+                </div>
+
+                {paymentMethod === "cash" && (
+                  <div className="ml-9 space-y-4 mt-4  border-t border-slate-200">
+                    <div className="my-1">
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="number"
+                        label="Number of Months"
+                        value={numberOfMonths}
+                        onChange={(e) =>
+                          setNumberOfMonths(parseInt(e.target.value) || 1)
+                        }
+                        InputProps={{
+                          inputProps: { min: 1 },
+                        }}
+                      />
                     </div>
-                  </div>
-
-                  {paymentMethod === "cash" && (
-                    <div className="ml-7 space-y-2 mt-3 pt-3 border-t border-gray-200">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Number of Months
-                        </label>
-                        <input
+                    <div className="my-3">
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Grand Total Amount"
+                        value={
+                          requestData?.customer?.Customer_Type === "local" ||
+                          requestData?.customer?.Customer_Type === null
+                            ? currencyFormatter.format(calculateGrandTotal())
+                            : `USD ${formatter.format(calculateGrandTotal())}`
+                        }
+                        disabled
+                      />
+                    </div>
+                    {/* Exchange Rate Field for Foreign Customers */}
+                    {requestData?.customer?.Customer_Type === "foreigner" && (
+                      <div className="my-2">
+                        <TextField
+                          fullWidth
+                          size="small"
                           type="number"
-                          min="1"
-                          value={numberOfMonths}
-                          onChange={(e) =>
-                            setNumberOfMonths(parseInt(e.target.value) || 1)
-                          }
-                          className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          placeholder="Enter number of months"
+                          label="Exchange Rate (to local currency)"
+                          value={exchangeRate}
+                          onChange={(e) => setExchangeRate(e.target.value)}
+                          InputProps={{
+                            inputProps: { step: "0.01", min: "0" },
+                          }}
                         />
+                        {exchangeRate && (
+                          <div
+                            className="mt-3 p-4 rounded-xl border"
+                            style={{
+                              backgroundColor: C.infoBg,
+                              borderColor: C.info,
+                            }}
+                          >
+                            <p
+                              className="text-sm font-medium"
+                              style={{ color: C.info }}
+                            >
+                              Local currency amount:{" "}
+                              {currencyFormatter.format(
+                                calculateGrandTotal() *
+                                  parseFloat(exchangeRate || 0),
+                              )}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Grand Total Amount
-                        </label>
-                        <input
-                          type="text"
-                          value={currencyFormatter.format(
-                            calculateGrandTotal(),
-                          )}
-                          disabled
-                          className="w-full border border-gray-300 rounded-lg p-2 bg-gray-100 text-gray-700 font-semibold cursor-not-allowed"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </label>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowAcceptModal(false);
-                    setPaymentMethod("");
-                    setNumberOfMonths(1);
-                  }}
-                  className="flex-1 cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition duration-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={acceptHouseRequest}
-                  disabled={!paymentMethod}
-                  className="flex-1 cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Confirm Accept
-                </button>
-              </div>
+                    )}
+                  </div>
+                )}
+              </label>
             </div>
-          </div>
-        )}
+          </DialogContent>
+
+          <DialogActions className="p-4 border-t border-slate-200 gap-2">
+            <Button
+              onClick={() => {
+                setShowAcceptModal(false);
+                setPaymentMethod("");
+                setNumberOfMonths(1);
+                setExchangeRate("");
+              }}
+              className="text-slate-500 normal-case hover:bg-slate-50"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={acceptHouseRequest}
+              disabled={!paymentMethod}
+              variant="contained"
+              className="text-white normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
+              style={{ backgroundColor: C.success }}
+            >
+              Confirm Accept
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     </>
   );

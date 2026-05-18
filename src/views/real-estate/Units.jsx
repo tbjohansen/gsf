@@ -380,20 +380,17 @@ export default function Units() {
         format: (value) => <span>TZS {formatter.format(value || 0)}</span>,
       },
       {
+        id: "usd_price",
+        label: "Price (USD)",
+        minWidth: 130,
+        format: (value) => <span>{value > 0 ? `USD ${formatter.format(value)}` : null}</span>,
+      },
+      {
         id: "locations",
         label: "Location",
         format: (value, row) => <span>{row?.location?.Unit_Location}</span>,
       },
-      {
-        id: "status",
-        label: "Status",
-        format: (value) => (
-          <Badge
-            name={capitalize(value)}
-            color={value === "active" ? "green" : "error"}
-          />
-        ),
-      },
+
       {
         id: "image",
         label: "Image",
@@ -455,6 +452,16 @@ export default function Units() {
       {
         id: "description",
         label: "Description",
+      },
+      {
+        id: "status",
+        label: "Status",
+        format: (value) => (
+          <Badge
+            name={capitalize(value)}
+            color={value === "active" ? "green" : "error"}
+          />
+        ),
       },
       {
         id: "created_at",

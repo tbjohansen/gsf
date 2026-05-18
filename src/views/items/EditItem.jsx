@@ -218,7 +218,7 @@ const EditItem = ({ item, loadData, Item_Type }) => {
                 <>
                   <div className="w-full py-2 flex justify-center">
                     <TextField
-                      label="Inside Price (TZS)"
+                      label="Internal Price (TZS)"
                       value={price ? formatter.format(Number(price)) : ""}
                       onChange={(e) => {
                         // Remove any non-digit characters except decimal point
@@ -233,7 +233,7 @@ const EditItem = ({ item, loadData, Item_Type }) => {
                   </div>
                   <div className="w-full py-2 flex justify-center">
                     <TextField
-                      label="Outside Price (TZS)"
+                      label="External Price (TZS)"
                       value={
                         outsidePrice
                           ? formatter.format(Number(outsidePrice))

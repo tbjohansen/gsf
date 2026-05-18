@@ -22,36 +22,61 @@ const style = {
 
 const EditUnit = ({ unit, loadData }) => {
   const [open, setOpen] = useState(false);
-  const handleOpen = () => setOpen(true);
+  const handleOpen = () => {
+    // Reset form with current unit data when opening
+    resetForm();
+    setOpen(true);
+  };
   const handleClose = () => {
     setOpen(false);
+    resetForm();
   };
 
-  const [name, setName] = useState(unit?.name);
-  const [status, setStatus] = useState({
-    id: unit?.status,
-    label: capitalize(unit?.status),
-  });
-  const [unitType, setUnitType] = useState({
-    id: unit?.real_estate_type,
-    label: capitalize(unit?.real_estate_type),
-  });
-  const [price, setPrice] = useState(unit?.price);
-  const [description, setDescription] = useState(unit?.description);
-  const [location, setLocation] = useState({
-    id: unit?.Unit_Location_ID,
-    label: capitalize(unit?.location?.Unit_Location),
-  });
+  // Form state
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState(null);
+  const [unitType, setUnitType] = useState(null);
+  const [price, setPrice] = useState("");
+  const [usdPrice, setUsdPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState([]);
 
   const hasFetchedData = useRef(false);
+
+  // Reset form function
+  const resetForm = () => {
+    setName(unit?.name || "");
+    setStatus({
+      id: unit?.status,
+      label: capitalize(unit?.status || ""),
+    });
+    setUnitType({
+      id: unit?.real_estate_type,
+      label: capitalize(unit?.real_estate_type || ""),
+    });
+    setPrice(unit?.price?.toString() || "");
+    setUsdPrice(unit?.usd_price?.toString() || "");
+    setDescription(unit?.description || "");
+    setLocation({
+      id: unit?.Unit_Location_ID,
+      label: capitalize(unit?.location?.Unit_Location || ""),
+    });
+  };
 
   useEffect(() => {
     if (open) {
       loadLocations();
     }
   }, [open]);
+
+  // Reset USD price when unit type changes from house
+  useEffect(() => {
+    if (unitType?.id !== "house") {
+      setUsdPrice("");
+    }
+  }, [unitType]);
 
   const loadLocations = async () => {
     // Get employee info from localStorage
@@ -145,6 +170,11 @@ const EditUnit = ({ unit, loadData }) => {
       return;
     }
 
+    if (unitType?.id === "house" && !usdPrice) {
+      toast.error("Please enter usd price");
+      return;
+    }
+
     // Get employee info from localStorage
     const employeeId = localStorage.getItem("employeeId");
 
@@ -165,6 +195,7 @@ const EditUnit = ({ unit, loadData }) => {
         description,
         Unit_Location_ID: location?.id,
         Employee_ID: employeeId,
+        ...(unitType?.id === "house" && { usd_price: usdPrice }),
       };
 
       // Make API request - Bearer token is automatically included by apiClient
@@ -241,6 +272,20 @@ const EditUnit = ({ unit, loadData }) => {
             <h3 className="text-center text-xl py-4">Edit Unit Details</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedTypes}
+                  size="small"
+                  freeSolo
+                  className="w-[92%]"
+                  value={unitType}
+                  onChange={typesOnChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Unit Type" />
+                  )}
+                />
+              </div>
+              <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
                   id="outlined-basic"
@@ -251,6 +296,62 @@ const EditUnit = ({ unit, loadData }) => {
                   onChange={(e) => setName(e.target.value)}
                   disabled={loading}
                   autoFocus
+                />
+              </div>
+
+              <div
+                className={
+                  unitType?.id === "house"
+                    ? "w-full py-2 flex justify-center flex-row gap-2"
+                    : "w-full py-2 flex justify-center"
+                }
+              >
+                <TextField
+                  size="small"
+                  id="outlined-basic"
+                  label="Unit Price (TZS)"
+                  variant="outlined"
+                  className={unitType?.id === "house" ? "w-[45%]" : "w-[92%]"}
+                  value={price ? formatter.format(Number(price)) : ""}
+                  onChange={(e) => {
+                    // Remove any non-digit characters except decimal point
+                    const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                    setPrice(rawValue);
+                  }}
+                  disabled={loading}
+                  autoFocus
+                />
+                {unitType?.id === "house" && (
+                  <TextField
+                    size="small"
+                    id="outlined-basic"
+                    label="Unit Price (USD)"
+                    variant="outlined"
+                    className={"w-[45%]"}
+                    value={usdPrice ? formatter.format(Number(usdPrice)) : ""}
+                    onChange={(e) => {
+                      // Remove any non-digit characters except decimal point
+                      const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                      setUsdPrice(rawValue);
+                    }}
+                    disabled={loading}
+                    autoFocus
+                  />
+                )}
+              </div>
+
+              <div className="w-full py-2 flex justify-center">
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedLocations}
+                  size="small"
+                  freeSolo
+                  className="w-[92%]"
+                  value={location}
+                  onChange={locationOnChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Unit Location" />
+                  )}
                 />
               </div>
               <div className="w-full py-2 flex justify-center">
@@ -270,51 +371,6 @@ const EditUnit = ({ unit, loadData }) => {
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
-                  id="outlined-basic"
-                  label="Unit Price"
-                  variant="outlined"
-                  className="w-[92%]"
-                  value={price ? formatter.format(Number(price)) : ""}
-                  onChange={(e) => {
-                    // Remove any non-digit characters except decimal point
-                    const rawValue = e.target.value.replace(/[^\d.]/g, "");
-                    setPrice(rawValue);
-                  }}
-                  disabled={loading}
-                  autoFocus
-                />
-              </div>
-              <div className="w-full py-2 flex justify-center">
-                <Autocomplete
-                  id="combo-box-demo"
-                  options={sortedTypes}
-                  size="small"
-                  freeSolo
-                  className="w-[92%]"
-                  value={unitType}
-                  onChange={typesOnChange}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Select Unit Type" />
-                  )}
-                />
-              </div>
-              <div className="w-full py-2 flex justify-center">
-                <Autocomplete
-                  id="combo-box-demo"
-                  options={sortedLocations}
-                  size="small"
-                  freeSolo
-                  className="w-[92%]"
-                  value={location}
-                  onChange={locationOnChange}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Select Unit Location" />
-                  )}
-                />
-              </div>
-              <div className="w-full py-2 flex justify-center">
-                <TextField
-                  size="small"
                   id="outlined-multiline-static"
                   multiline
                   rows={2}
@@ -327,6 +383,7 @@ const EditUnit = ({ unit, loadData }) => {
                   autoFocus
                 />
               </div>
+
               <div className="w-full py-2 mt-5 flex justify-center">
                 <button
                   onClick={(e) => submit(e)}

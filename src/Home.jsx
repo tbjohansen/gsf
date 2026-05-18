@@ -472,8 +472,8 @@ const Home = () => {
               </h3>
               <MdTrendingUp className="w-5 h-5 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-800">
-              {currencyFormatter.format(0)}
+            <p className="text-2xl font-bold text-gray-800">
+              {currencyFormatter.format(bedTotals?.totalRevenue)}
             </p>
             <p className="text-xs text-green-600 mt-2">+1% from last year</p>
           </div>

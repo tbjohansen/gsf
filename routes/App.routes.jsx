@@ -69,6 +69,7 @@ import HostelRequests from "../src/views/hostels/HostelRequests";
 import HostelSetupTabs from "../src/views/hostels/setups/HostelSetupTabs";
 import BroadcastedMessages from "../src/views/hostels/messages/BroadcastedMessages";
 import MonthlyPayments from "../src/views/hostels/MonthlyPayments";
+import OrderDetail from "../src/views/oxygen-requisition/OrderDetail";
 
 const LoginElement = () => <Login />;
 
@@ -353,6 +354,12 @@ const OxygenProductionElement = (props) => (
   </AppLayout>
 );
 
+const OxygenOrderElement = (props) => (
+  <AppLayout>
+    <OrderDetail {...props} />
+  </AppLayout>
+);
+
 const OxygenProductionNewElement = (props) => (
   <AppLayout>
     <AddProduction {...props} />
@@ -599,6 +606,11 @@ const AppRoutes = () => {
         <Route
           path="/projects/oxygen/sales-orders"
           element={<SalesOrdersElement status="oxygen" />}
+        />
+
+        <Route
+          path="/projects/oxygen/sales-orders/:orderID"
+          element={<OxygenOrderElement status="oxygen" />}
         />
 
         <Route

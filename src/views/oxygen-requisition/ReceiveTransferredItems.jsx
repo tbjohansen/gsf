@@ -4,7 +4,12 @@ import { toast } from "react-hot-toast";
 import { MdArrowBack } from "react-icons/md";
 import apiClient from "../../api/Client";
 import { Autocomplete } from "@mui/material";
-import { formatter, formatDateForDb, capitalize } from "../../../helpers";
+import {
+  formatter,
+  formatDateForDb,
+  capitalize,
+  reportError,
+} from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
 import DatePick from "../../components/DatePicker";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +23,7 @@ const ReceiveTransferredItems = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [item, setItem] = useState("");
+  const [remarks, setRemarks] = useState("");
   const [employee, setEmployee] = useState("");
   const [employees, setEmployees] = useState([]);
   const [items, setItems] = useState([]);
@@ -54,15 +60,7 @@ const ReceiveTransferredItems = () => {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(
-          response.data?.error || "Failed to fetch pending transfers"
-        );
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response.data.error || "Failed to fetch pending transfers");
+        reportError(response, "Failed to fetch pending transfers");
         return;
       }
 
@@ -107,8 +105,8 @@ const ReceiveTransferredItems = () => {
     if (enteredQuantity > maxBalance) {
       toast.error(
         `Quantity cannot exceed shifted balance of ${formatter.format(
-          maxBalance
-        )}`
+          maxBalance,
+        )}`,
       );
       newItems[index].receivingQuantity = maxBalance.toString();
     } else {
@@ -136,7 +134,7 @@ const ReceiveTransferredItems = () => {
 
     // Validate that at least one item has quantity > 0
     const itemsToReceive = receivingItems.filter(
-      (item) => item.receivingQuantity && Number(item.receivingQuantity) > 0
+      (item) => item.receivingQuantity && Number(item.receivingQuantity) > 0,
     );
 
     if (itemsToReceive.length === 0) {
@@ -153,8 +151,8 @@ const ReceiveTransferredItems = () => {
       if (quantity > maxBalance) {
         toast.error(
           `${item?.item?.Item_Name}: Quantity (${formatter.format(
-            quantity
-          )}) exceeds shifted balance (${formatter.format(maxBalance)})`
+            quantity,
+          )}) exceeds shifted balance (${formatter.format(maxBalance)})`,
         );
         return;
       }
@@ -173,29 +171,17 @@ const ReceiveTransferredItems = () => {
           Item_ID: item?.Item_ID,
           Quantity: Number(item.receivingQuantity),
         })),
+        Sales_Remarks: remarks,
       };
 
       const response = await apiClient.put(
         "/oxygen/approve-oxygen-to-sales",
-        payload
+        payload,
       );
 
       if (!response.ok) {
         setLoading(false);
-
-        if (response.problem === "NETWORK_ERROR") {
-          toast.error("Network error. Please check your connection");
-        } else if (response.problem === "TIMEOUT_ERROR") {
-          toast.error("Request timeout. Please try again");
-        } else {
-          toast.error(response?.data?.error || "Failed to receive items");
-        }
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response?.data?.error || "Failed to receive items");
+        reportError(response, "Failed to receive items");
         return;
       }
 
@@ -231,7 +217,6 @@ const ReceiveTransferredItems = () => {
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <h4>Receive Transferred Items</h4>
-          
         </div>
       </div>
 
@@ -310,7 +295,7 @@ const ReceiveTransferredItems = () => {
                         <TextField
                           size="small"
                           label={`Receiving Quantity (Max: ${formatter.format(
-                            item.maxQuantity
+                            item.maxQuantity,
                           )})`}
                           variant="outlined"
                           className="w-full"
@@ -328,6 +313,18 @@ const ReceiveTransferredItems = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className="p-2">
+                <TextField
+                  size="small"
+                  label="Remarks"
+                  id="outlined-multiline-static"
+                  multiline
+                  rows={2}
+                  variant="outlined"
+                  className="w-full mb-1"
+                  // value={item?.item?.Item_Name || ""}
+                />
               </div>
             </>
           )}

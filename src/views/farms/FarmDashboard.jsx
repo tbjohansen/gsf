@@ -19,7 +19,7 @@ import { GiFarmTractor } from "react-icons/gi";
 
 const FarmDashboard = () => {
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [payments, setPayments] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -36,6 +36,7 @@ const FarmDashboard = () => {
   const [stats, setStatistics] = useState("");
   const [rentedHouses, setRentedHouses] = useState([]);
   const [rentedSpace, setRenetedSpaces] = useState([]);
+  const [farmsDetails, setFarmsDetails] = useState("");
 
   const [farms, setFarms] = useState([]);
 
@@ -79,7 +80,33 @@ const FarmDashboard = () => {
     }
   };
 
-  const loadFarms = async () => {
+  const loadFarmsDetails = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get("/estate/farm-details");
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        return;
+      }
+
+      // Adjust based on your API response structure
+    //  console.log(response);
+     setFarmsDetails(response?.data?.data);
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch farms error:", error);
+      setLoading(false);
+    }
+  };
+
+    const loadFarms = async () => {
     setLoading(true);
     try {
       const response = await apiClient.get("/settings/item", {
@@ -103,20 +130,13 @@ const FarmDashboard = () => {
         key: index + 1,
       }));
 
-      // Available business land only
-      // const availableSpace = businessLandData
-      //   ?.filter((user) => user?.available === "yes")
-      //   ?.map((user, index) => ({
-      //     ...user,
-      //     key: index + 1,
-      //   }));
 
       // console.log(newData);
       setFarms(Array.isArray(newData) ? newData : []);
 
       setLoading(false);
     } catch (error) {
-      console.error("Fetch farms error:", error);
+      console.error("Fetch farms summary error:", error);
       setLoading(false);
     }
   };
@@ -212,6 +232,7 @@ const FarmDashboard = () => {
     loadFarms();
     loadEmployees();
     loadFarmRequests();
+    loadFarmsDetails();
   }, []);
 
   const formatTimeAgo = (dateString) => {
@@ -275,10 +296,10 @@ const FarmDashboard = () => {
               <LuLandPlot className="w-5 h-5 text-sky-600" />
             </div>
             <p className="text-3xl font-bold text-gray-800">
-              {formatter.format(farms[0]?.Farm_Size || 0)}
+              {formatter.format(farmsDetails?.farmSize || 0)}
             </p>
             <p className="text-xs text-sky-600 mt-2">
-              {formatter.format(farms[0]?.Farm_Size || 0)} available hectares
+              {formatter.format(farmsDetails?.availableHectares || 0)} available hectares
             </p>
           </div>
 
@@ -289,8 +310,8 @@ const FarmDashboard = () => {
               </h3>
               <MdTrendingUp className="w-5 h-5 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-800">
-              {currencyFormatter.format(0)}
+            <p className="text-2xl font-bold text-gray-800">
+              {currencyFormatter.format(farmsDetails?.totalPaidAmount || 0)}
             </p>
             <p className="text-xs text-green-600 mt-2">+5% from last year</p>
           </div>
