@@ -30,6 +30,7 @@ const AddUnit = ({ loadData }) => {
     setUnitType("");
     setDescription("");
     setLocation("");
+    setUsdPrice("");
   };
 
   const [name, setName] = useState("");
@@ -280,7 +281,7 @@ const AddUnit = ({ loadData }) => {
                     label="Unit Price (USD)"
                     variant="outlined"
                     className="w-[92%]"
-                    value={price ? formatter.format(Number(price)) : ""}
+                    value={usdPrice ? formatter.format(Number(usdPrice)) : ""}
                     onChange={(e) => {
                       // Remove any non-digit characters except decimal point
                       const rawValue = e.target.value.replace(/[^\d.]/g, "");

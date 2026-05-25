@@ -8,7 +8,12 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import { capitalize, currencyFormatter, formatDateTimeForDb, formatter } from "../../../helpers";
+import {
+  capitalize,
+  currencyFormatter,
+  formatDateTimeForDb,
+  formatter,
+} from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -43,7 +48,7 @@ export default function FarmsRequests() {
   const [paymentStatus, setPaymentStatus] = useState("");
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState(moment().startOf("year"));
-  const [endDate, setEndDate] = useState(moment());
+  const [endDate, setEndDate] = useState(moment().endOf("day"));
   const [farm, setFarm] = useState("");
   const [bank, setBank] = useState("");
   const [sangiraNumber, setSangiraNumber] = useState("");
@@ -133,6 +138,7 @@ export default function FarmsRequests() {
     endDate,
     paymentStatus,
     sangiraNumber,
+    name,
   ]);
 
   const loadData = async () => {
@@ -143,10 +149,10 @@ export default function FarmsRequests() {
       if (name) url += `&Customer_Name=${name}`;
       if (sangiraNumber) url += `&Sangira_Number=${sangiraNumber}`;
       if (paymentStatus) url += `&Customer_Status=${paymentStatus?.id}`;
-      if (farm) url += `&Item_ID=${hostel?.id}`;
+      if (farm) url += `&Item_ID=${farm?.id}`;
       if (bank) url += `&Payment_Channel=${bank?.id}`;
-      if (startDate) url += `&Start_Date=${formatDateTimeForDb(startDate)}`;
-      if (endDate) url += `&End_Date=${formatDateTimeForDb(endDate)}`;
+      // if (startDate) url += `&Start_Date=${formatDateTimeForDb(startDate)}`;
+      // if (endDate) url += `&End_Date=${formatDateTimeForDb(endDate)}`;
 
       const response = await apiClient.get(url);
 

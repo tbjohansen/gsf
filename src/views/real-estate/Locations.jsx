@@ -8,7 +8,7 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import { formatDateTimeForDb, formatter } from "../../../helpers";
+import { formatDateTimeForDb, formatter, reportError } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -31,7 +31,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 
 export default function Locations() {
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [locations, setLocations] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
@@ -61,13 +61,7 @@ export default function Locations() {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response?.data?.error || "Failed to fetch locations");
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response?.data?.error || "Failed to fetch locations");
+       reportError(response, "Failed to fetch locations");
         return;
       }
 
@@ -202,7 +196,7 @@ export default function Locations() {
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100]}
           component="div"
           count={locations?.length}
           rowsPerPage={rowsPerPage}

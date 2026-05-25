@@ -477,7 +477,8 @@ const EditCustomer = ({ loadData, status, customer }) => {
         Phone_Number: formData.Phone_Number.startsWith("0")
           ? formData.Phone_Number
           : `0${formData.Phone_Number}`,
-        Date_Birth: formatDateForDb(formData?.Date_Birth),
+        Date_Birth:
+          status === "oxygen" ? null: formatDateForDb(formData?.Date_Birth),
         Employee_ID: employeeId,
         Customer_ID: customer?.Customer_ID,
         Emergency_Contact_Name:

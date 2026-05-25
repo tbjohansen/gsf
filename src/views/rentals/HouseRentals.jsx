@@ -15,7 +15,7 @@ import {
 import apiClient, { baseURL } from "../../api/Client";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { currencyFormatter, formatter } from "../../../helpers";
+import { currencyFormatter, formatter, reportError } from "../../../helpers";
 import houseImage from "../../assets/images/house3.svg";
 
 const HouseRentals = () => {
@@ -33,7 +33,6 @@ const HouseRentals = () => {
   const storedUserInfo = localStorage.getItem("userInfo");
   const parsedUserInfo = JSON.parse(storedUserInfo);
   const customer = parsedUserInfo?.customer;
-  console.log(customer);
 
   // Default placeholder image for properties without images
   const DEFAULT_HOUSE_IMAGE = houseImage;
@@ -52,13 +51,9 @@ const HouseRentals = () => {
         real_estate_type: "house",
       });
 
-      if (
-        !response.ok ||
-        response?.data?.error ||
-        response?.data?.code >= 400
-      ) {
+      if (!response.ok) {
         setLoading(false);
-        toast.error(response?.data?.error || "Failed to fetch house units");
+        reportError(response, "Failed to fetch house units");
         return;
       }
 
@@ -309,9 +304,9 @@ const HouseRentals = () => {
                     />
                   </button>
                   <div className="absolute bottom-3 left-3 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                    {customer?.Customer_Type === "local" || customer?.Customer_Type === null
-                      ? currencyFormatter.format(house?.price)
-                      : `USD ${formatter.format(house?.usd_price || 0)}`}
+                    {customer?.Customer_Type === "foreigner"
+                      ? `USD ${formatter.format(selectedHouse?.usd_price || 0)}`
+                      : currencyFormatter.format(selectedHouse?.price)}
                   </div>
                   {house?.status === "active" && (
                     <>
@@ -408,7 +403,7 @@ const HouseRentals = () => {
                   href="mailto:housemanager@example.com"
                   className="text-lg font-semibold text-blue-600 hover:text-blue-700 break-all"
                 >
-                 emanuel.magogo@kcmc.ac.tz
+                  emanuel.magogo@kcmc.ac.tz
                 </a>
               </div>
             </div>
@@ -494,9 +489,9 @@ const HouseRentals = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-blue-600">
-                   {customer?.Customer_Type === "local" || customer?.Customer_Type === null
-                      ? currencyFormatter.format(selectedHouse?.price)
-                      : `USD ${formatter.format(selectedHouse?.usd_price || 0)}`}
+                    {customer?.Customer_Type === "foreigner"
+                      ? `USD ${formatter.format(selectedHouse?.usd_price || 0)}`
+                      : currencyFormatter.format(selectedHouse?.price)}
                   </div>
                   <div className="text-sm text-gray-600">Price/Month</div>
                 </div>

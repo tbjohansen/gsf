@@ -441,7 +441,8 @@ const AddCustomer = ({ loadData, status }) => {
         Phone_Number: formData.Phone_Number.startsWith("0")
           ? formData.Phone_Number
           : `0${formData.Phone_Number}`,
-        Date_Birth: formatDateForDb(formData?.Date_Birth),
+        Date_Birth:
+          status === "oxygen" ? null : formatDateForDb(formData?.Date_Birth),
         Employee_ID: employeeId,
         Emergency_Contact_Name:
           status === "student" ? formData?.Emergency_Contact_Name : "",

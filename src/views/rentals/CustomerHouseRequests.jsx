@@ -237,17 +237,17 @@ export default function CustomerHouseRequests({ status }) {
         minWidth: 170,
         format: (row, value) => (
           <span>
-            {value?.customer?.Customer_Type === "local" ? (
+            {value?.customer?.Customer_Type === "foreigner" ? (
+              <>
+                USD{" "}
+                {formatter?.format(value?.Price || value?.estate?.usd_price)}
+              </>
+            ) : (
               <>
                 {" "}
                 {currencyFormatter?.format(
                   value?.estate?.price || value?.Price,
                 )}
-              </>
-            ) : (
-              <>
-                USD{" "}
-                {formatter?.format(value?.Price || value?.estate?.usd_price)}
               </>
             )}
           </span>

@@ -45,13 +45,13 @@ const SideBar = ({
       id: 2,
       name: "Orders",
       icon: MdOutlinePropaneTank,
-      url: "/oxygen-customer/orders",
+      url: "/oxygen-customer-orders",
     },
     {
       id: 3,
       name: "Payments",
       icon: FcMoneyTransfer,
-      url: "/oxygen-customer/payments",
+      url: "/oxygen-customer-payments",
     },
     { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
   ];

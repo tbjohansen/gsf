@@ -36,8 +36,8 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function CustomerOxygenOrders({ status }) {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [page, setPage] = React.useState(1);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [requests, setRequests] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
@@ -56,6 +56,15 @@ export default function CustomerOxygenOrders({ status }) {
 
   const navigate = useNavigate();
 
+  const [pagination, setPagination] = React.useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
+
   // Load customers and items on mount
   React.useEffect(() => {
     loadCustomers();
@@ -65,12 +74,12 @@ export default function CustomerOxygenOrders({ status }) {
   // Fetch requests from API
   React.useEffect(() => {
     loadData();
-  }, [startDate, endDate, item]);
+  }, [startDate, endDate, item, rowsPerPage, page]);
 
   const loadCustomers = async () => {
     try {
       const response = await apiClient.get(
-        `/customer/customer?Customer_Nature=oxygen&limit=100&page=1`
+        `/customer/customer?Customer_Nature=oxygen&limit=100&page=1`,
       );
 
       if (response.ok && !response.data?.error) {
@@ -81,7 +90,7 @@ export default function CustomerOxygenOrders({ status }) {
           label: cust.Customer_Name,
         }));
         setCustomers(
-          Array.isArray(formattedCustomers) ? formattedCustomers : []
+          Array.isArray(formattedCustomers) ? formattedCustomers : [],
         );
       }
     } catch (error) {
@@ -109,7 +118,7 @@ export default function CustomerOxygenOrders({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/oxygen/oxygen-request?&Customer_ID=${customer?.Customer_ID}`;
+      let url = `/oxygen/oxygen-request?&page=${page}&limit=${rowsPerPage}&Customer_ID=${customer?.Customer_ID}`;
 
       if (startDate) {
         url += `&Start_Date=${formatDateForDb(startDate)}`;
@@ -125,24 +134,49 @@ export default function CustomerOxygenOrders({ status }) {
 
       const response = await apiClient.get(url);
 
+      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch customer orders");
+
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          // ✅ Use the server's error message if available
+          const serverMessage = response.data?.error || response.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to fetch data",
+          );
+        }
         return;
       }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response.data.error || "Failed to fetch customer orders");
-        return;
-      }
+      // Adjust based on your API response structure
+      const responseData = response?.data?.data;
+      const userData = responseData?.data;
 
-      const itemData = response?.data?.data?.data;
-      const newData = itemData?.map((item, index) => ({
-        ...item,
-        key: index + 1,
+      // Update customers with keys
+      const newData = userData?.map((user, index) => ({
+        ...user,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
+      // console.log(newData);
       setRequests(Array.isArray(newData) ? newData : []);
+
+      // Update pagination state
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch sales orders error:", error);
@@ -167,7 +201,7 @@ export default function CustomerOxygenOrders({ status }) {
       // Calculate grand total
       const grandTotal = row.request.reduce(
         (sum, item) => sum + item.Price * item.Quantity,
-        0
+        0,
       );
 
       // Collect all Request_IDs from the batch
@@ -186,7 +220,7 @@ export default function CustomerOxygenOrders({ status }) {
 
       const response = await apiClient.post(
         "/oxygen/request-sangira-number",
-        payload
+        payload,
       );
 
       if (!response.ok || response.data?.error || response.data?.code >= 400) {
@@ -208,12 +242,13 @@ export default function CustomerOxygenOrders({ status }) {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event?.target?.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
   const handleRowClick = (row) => {
@@ -230,7 +265,7 @@ export default function CustomerOxygenOrders({ status }) {
       },
       {
         id: "request_items",
-        label: "Items",
+        label: "Ordered Items",
         minWidth: 300,
         format: (value, row) => {
           if (!row.request || !Array.isArray(row.request)) {
@@ -255,7 +290,8 @@ export default function CustomerOxygenOrders({ status }) {
       },
       {
         id: "total_amount",
-        label: "Amount",
+        label: "Total Amount",
+        minWidth: 150,
         format: (value, row) => {
           if (!row.request || !Array.isArray(row.request)) {
             return formatter.format(0);
@@ -263,13 +299,21 @@ export default function CustomerOxygenOrders({ status }) {
 
           const total = row.request.reduce(
             (sum, item) => sum + item.Price * item.Quantity,
-            0
+            0,
           );
           return (
             <span className="font-semibold">
               {currencyFormatter.format(total)}
             </span>
           );
+        },
+      },
+      {
+        id: "sangira_number",
+        label: "Sangira Number",
+        minWidth: 150,
+        format: (value, row) => {
+          return <span className="font-semibold">{}</span>;
         },
       },
       {
@@ -283,10 +327,10 @@ export default function CustomerOxygenOrders({ status }) {
                 status === "active"
                   ? "bg-green-100 text-green-800"
                   : status === "pending"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : status === "inactive"
-                  ? "bg-red-100 text-red-800"
-                  : "bg-gray-100 text-gray-800"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : status === "inactive"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-gray-100 text-gray-800"
               }`}
             >
               {capitalize(status)}
@@ -297,6 +341,7 @@ export default function CustomerOxygenOrders({ status }) {
       {
         id: "sangira_status",
         label: "Sangira Status",
+        minWidth: 150,
         format: (value, row) => {
           const status =
             row?.request?.[0]?.sangira?.Sangira_Status || "Not Requested";
@@ -306,10 +351,10 @@ export default function CustomerOxygenOrders({ status }) {
                 status === "active"
                   ? "bg-green-100 text-green-800"
                   : status === "pending"
-                  ? "bg-blue-100 text-blue-800"
-                  : status === "inactive"
-                  ? "bg-red-100 text-red-800"
-                  : "bg-gray-100 text-gray-800"
+                    ? "bg-blue-100 text-blue-800"
+                    : status === "inactive"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-gray-100 text-gray-800"
               }`}
             >
               {capitalize(status)}
@@ -319,7 +364,8 @@ export default function CustomerOxygenOrders({ status }) {
       },
       {
         id: "employee",
-        label: "Customer",
+        label: "Created By",
+        minWidth: 150,
         format: (value, row) => (
           <span>{capitalize(row?.employee?.name || "N/A")}</span>
         ),
@@ -327,50 +373,51 @@ export default function CustomerOxygenOrders({ status }) {
       {
         id: "Request_Batch_Date",
         label: "Order Date",
+        minWidth: 150,
         format: (value) => (
           <span>{value ? formatDateTimeForDb(value) : "N/A"}</span>
         ),
       },
-      {
-        id: "actions",
-        label: "Actions",
-        minWidth: 150,
-        format: (value, row) => {
-          const hasSangira = row.request?.some(
-            (item) => item.Sangira_ID !== null
-          );
-          const isRequesting = requestingBatch === row.Request_Batch_ID;
+      // {
+      //   id: "actions",
+      //   label: "Actions",
+      //   minWidth: 150,
+      //   format: (value, row) => {
+      //     const hasSangira = row.request?.some(
+      //       (item) => item.Sangira_ID !== null,
+      //     );
+      //     const isRequesting = requestingBatch === row.Request_Batch_ID;
 
-          return (
-            <Button
-              variant="contained"
-              size="small"
-              color="primary"
-              startIcon={isRequesting ? null : <MdSend />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRequestSangiraForBatch(row);
-              }}
-              disabled={hasSangira || isRequesting}
-              sx={{
-                textTransform: "none",
-                fontSize: "0.75rem",
-                padding: "6px 12px",
-                minWidth: "auto",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {isRequesting
-                ? "Requesting..."
-                : hasSangira
-                ? "Sangira Assigned"
-                : "Request Sangira"}
-            </Button>
-          );
-        },
-      },
+      //     return (
+      //       <Button
+      //         variant="contained"
+      //         size="small"
+      //         color="primary"
+      //         startIcon={isRequesting ? null : <MdSend />}
+      //         onClick={(e) => {
+      //           e.stopPropagation();
+      //           handleRequestSangiraForBatch(row);
+      //         }}
+      //         disabled={hasSangira || isRequesting}
+      //         sx={{
+      //           textTransform: "none",
+      //           fontSize: "0.75rem",
+      //           padding: "6px 12px",
+      //           minWidth: "auto",
+      //           whiteSpace: "nowrap",
+      //         }}
+      //       >
+      //         {isRequesting
+      //           ? "Requesting..."
+      //           : hasSangira
+      //             ? "Sangira Assigned"
+      //             : "Request Sangira"}
+      //       </Button>
+      //     );
+      //   },
+      // },
     ];
-  }, [requestingBatch]);
+  }, []);
 
   return (
     <>
@@ -441,63 +488,64 @@ export default function CustomerOxygenOrders({ status }) {
                   </TableCell>
                 </TableRow>
               )}
-              {requests
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.Request_Batch_ID}
-                      onClick={() => handleRowClick(row)}
-                      sx={{
-                        cursor: "pointer",
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns
-                        .filter(
-                          (e) => typeof e.show === "undefined" || !!e.show
-                        )
-                        .map((column) => {
-                          const value = row[column.id];
-                          return (
-                            <TableCell
-                              key={column.id}
-                              align={column.align}
-                              onClick={(e) => {
-                                if (column.id === "actions") {
-                                  e.stopPropagation();
-                                }
-                              }}
-                            >
-                              {column.format
-                                ? column.format(value, row, handleRowClick)
-                                : value}
-                            </TableCell>
-                          );
-                        })}
-                    </TableRow>
-                  );
-                })}
+              {requests?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.Request_Batch_ID}
+                    onClick={() => handleRowClick(row)}
+                    sx={{
+                      cursor: "pointer",
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns
+                      .filter((e) => typeof e.show === "undefined" || !!e.show)
+                      .map((column) => {
+                        const value = row[column.id];
+                        return (
+                          <TableCell
+                            key={column.id}
+                            align={column.align}
+                            onClick={(e) => {
+                              if (column.id === "actions") {
+                                e.stopPropagation();
+                              }
+                            }}
+                          >
+                            {column.format
+                              ? column.format(value, row, handleRowClick)
+                              : value}
+                          </TableCell>
+                        );
+                      })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 200, 1000]}
           component="div"
-          count={requests?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

@@ -365,22 +365,16 @@ export default function ReceiveHouseRequest() {
 
       if (!response.ok) {
         setLoading(false);
-        if (response.problem === "NETWORK_ERROR") {
-          toast.error("Network error. Please check your connection");
-        } else if (response.problem === "TIMEOUT_ERROR") {
-          toast.error("Request timeout. Please try again");
-        } else {
-          toast.error("Failed to accept house request");
-        }
+        reportError(response, "Failed to accept house request");
         return;
       }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to accept house request";
-        toast.error(errorMessage);
-        return;
-      }
+      // if (response.data?.error || response.data?.code >= 400) {
+      //   setLoading(false);
+      //   const errorMessage = "Failed to accept house request";
+      //   toast.error(errorMessage);
+      //   return;
+      // }
 
       setLoading(false);
       toast.success("House request is accepted successfully");
@@ -427,6 +421,7 @@ export default function ReceiveHouseRequest() {
         real_estate_id: requestData?.real_estate_id,
         Request_Batch_ID: requestData?.Request_Batch_ID,
         Customer_ID: requestData?.Customer_ID,
+        Quantity: 1,
         Request_ID: requestID,
         Employee_ID: employeeId,
       };
@@ -435,22 +430,16 @@ export default function ReceiveHouseRequest() {
 
       if (!response.ok) {
         setLoading(false);
-        if (response.problem === "NETWORK_ERROR") {
-          toast.error("Network error. Please check your connection");
-        } else if (response.problem === "TIMEOUT_ERROR") {
-          toast.error("Request timeout. Please try again");
-        } else {
-          toast.error("Failed to decline house request");
-        }
+        reportError(response, "Failed to decline house request");
         return;
       }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to decline house request";
-        toast.error(errorMessage);
-        return;
-      }
+      // if (response.data?.error || response.data?.code >= 400) {
+      //   setLoading(false);
+      //   const errorMessage = "Failed to decline house request";
+      //   toast.error(errorMessage);
+      //   return;
+      // }
 
       setLoading(false);
       toast.success("House request is declined successfully");
@@ -488,7 +477,7 @@ export default function ReceiveHouseRequest() {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        `/customer/customer-request?&&Request_ID=${requestID}Request_Type=house_rent`,
+        `/customer/customer-request?&Request_ID=${requestID}Request_Type=house_rent`,
       );
 
       if (!response.ok) {
@@ -606,7 +595,7 @@ export default function ReceiveHouseRequest() {
           <div>
             <p className="text-sm text-gray-600">Price</p>
             <p className="font-semibold text-green-600 text-lg">
-              {currencyFormatter.format(requestData?.Price)}{" "}
+             {requestData?.customer?.Customer_Type === "foreigner" ? <>USD {formatter.format(requestData?.Price)}</> : <> {currencyFormatter.format(requestData?.Price)}</>}{" "}
               <span className="text-black">/ Month</span>
             </p>
           </div>
@@ -1078,6 +1067,7 @@ export default function ReceiveHouseRequest() {
         real_estate_id: requestData?.real_estate_id,
         Request_Batch_ID: requestData?.Request_Batch_ID,
         Customer_ID: requestData?.Customer_ID,
+        Quantity: 1,
         Request_ID: requestID,
         Employee_ID: employeeId,
       };
@@ -1147,7 +1137,7 @@ export default function ReceiveHouseRequest() {
                           : requestData?.Customer_Status === "served" ||
                               requestData?.Customer_Status === "paid"
                             ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
                   }`}
                 >
                   {requestData?.Customer_Status === "pending" ||

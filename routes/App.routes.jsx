@@ -70,6 +70,8 @@ import HostelSetupTabs from "../src/views/hostels/setups/HostelSetupTabs";
 import BroadcastedMessages from "../src/views/hostels/messages/BroadcastedMessages";
 import MonthlyPayments from "../src/views/hostels/MonthlyPayments";
 import OrderDetail from "../src/views/oxygen-requisition/OrderDetail";
+import CustomerDetails from "../src/views/oxygen-requisition/CustomerDetails";
+import GasCylinderInventory from "../src/views/oxygen-requisition/GasCylindersInventory";
 
 const LoginElement = () => <Login />;
 
@@ -360,6 +362,18 @@ const OxygenOrderElement = (props) => (
   </AppLayout>
 );
 
+const OxygenCustomerElement = (props) => (
+  <AppLayout>
+    <CustomerDetails {...props} />
+  </AppLayout>
+);
+
+const CylinderInventoryElement = (props) => (
+  <AppLayout>
+    <GasCylinderInventory {...props} />
+  </AppLayout>
+);
+
 const OxygenProductionNewElement = (props) => (
   <AppLayout>
     <AddProduction {...props} />
@@ -566,8 +580,16 @@ const AppRoutes = () => {
           element={<CustomersElement status="oxygen" />}
         />
         <Route
+          path="/projects/oxygen/customers/:customerID"
+          element={<OxygenCustomerElement status="oxygen" />}
+        />
+        <Route
           path="/projects/oxygen/items"
           element={<ItemsElement status="oxygen" />}
+        />
+         <Route
+          path="/projects/oxygen/cylinder-inventory"
+          element={<CylinderInventoryElement status="oxygen" />}
         />
         <Route
           path="projects/oxygen/point-of-sales"
@@ -614,12 +636,12 @@ const AppRoutes = () => {
         />
 
         <Route
-          path="/oxygen-customer/orders"
+          path="/oxygen-customer-orders"
           element={<OxygenCustomerOrdersElement status="oxygen" />}
         />
 
         <Route
-          path="/oxygen-customer/payments"
+          path="/oxygen-customer-payments"
           element={<OxygenCustomerPaymentsElement status="oxygen" />}
         />
 

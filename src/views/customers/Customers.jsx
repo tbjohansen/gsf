@@ -148,6 +148,13 @@ export default function Customers({ status }) {
     setPage(1);
   };
 
+  const handleRowClick = (row) => {
+    setSelectedRow(row);
+    if (status === "oxygen") {
+      navigate(`/projects/oxygen/customers/${row.Customer_ID}`);
+    }
+  };
+
   // Inside the users component, replace the columns definition with:
   const columns = React.useMemo(
     () => [
@@ -306,6 +313,7 @@ export default function Customers({ status }) {
                     hover
                     role="checkbox"
                     tabIndex={-1}
+                     onClick={() => handleRowClick(row)}
                     key={row.key || row.id}
                     sx={{
                       backgroundColor:
@@ -336,7 +344,7 @@ export default function Customers({ status }) {
                               }
                             }}
                           >
-                            {column.format ? column.format(value, row) : value}
+                            {column.format ? column.format(value, row, handleRowClick) : value}
                           </TableCell>
                         );
                       })}

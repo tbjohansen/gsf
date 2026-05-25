@@ -15,14 +15,15 @@ import {
   formatDateForDb,
   formatDateTimeForDb,
   formatter,
+  reportError,
 } from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
-import { MdAdd, MdSend } from "react-icons/md";
-import { Autocomplete, TextField, Checkbox } from "@mui/material";
+import { MdAdd, MdArrowBack, MdSend } from "react-icons/md";
+import { Autocomplete, TextField, Checkbox, IconButton } from "@mui/material";
 import DatePick from "../../components/DatePicker";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -36,8 +37,8 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function SalesOrders({ status }) {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [page, setPage] = React.useState(1);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [requests, setRequests] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
@@ -50,6 +51,15 @@ export default function SalesOrders({ status }) {
   const [customers, setCustomers] = React.useState([]);
   const [items, setItems] = React.useState([]);
 
+  const [pagination, setPagination] = React.useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
+
   const navigate = useNavigate();
 
   // Load customers and items on mount
@@ -61,12 +71,12 @@ export default function SalesOrders({ status }) {
   // Fetch requests from API
   React.useEffect(() => {
     loadData();
-  }, [startDate, endDate, item, customer]);
+  }, [startDate, endDate, item, customer, page, rowsPerPage]);
 
   const loadCustomers = async () => {
     try {
       const response = await apiClient.get(
-        `/customer/customer?Customer_Nature=oxygen&limit=100&page=1`,
+        `/customer/customer?Customer_Nature=oxygen&limit=1000&page=1`,
       );
 
       if (response.ok && !response.data?.error) {
@@ -105,44 +115,41 @@ export default function SalesOrders({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/oxygen/oxygen-request?`;
+      let url = `/oxygen/oxygen-request?&limit=${rowsPerPage}&page=${page}`;
 
-      if (startDate) {
-        url += `&Start_Date=${formatDateForDb(startDate)}`;
-      }
-
-      if (endDate) {
-        url += `&End_Date=${formatDateForDb(endDate)}`;
-      }
-
-      if (item) {
-        url += `&Item_ID=${item?.Item_ID}`;
-      }
-
-      if (customer) {
-        url += `&Customer_ID=${customer?.Customer_ID}`;
-      }
+      if (startDate) url += `&Start_Date=${formatDateTimeForDb(startDate)}`;
+      if (endDate) url += `&End_Date=${formatDateTimeForDb(endDate)}`;
+      if (item) url += `&Item_ID=${item?.Item_ID}`;
+      if (customer) url += `&Customer_ID=${customer?.Customer_ID}`;
 
       const response = await apiClient.get(url);
 
       if (!response.ok) {
         setLoading(false);
-        toast.error(response.data?.error || "Failed to fetch sales orders");
+        reportError(response, "Failed to fetch sales orders");
         return;
       }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response.data.error || "Failed to fetch sales orders");
-        return;
-      }
+      const responseData = response?.data?.data;
+      const unitsData = responseData?.data || [];
 
-      const itemData = response?.data?.data?.data;
-      const newData = itemData?.map((item, index) => ({
-        ...item,
-        key: index + 1,
+      const newData = unitsData.map((user, index) => ({
+        ...user,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
+
       setRequests(Array.isArray(newData) ? newData : []);
+
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch sales orders error:", error);
@@ -160,12 +167,13 @@ export default function SalesOrders({ status }) {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event.target.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
   const handleRowClick = (row) => {
@@ -241,13 +249,15 @@ export default function SalesOrders({ status }) {
           return (
             <span
               className={`px-2 py-1 rounded text-xs font-medium ${
-                status === "active"
+                status === "active" || status === "served" || status === "paid"
                   ? "bg-green-100 text-green-800"
                   : status === "pending"
                     ? "bg-yellow-100 text-yellow-800"
-                    : status === "inactive"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-800"
+                    : status === "approved" || status === "requested"
+                      ? "bg-blue-100 text-blue-800"
+                      : status === "inactive"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
               }`}
             >
               {capitalize(status)}
@@ -276,8 +286,18 @@ export default function SalesOrders({ status }) {
     <>
       <Breadcrumb />
       <div className="w-full h-12">
-        <div className="w-full my-2 flex justify-between">
-          <h4>Sales Orders List</h4>
+        <div className="flex items-center gap-3">
+          <IconButton
+            onClick={() => navigate(-1)}
+            className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+          >
+            <MdArrowBack />
+          </IconButton>
+          <div>
+            <h1 className="m-0 text-xl font-extrabold tracking-tight text-slate-800">
+              Sales Orders List
+            </h1>
+          </div>
         </div>
       </div>
 
@@ -358,63 +378,64 @@ export default function SalesOrders({ status }) {
                   </TableCell>
                 </TableRow>
               )}
-              {requests
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.Request_Batch_ID}
-                      onClick={() => handleRowClick(row)}
-                      sx={{
-                        cursor: "pointer",
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns
-                        .filter(
-                          (e) => typeof e.show === "undefined" || !!e.show,
-                        )
-                        .map((column) => {
-                          const value = row[column.id];
-                          return (
-                            <TableCell
-                              key={column.id}
-                              align={column.align}
-                              onClick={(e) => {
-                                if (column.id === "actions") {
-                                  e.stopPropagation();
-                                }
-                              }}
-                            >
-                              {column.format
-                                ? column.format(value, row, handleRowClick)
-                                : value}
-                            </TableCell>
-                          );
-                        })}
-                    </TableRow>
-                  );
-                })}
+              {requests?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.Request_Batch_ID}
+                    onClick={() => handleRowClick(row)}
+                    sx={{
+                      cursor: "pointer",
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns
+                      .filter((e) => typeof e.show === "undefined" || !!e.show)
+                      .map((column) => {
+                        const value = row[column.id];
+                        return (
+                          <TableCell
+                            key={column.id}
+                            align={column.align}
+                            onClick={(e) => {
+                              if (column.id === "actions") {
+                                e.stopPropagation();
+                              }
+                            }}
+                          >
+                            {column.format
+                              ? column.format(value, row, handleRowClick)
+                              : value}
+                          </TableCell>
+                        );
+                      })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 500, 1000]}
           component="div"
-          count={requests?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

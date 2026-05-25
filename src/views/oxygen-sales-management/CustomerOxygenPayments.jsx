@@ -30,8 +30,8 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function CustomerOxygenPayments({ status }) {
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [payments, setPayments] = useState([]);
   const [paymentStatus, setPaymentStatus] = useState("");
   const [startDate, setStartDate] = useState(null);
@@ -41,6 +41,15 @@ export default function CustomerOxygenPayments({ status }) {
   const [selectedRow, setSelectedRow] = useState(null);
 
   const navigate = useNavigate();
+
+  const [pagination, setPagination] = useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
 
   const employeeData = localStorage.getItem("userInfo");
   const employee = JSON.parse(employeeData);
@@ -89,26 +98,49 @@ export default function CustomerOxygenPayments({ status }) {
 
       const response = await apiClient.get(url);
 
+      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
-        toast.error("Failed to fetch payments");
-        return;
-      }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error("Failed to fetch payments");
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          // ✅ Use the server's error message if available
+          const serverMessage = response.data?.error || response.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to fetch data",
+          );
+        }
         return;
       }
 
       // Adjust based on your API response structure
-      const paymentsData = response?.data?.data?.data;
-      const newData = paymentsData?.map((payment, index) => ({
-        ...payment,
-        key: index + 1,
+      const responseData = response?.data?.data;
+      const userData = responseData?.data;
+
+      // Update customers with keys
+      const newData = userData?.map((user, index) => ({
+        ...user,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
       // console.log(newData);
       setPayments(Array.isArray(newData) ? newData : []);
+
+      // Update pagination state
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch payments error:", error);
@@ -118,12 +150,13 @@ export default function CustomerOxygenPayments({ status }) {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event?.target?.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
   // Inside the Hostels component, replace the columns definition with:
@@ -145,7 +178,7 @@ export default function CustomerOxygenPayments({ status }) {
         format: (row, value) => (
           <span>
             {formatter.format(
-              value?.Sangira?.Grand_Total_Price || value?.Price
+              value?.Sangira?.Grand_Total_Price || value?.Price,
             )}
           </span>
         ),
@@ -161,8 +194,8 @@ export default function CustomerOxygenPayments({ status }) {
               value?.Sangira?.Sangira_Status === "completed"
                 ? "green"
                 : value?.Sangira?.Sangira_Status === "pending"
-                ? "blue"
-                : "red"
+                  ? "blue"
+                  : "red"
             }
           />
         ),
@@ -206,7 +239,7 @@ export default function CustomerOxygenPayments({ status }) {
         format: (row, value) => <span>{value?.Sangira?.Requested_Date}</span>,
       },
     ],
-    []
+    [],
   );
 
   return (
@@ -276,57 +309,60 @@ export default function CustomerOxygenPayments({ status }) {
                   </TableCell>
                 </TableRow>
               )}
-              {payments
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      sx={{
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format ? column.format(value, row) : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
+              {payments?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    sx={{
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell
+                          key={column.id}
+                          align={column.align}
+                          onClick={(e) => {
+                            // Prevent click event from bubbling up to the row
+                            // when clicking on action buttons
+                            if (column.id === "actions") {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
+                          {column.format ? column.format(value, row) : value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 200, 1000]}
           component="div"
-          count={payments?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

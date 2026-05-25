@@ -224,13 +224,15 @@ export default function Payments({ status }) {
         align: "center",
         format: (row, value) => (
           <Badge
-            name={capitalize(value?.Sangira?.Sangira_Status || "Expired")}
+            name={capitalize(value?.Sangira?.Sangira_Status || "N/A")}
             color={
               value?.Sangira?.Sangira_Status === "completed"
                 ? "green"
                 : value?.Sangira?.Sangira_Status === "pending"
                   ? "blue"
-                  : "red"
+                  : value?.Sangira?.Sangira_Status === "expired"
+                    ? "red"
+                    : "yellow"
             }
           />
         ),
