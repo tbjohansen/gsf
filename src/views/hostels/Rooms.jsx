@@ -17,6 +17,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
 import EditRoom from "./EditRoom";
 import AddRoom from "./AddRoom";
+import { IconButton } from "@mui/material";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -123,7 +125,7 @@ export default function Rooms() {
         ),
       },
     ],
-    [loadData]
+    [loadData],
   ); // Add loadData as dependency
 
   return (
@@ -131,7 +133,15 @@ export default function Rooms() {
       <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
-          <h4>Floor Rooms List</h4>
+          <div className="flex flex-row gap-4 mb-1">
+            <IconButton
+              onClick={() => navigate(-1)}
+              className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <MdArrowBack />
+            </IconButton>
+            <h4 className="my-2">Floor Rooms List</h4>
+          </div>
           <AddRoom loadData={loadData} />
         </div>
       </div>

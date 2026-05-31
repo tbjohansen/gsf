@@ -1106,6 +1106,11 @@ export default function OrderDetail() {
     return order.request[0].sangira.Sangira_Status;
   }, [order]);
 
+  const paymentMode = React.useMemo(() => {
+    if (!order?.customer) return null;
+    return order?.customer?.Payment_Method;
+  }, [order]);
+
   const sangiraGrandTotal = React.useMemo(() => {
     if (!order?.request?.[0]?.sangira?.Grand_Total_Price) return 0;
     return order.request[0].sangira.Grand_Total_Price;
@@ -1127,7 +1132,8 @@ export default function OrderDetail() {
 
   /* ── action button logic ── */
   const primaryAction = React.useMemo(() => {
-    if (originalStatus === "pending")
+    console.log(originalStatus);
+    if (originalStatus === "pending" || originalStatus === "active")
       return {
         label: "Approve Order",
         icon: MdCheckCircle,
@@ -1138,10 +1144,16 @@ export default function OrderDetail() {
   }, [originalStatus]);
 
   const canFulfill = originalStatus === "approved";
+  // const canDispatch =
+  //   originalStatus === "fulfilled" ||
+  //   originalStatus === "requested" ||
+  //   originalStatus === "paid";
+
+
   const canDispatch =
     originalStatus === "fulfilled" ||
-    originalStatus === "requested" ||
-    originalStatus === "paid";
+    originalStatus === "paid" ||
+    (originalStatus === "requested" && paymentMode === "credit");
 
   /* ── render ── */
   if (loading) {

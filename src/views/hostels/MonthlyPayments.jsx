@@ -20,7 +20,7 @@ import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
-import { Autocomplete, Button, TextField } from "@mui/material";
+import { Autocomplete, Button, IconButton, TextField } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -29,6 +29,7 @@ import * as XLSX from "xlsx";
 import moment from "moment";
 import DatePick from "../../components/DatePicker";
 import { useRef } from "react";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -371,102 +372,106 @@ export default function MonthlyPayments() {
     setPage(1);
   };
 
-const handleDownloadPDF = () => {
-  const doc = new jsPDF({
-    orientation: "landscape",
-    unit: "pt",
-    format: "a4",
-  });
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "pt",
+      format: "a4",
+    });
 
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("GSF Hostels Payments List", 40, 40);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("GSF Hostels Payments List", 40, 40);
 
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100);
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 40, 58);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 40, 58);
 
-  const tableColumns = [
-    "S/N",
-    "Student Name",
-    "Student ID",
-    "Price",
-    "Duration",
-    "Total Amount",
-    "Sangira",
-    "Payment Date",
-    "Receipt",
-    "Bank",
-  ];
+    const tableColumns = [
+      "S/N",
+      "Student Name",
+      "Student ID",
+      "Price",
+      "Duration",
+      "Total Amount",
+      "Sangira",
+      "Payment Date",
+      "Receipt",
+      "Bank",
+    ];
 
-  const tableRows = payments.map((row, index) => [
-    index + 1,
-    capitalize(row?.customer?.Customer_Name) || "-",
-    row?.customer?.Student_ID || "-",
-    row?.Price ? formatter.format(row.Price) : "-",
-    row?.Quantity ? `${row.Quantity} months` : "-",
-    row?.Sangira?.Grand_Total_Price ? formatter.format(row.Sangira.Grand_Total_Price) : (row?.Price ? formatter.format(row.Price) : "-"),
-    row?.Sangira?.Sangira_Number || "-",
-    row?.Sangira?.Completed_Date || "-",
-    row?.Sangira?.Receipt_Number || "-",
-    extractBank(row?.payment?.Payment_Channel) || "-",
-  ]);
+    const tableRows = payments.map((row, index) => [
+      index + 1,
+      capitalize(row?.customer?.Customer_Name) || "-",
+      row?.customer?.Student_ID || "-",
+      row?.Price ? formatter.format(row.Price) : "-",
+      row?.Quantity ? `${row.Quantity} months` : "-",
+      row?.Sangira?.Grand_Total_Price
+        ? formatter.format(row.Sangira.Grand_Total_Price)
+        : row?.Price
+          ? formatter.format(row.Price)
+          : "-",
+      row?.Sangira?.Sangira_Number || "-",
+      row?.Sangira?.Completed_Date || "-",
+      row?.Sangira?.Receipt_Number || "-",
+      extractBank(row?.payment?.Payment_Channel) || "-",
+    ]);
 
-  const totalAmount = payments.reduce(
-    (sum, row) => sum + (row?.Sangira?.Grand_Total_Price || row?.Price || 0),
-    0,
-  );
+    const totalAmount = payments.reduce(
+      (sum, row) => sum + (row?.Sangira?.Grand_Total_Price || row?.Price || 0),
+      0,
+    );
 
-  // Fix: Use "Total" instead of "TOTAL" and add empty strings for alignment
-  const totalRow = [
-    "Total",  // Shorter word to fit in narrow column
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    formatter.format(totalAmount),
-  ];
+    // Fix: Use "Total" instead of "TOTAL" and add empty strings for alignment
+    const totalRow = [
+      "Total", // Shorter word to fit in narrow column
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      formatter.format(totalAmount),
+    ];
 
-  autoTable(doc, {
-    startY: 72,
-    head: [tableColumns],
-    body: [...tableRows, totalRow],
-    styles: { fontSize: 11, cellPadding: 4, overflow: "linebreak" },
-    headStyles: {
-      fillColor: [245, 246, 250],
-      textColor: [0, 0, 0],
-      fontStyle: "bold",
-    },
-    alternateRowStyles: { fillColor: [250, 250, 252] },
-    columnStyles: {
-      0: { cellWidth: 35 },  // Increased from 28 to 35 to fit "Total"
-      1: { cellWidth: 80 },
-      2: { cellWidth: 65 },
-      3: { cellWidth: 55 },
-      4: { cellWidth: 55 },
-      5: { cellWidth: 65 },
-      6: { cellWidth: 68 },
-      7: { cellWidth: 65 },
-      8: { cellWidth: 65 },
-      9: { cellWidth: 70 },
-    },
-    didParseCell: (data) => {
-      if (data.row.index === tableRows.length) {
-        data.cell.styles.fontStyle = "bold";
-        data.cell.styles.fillColor = [220, 230, 245];
-        data.cell.styles.textColor = [0, 0, 0];
-      }
-    },
-    margin: { left: 40, right: 40 },
-  });
+    autoTable(doc, {
+      startY: 72,
+      head: [tableColumns],
+      body: [...tableRows, totalRow],
+      styles: { fontSize: 11, cellPadding: 4, overflow: "linebreak" },
+      headStyles: {
+        fillColor: [245, 246, 250],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+      },
+      alternateRowStyles: { fillColor: [250, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 35 }, // Increased from 28 to 35 to fit "Total"
+        1: { cellWidth: 80 },
+        2: { cellWidth: 65 },
+        3: { cellWidth: 55 },
+        4: { cellWidth: 55 },
+        5: { cellWidth: 65 },
+        6: { cellWidth: 68 },
+        7: { cellWidth: 65 },
+        8: { cellWidth: 65 },
+        9: { cellWidth: 70 },
+      },
+      didParseCell: (data) => {
+        if (data.row.index === tableRows.length) {
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fillColor = [220, 230, 245];
+          data.cell.styles.textColor = [0, 0, 0];
+        }
+      },
+      margin: { left: 40, right: 40 },
+    });
 
-  doc.save("GSF-Hostels-Payments.pdf");
-};
+    doc.save("GSF-Hostels-Payments.pdf");
+  };
 
   const handleDownloadExcel = () => {
     const tableData = payments?.map((row, index) => ({
@@ -717,8 +722,16 @@ const handleDownloadPDF = () => {
   return (
     <>
       <Breadcrumb />
-      <div className="w-full h-12 flex items-center justify-between">
-        <h4>Payments List</h4>
+      <div className="w-full h-12 flex items-center justify-between mb-2">
+        <div className="flex flex-row  gap-4">
+          <IconButton
+            onClick={() => navigate(-1)}
+            className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+          >
+            <MdArrowBack />
+          </IconButton>
+          <h4 className="my-2">Monthly Payments List</h4>
+        </div>
         <div className="flex items-center justify-end gap-2">
           <Button
             variant="contained"

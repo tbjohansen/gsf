@@ -53,13 +53,12 @@ const EditLocation = ({ location, loadData }) => {
       const data = {
         Unit_Location: description.trim(),
         Employee_ID: employeeId,
+        Unit_Location_ID: location?.Unit_Location_ID,
       };
 
       //   console.log("Submitting feature data:", data);
-
-      // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.put(
-        `/settings/unit-location/${location?.id}`,
+        `/settings/unit-location`,
         data
       );
 

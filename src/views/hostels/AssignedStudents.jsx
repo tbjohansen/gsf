@@ -29,7 +29,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function PendingAllocations({ status }) {
+export default function AssignedStudents({ status }) {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [users, setUsers] = useState([]);
@@ -58,7 +58,7 @@ export default function PendingAllocations({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Customer_Status=paid&Room_Status=paid&Request_Type=hostel&limit=${rowsPerPage}&page=${page}`;
+      let url = `/customer/customer-request?&Customer_Status=served&Room_Status=paid&Request_Type=hostel&limit=${rowsPerPage}&page=${page}`;
 
       if (name) {
         url += `&Customer_Name=${name}`;
@@ -128,7 +128,7 @@ export default function PendingAllocations({ status }) {
   const handleRowClick = (row) => {
     setSelectedRow(row);
     navigate(
-      `/projects/hostels/pending-room-assignments/${row?.Request_ID}/assign-room`,
+      `/projects/hostels/students-rooms/${row?.Request_ID}`,
     );
   };
 
@@ -203,7 +203,7 @@ export default function PendingAllocations({ status }) {
         format: (value) => (
           <Badge
             name={capitalize(value)}
-            color={value === "paid" ? "green" : "error"}
+            color={value === "served" ? "green" : "error"}
           />
         ),
       },
@@ -211,11 +211,26 @@ export default function PendingAllocations({ status }) {
         id: "hostel",
         label: "Hostel",
         minWidth: 170,
-        format: (row, value) => (
-          <span>{value?.room?.hostel?.Hostel_Name}</span>
-        ),
+        format: (row, value) => <span>{value?.room?.hostel?.Hostel_Name}</span>,
       },
-
+      {
+        id: "block",
+        label: "Block",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.room?.block?.Block_Name}</span>,
+      },
+      {
+        id: "floor",
+        label: "Floor",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.room?.flow?.Flow_Name}</span>,
+      },
+      {
+        id: "room",
+        label: "Room",
+        minWidth: 170,
+        format: (row, value) => <span>{value?.room?.Room_Name}</span>,
+      },
       {
         id: "created_at",
         label: "Created At",
@@ -237,7 +252,7 @@ export default function PendingAllocations({ status }) {
           >
             <MdArrowBack />
           </IconButton>
-          <h4 className="my-2">Pending Room Assignments</h4>
+          <h4 className="my-2">Students Rooms</h4>
         </div>
       </div>
 

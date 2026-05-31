@@ -28,12 +28,14 @@ const AddItem = ({ Item_Type, loadData }) => {
     setName("");
     setPrice("");
     setOutsidePrice("");
+    setQuantity("");
   };
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [itemType, setItemType] = useState("");
   const [outsidePrice, setOutsidePrice] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -93,6 +95,7 @@ const AddItem = ({ Item_Type, loadData }) => {
         Item_Type: Item_Type ? Item_Type : itemType,
         Item_Price_Outside: Item_Type === "oxygen" ? outsidePrice : null,
         Item_Price_Inside: Item_Type === "oxygen" ? price : null,
+        Gsf_Quantity: Item_Type === "oxygen" ? quantity : null,
       };
 
       // Make API request - Bearer token is automatically included by apiClient
@@ -102,30 +105,29 @@ const AddItem = ({ Item_Type, loadData }) => {
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          console.log("Error:", response.data?.error);
-          toast.error(response?.data?.error || "Failed to create item");
-        }
-        return;
-      }
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
 
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
+          let errorText;
 
-        // Handle validation errors (nested error object)
-        if (response.data?.error && typeof response.data.error === "object") {
-          console.log(response.data.error);
-          toast.error("Failed to create item");
-        } else {
-          // Handle simple error string
-          const errorMessage = response?.data?.error || "Failed to create item";
-          toast.error(errorMessage);
+          console.log(response);
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to add item";
+          }
+
+          toast.error(errorText);
         }
         return;
       }
@@ -228,6 +230,21 @@ const AddItem = ({ Item_Type, loadData }) => {
                         // Remove any non-digit characters except decimal point
                         const rawValue = e.target.value.replace(/[^\d.]/g, "");
                         setOutsidePrice(rawValue);
+                      }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      label="GSF Cylinder Quantity"
+                      value={quantity ? formatter.format(Number(quantity)) : ""}
+                      onChange={(e) => {
+                        // Remove any non-digit characters except decimal point
+                        const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                        setQuantity(rawValue);
                       }}
                       variant="outlined"
                       size="small"

@@ -38,6 +38,8 @@ const OxygenManagement = () => {
   const [orders, setOrders] = useState([]);
   const [payments, setPayments] = useState([]);
 
+  const [summaryData, setSummary] = useState("");
+
   const [loading, setLoading] = useState(false);
   React.useEffect(() => {
     loadCustomers();
@@ -45,13 +47,14 @@ const OxygenManagement = () => {
     loadProductions();
     loadProductionSales();
     loadPaymentsData();
+    loadSummaryData();
   }, []);
 
   const loadPaymentsData = async () => {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        "/customer/customer-request?&Request_Type=oxygen",
+        "/oxygen/oxygen-request?&Billing_Type=cash_deposit",
       );
 
       if (!response.ok) {
@@ -74,6 +77,35 @@ const OxygenManagement = () => {
       }));
       // console.log(newData);
       setPayments(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch employees error:", error);
+      setLoading(false);
+      // toast.error("Failed to load employees");
+    }
+  };
+
+  const loadSummaryData = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get("/oxygen/oxygen-details");
+
+      if (!response.ok) {
+        setLoading(false);
+        // toast.error(response.data?.error || "Failed to fetch employees");
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        // toast.error(response.data.error || "Failed to fetch employees");
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const userData = response?.data?.data;
+      setSummary(userData);
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch employees error:", error);
@@ -278,28 +310,28 @@ const OxygenManagement = () => {
         <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-600">
-              Oxygen Cylinders
+              Production Balance
             </h3>
             <MdOutlinePropaneTank className="w-5 h-5 text-blue-600" />
           </div>
-          <p className="text-3xl font-bold text-gray-800">{0}</p>
+          <p className="text-3xl font-bold text-gray-800">
+            {formatter.format(summaryData?.totalProductionBalance || 0)}
+          </p>
           <p className="text-xs text-blue-600 mt-2">
-            {formatter.format(0)} available cylinders
+            available Oxygen cylinders
           </p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">
-              Liquid Nitrogen
-            </h3>
+            <h3 className="text-sm font-medium text-gray-600">Sales Balance</h3>
             <LuContainer className="w-5 h-5 text-sky-600" />
           </div>
           <p className="text-3xl font-bold text-gray-800">
-            {formatter.format(0)}
+            {formatter.format(summaryData?.totalSalesBalance || 0)}
           </p>
           <p className="text-xs text-sky-600 mt-2">
-            {formatter.format(0)} available
+            available Oxygen Cylinders
           </p>
         </div>
 
@@ -311,26 +343,28 @@ const OxygenManagement = () => {
             <MdPeople className="w-5 h-5 text-purple-600" />
           </div>
           <p className="text-3xl font-bold text-gray-800">
-            {formatter.format(5)}
+            {formatter.format(customers?.length || 0)}
           </p>
           <p className="text-xs text-purple-600 mt-2">
-            {formatter.format(2)}% occupancy rate
+            {/* {formatter.format(2)}% occupancy rate */}
           </p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Year Revenue</h3>
+            <h3 className="text-sm font-medium text-gray-600">Paid Amount</h3>
             <MdTrendingUp className="w-5 h-5 text-green-600" />
           </div>
-          <p className="text-3xl font-bold text-gray-800">TZS 12.5M</p>
-          <p className="text-xs text-green-600 mt-2">+4% from last year</p>
+          <p className="text-2xl font-bold text-gray-800">
+            {currencyFormatter.format(summaryData?.totalPaidAmount || 0)}
+          </p>
+          <p className="text-xs text-green-600 mt-2"></p>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
         <div
-          onClick={() => navigate("/projects/ocygen/payments")}
+          onClick={() => navigate("/projects/oxygen/payments")}
           className="flex justify-between cursor-pointer"
         >
           <h3 className="text-xl font-bold text-gray-800 mb-4">

@@ -32,8 +32,10 @@ const Home = () => {
   const [items, setItems] = useState([]);
   const [messages, setMessages] = useState([]);
   const [assigned, setAssigned] = useState([]);
+  const [reasons, setReasons] = useState([]);
   const [stats, setStatistics] = useState("");
   const [bedStats, setBedStatistics] = useState([]);
+  const [studentRooms, setRooms] = useState([]);
   const [monthlyPayments, setMonthlyPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -161,7 +163,7 @@ const Home = () => {
     }
   };
 
-    const loadMonthlyPayments = async () => {
+  const loadMonthlyPayments = async () => {
     setStatsLoading(true);
     try {
       const response = await apiClient.get("/customer/hostel-beloe-five-month");
@@ -287,6 +289,38 @@ const Home = () => {
     }
   };
 
+  const loadReasons = async () => {
+    setLoading(true);
+    try {
+      let url = `/settings/reason?&Project_Type=hostel`;
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const userData = response?.data?.data?.data;
+      const newData = userData?.map((user, index) => ({
+        ...user,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setReasons(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch customers error:", error);
+      setLoading(false);
+    }
+  };
+
   const loadItems = async () => {
     setLoading(true);
     try {
@@ -351,6 +385,38 @@ const Home = () => {
     }
   };
 
+  const loadStudentRooms = async () => {
+    setLoading(true);
+    try {
+      let url = `/customer/customer-request?&Customer_Status=served&Room_Status=paid&Request_Type=hostel`;
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const paymentsData = response?.data?.data?.data;
+      const newData = paymentsData?.map((payment, index) => ({
+        ...payment,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setRooms(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch payments error:", error);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!hasFetchedData.current) {
       hasFetchedData.current = true;
@@ -363,6 +429,8 @@ const Home = () => {
       loadMessages();
       loadBedStats();
       loadMonthlyPayments();
+      loadReasons();
+      loadStudentRooms();
     }
   }, []);
 
@@ -621,6 +689,14 @@ const Home = () => {
               icon={MdAssignmentAdd}
               items={assigned}
               route="/projects/hostels/pending-room-assignments"
+              header={"Status"}
+              headerValue={"Room_Status"}
+            />
+            <ManagementCard
+              title="Students Rooms"
+              icon={MdAssignmentAdd}
+              items={studentRooms}
+              route="/projects/hostels/students-rooms"
               header={"Status"}
               headerValue={"Room_Status"}
             />

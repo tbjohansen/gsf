@@ -105,15 +105,23 @@ export const getNumberOfDays = (targetDate) => {
  * @param text {String}
  * @returns {String}
  */
-export const capitalize = (text) => {
-  text = text || "";
-  if (typeof text === "string") {
-    return text
-      .split(" ")
-      .map((e) => e.charAt(0).toUpperCase() + e.substr(1).toLowerCase())
-      .join(" ");
-  }
-  return "";
+// export const capitalize = (text) => {
+//   text = text || "";
+//   if (typeof text === "string") {
+//     return text
+//       .split(" ")
+//       .map((e) => e.charAt(0).toUpperCase() + e.substr(1).toLowerCase())
+//       .join(" ");
+//   }
+//   return "";
+// };
+
+export const capitalize = (text = "") => {
+  if (typeof text !== "string") return "";
+  return text
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.substr(1).toLowerCase())
+    .join(" ");
 };
 
 export const formatter = new Intl.NumberFormat("en-US");
@@ -126,36 +134,38 @@ export const currencyFormatter = new Intl.NumberFormat("en-US", {
 });
 
 export const validatePhoneNumber = (phoneNumber) => {
-    // Check if the input contains only digits
-    if (!/^\d+$/.test(phoneNumber)) {
-        return false;
-    }
-    
-    // Check if the number has exactly 10 characters
-    if (phoneNumber.length !== 10) {
-        return false;
-    }
-    
-    // Check if it starts with 0
-    if (phoneNumber.charAt(0) !== '0') {
-        return false;
-    }
-    
-    // Check if the second digit is 5, 6, or 7
-    const secondDigit = phoneNumber.charAt(1);
-    if (secondDigit !== '5' && secondDigit !== '6' && secondDigit !== '7') {
-        return false;
-    }
-    
-    return true;
-}
+  // Check if the input contains only digits
+  if (!/^\d+$/.test(phoneNumber)) {
+    return false;
+  }
+
+  // Check if the number has exactly 10 characters
+  if (phoneNumber.length !== 10) {
+    return false;
+  }
+
+  // Check if it starts with 0
+  if (phoneNumber.charAt(0) !== "0") {
+    return false;
+  }
+
+  // Check if the second digit is 5, 6, or 7
+  const secondDigit = phoneNumber.charAt(1);
+  if (secondDigit !== "5" && secondDigit !== "6" && secondDigit !== "7") {
+    return false;
+  }
+
+  return true;
+};
 
 export const validPhoneNumber = (phoneNumber) => {
-  if (!phoneNumber || typeof phoneNumber !== 'string') return false;
-  
-  return phoneNumber.length === 10 && 
-    ["05", "06", "07"].includes(phoneNumber.slice(0, 2));
-}
+  if (!phoneNumber || typeof phoneNumber !== "string") return false;
+
+  return (
+    phoneNumber.length === 10 &&
+    ["05", "06", "07"].includes(phoneNumber.slice(0, 2))
+  );
+};
 
 export function removeUnderscore(str) {
   if (!str) return "";
@@ -169,16 +179,19 @@ export function extractBank(value) {
 }
 
 // Create a reusable error handler
-export function reportError (response, defaultMessage) {
-    if (response.problem === "NETWORK_ERROR") {
-        toast.error("Network error. Please check your connection");
-    } else if (response.problem === "TIMEOUT_ERROR") {
-        toast.error("Request timeout. Please try again");
-    } else {
-        const serverMessage = response?.data?.error || response?.data?.message;
-        const errorText = typeof serverMessage === "string" 
-            ? serverMessage 
-            : (serverMessage ? Object.values(serverMessage).flat()[0] : defaultMessage);
-        toast.error(errorText);
-    }
-};
+export function reportError(response, defaultMessage) {
+  if (response.problem === "NETWORK_ERROR") {
+    toast.error("Network error. Please check your connection");
+  } else if (response.problem === "TIMEOUT_ERROR") {
+    toast.error("Request timeout. Please try again");
+  } else {
+    const serverMessage = response?.data?.error || response?.data?.message;
+    const errorText =
+      typeof serverMessage === "string"
+        ? serverMessage
+        : serverMessage
+          ? Object.values(serverMessage).flat()[0]
+          : defaultMessage;
+    toast.error(errorText);
+  }
+}

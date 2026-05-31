@@ -35,6 +35,7 @@ const EditItem = ({ item, loadData, Item_Type }) => {
     id: item?.Item_Status,
     label: capitalize(item?.Item_Status),
   });
+  const [quantity, setQuantity] = useState(item?.Gsf_Quantity);
   const [loading, setLoading] = useState(false);
 
   const sortedStatus = [
@@ -92,42 +93,43 @@ const EditItem = ({ item, loadData, Item_Type }) => {
         Item_Type: Item_Type,
         Item_Price_Outside: Item_Type === "oxygen" ? outsidePrice : null,
         Item_Price_Inside: Item_Type === "oxygen" ? price : null,
-        ...(item?.Item_Type === "caution_money" && { Item_Price: price })
+        Gsf_Quantity: Item_Type === "oxygen" ? quantity : null,
+        ...(item?.Item_Type === "caution_money" && { Item_Price: price }),
       };
 
       // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.put(`/settings/item`, data);
 
       // Check if request was successful
-           if (!response.ok) {
-             setLoading(false);
-     
-             if (response.problem === "NETWORK_ERROR") {
-               toast.error("Network error. Please check your connection");
-             } else if (response.problem === "TIMEOUT_ERROR") {
-               toast.error("Request timeout. Please try again");
-             } else {
-               const serverMessage =
-                 response?.data?.error || response?.data?.message;
-     
-               let errorText;
-     
-               console.log(response);
-               if (typeof serverMessage === "string") {
-                 errorText = serverMessage;
-               } else if (
-                 typeof serverMessage === "object" &&
-                 serverMessage !== null
-               ) {
-                 errorText = Object.values(serverMessage).flat()[0];
-               } else {
-                 errorText = "Failed to update item";
-               }
-     
-               toast.error(errorText);
-             }
-             return;
-           }
+      if (!response.ok) {
+        setLoading(false);
+
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+
+          console.log(response);
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to edit item";
+          }
+
+          toast.error(errorText);
+        }
+        return;
+      }
 
       // Success
       setLoading(false);
@@ -243,6 +245,21 @@ const EditItem = ({ item, loadData, Item_Type }) => {
                         // Remove any non-digit characters except decimal point
                         const rawValue = e.target.value.replace(/[^\d.]/g, "");
                         setOutsidePrice(rawValue);
+                      }}
+                      variant="outlined"
+                      size="small"
+                      className="w-[92%]"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="w-full py-2 flex justify-center">
+                    <TextField
+                      label="GSF Cylinder Quantity"
+                      value={quantity ? formatter.format(Number(quantity)) : ""}
+                      onChange={(e) => {
+                        // Remove any non-digit characters except decimal point
+                        const rawValue = e.target.value.replace(/[^\d.]/g, "");
+                        setQuantity(rawValue);
                       }}
                       variant="outlined"
                       size="small"

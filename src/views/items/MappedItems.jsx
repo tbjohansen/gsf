@@ -16,7 +16,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
 import MapItem from "./MapItem";
 import RemoveItem from "./RemoveItem";
-import { Autocomplete, TextField } from "@mui/material";
+import { Autocomplete, IconButton, TextField } from "@mui/material";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -413,7 +414,15 @@ export default function MappedItems() {
       <Breadcrumb />
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
-          <h4>Mapped Items List</h4>
+          <div className="flex flex-row gap-4 mb-1">
+            <IconButton
+              onClick={() => navigate(-1)}
+              className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <MdArrowBack />
+            </IconButton>
+            <h4 className="my-2">Mapped Items List</h4>
+          </div>
           <MapItem loadData={loadData} />
         </div>
       </div>

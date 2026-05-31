@@ -18,8 +18,9 @@ import Badge from "../../components/Badge";
 import UploadCustomers from "./UploadCustomers";
 import AddCustomer from "./AddCustomer";
 import Breadcrumb from "../../components/Breadcrumb";
-import { TextField } from "@mui/material";
+import { IconButton, TextField } from "@mui/material";
 import EditCustomer from "./EditCustomer";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -240,7 +241,15 @@ export default function Customers({ status }) {
           <UploadCustomers status={status} loadData={loadData} />
         </div>
         <div className="w-full">
-          <div className="flex gap-4 justify-end">
+          <div className="w-full flex justify-between">
+            <div className="flex flex-row gap-4">
+              <IconButton
+                onClick={() => navigate(-1)}
+                className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+              >
+                <MdArrowBack />
+              </IconButton>
+            </div>
             <AddCustomer loadData={loadData} status={status} />
           </div>
         </div>
@@ -313,7 +322,7 @@ export default function Customers({ status }) {
                     hover
                     role="checkbox"
                     tabIndex={-1}
-                     onClick={() => handleRowClick(row)}
+                    onClick={() => handleRowClick(row)}
                     key={row.key || row.id}
                     sx={{
                       backgroundColor:
@@ -344,7 +353,9 @@ export default function Customers({ status }) {
                               }
                             }}
                           >
-                            {column.format ? column.format(value, row, handleRowClick) : value}
+                            {column.format
+                              ? column.format(value, row, handleRowClick)
+                              : value}
                           </TableCell>
                         );
                       })}

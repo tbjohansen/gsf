@@ -142,7 +142,8 @@ function InvoiceDialog({
   const totalFromInvoices = React.useMemo(() => {
     if (!pendingInvoices || pendingInvoices.length === 0) return 0;
     return pendingInvoices.reduce(
-      (sum, inv) => sum + (inv.Grand_Total_Price || inv.Price * inv.Quantity || 0),
+      (sum, inv) =>
+        sum + (inv.Grand_Total_Price || inv.Price * inv.Quantity || 0),
       0,
     );
   }, [pendingInvoices]);
@@ -164,7 +165,7 @@ function InvoiceDialog({
       Phone_Number: customer?.Phone_Number,
       Notes: invoiceNotes,
     });
-    
+
     if (success) {
       // Clear form and close dialog
       setInvoiceAmount("");
@@ -290,7 +291,7 @@ function InvoiceDialog({
           onClick={handleGenerateAndDownload}
           disabled={loading}
           variant="contained"
-          className="normal-case font-semibold"
+          className="normal-case font-semibold text-white"
           style={{ backgroundColor: C.primary }}
           startIcon={loading ? null : <MdFileDownload />}
         >
@@ -336,23 +337,23 @@ export default function CustomerDetails() {
 
       if (ordersRes.ok && !ordersRes.data?.error) {
         const responseData = ordersRes?.data?.data || ordersRes.data || {};
-        
+
         const requestItems = responseData.requestItem || [];
         const pendingCashDeposit = responseData.totalPendingCashDeposit || [];
-        
+
         const oxygenItems = requestItems.filter(
-          item => item.Request_Type === "oxygen"
+          (item) => item.Request_Type === "oxygen",
         );
         const cashDepositItems = requestItems.filter(
-          item => item.Request_Type === "cash_deposit"
+          (item) => item.Request_Type === "cash_deposit",
         );
-        
+
         setOxygenOrders(oxygenItems);
         setCashDeposits(cashDepositItems);
         setPendingInvoices(pendingCashDeposit);
-        
+
         const servedOrders = oxygenItems.filter(
-          order => order?.Customer_Status?.toLowerCase() === "served"
+          (order) => order?.Customer_Status?.toLowerCase() === "served",
         );
         setFulfilledOrders(servedOrders);
       }
@@ -364,7 +365,12 @@ export default function CustomerDetails() {
     }
   };
 
-  const generateInvoicePDF = (invoiceData, customerData, apiResponse, pendingInvoicesList) => {
+  const generateInvoicePDF = (
+    invoiceData,
+    customerData,
+    apiResponse,
+    pendingInvoicesList,
+  ) => {
     const doc = new jsPDF();
 
     // Add company header
@@ -395,11 +401,12 @@ export default function CustomerDetails() {
     doc.setFontSize(10);
     doc.setTextColor(C.text);
     doc.setFont("helvetica", "normal");
-    
-    const invoiceNumber = apiResponse?.sangiraData?.Sangira_Number || 
-                         apiResponse?.Sangira_Number || 
-                         `INV-${Date.now()}`;
-    
+
+    const invoiceNumber =
+      apiResponse?.sangiraData?.Sangira_Number ||
+      apiResponse?.Sangira_Number ||
+      `INV-${Date.now()}`;
+
     doc.text(`Invoice #: ${invoiceNumber}`, 14, 58);
     doc.text(`Date: ${formatDate(new Date())}`, 14, 65);
     doc.text(
@@ -424,7 +431,9 @@ export default function CustomerDetails() {
           inv.item?.Item_Name || "Cash Deposit",
           inv.Quantity || 1,
           currencyFormatter.format(inv.Price || inv.Grand_Total_Price),
-          currencyFormatter.format(inv.Grand_Total_Price || inv.Price * inv.Quantity),
+          currencyFormatter.format(
+            inv.Grand_Total_Price || inv.Price * inv.Quantity,
+          ),
         ]);
       });
     } else {
@@ -493,16 +502,20 @@ export default function CustomerDetails() {
       doc.text(`Sangira Number:`, 14, finalY + 42);
       doc.setFont("helvetica", "normal");
       doc.text(apiResponse.sangiraData.Sangira_Number, 70, finalY + 42);
-      
+
       doc.setFont("helvetica", "bold");
       doc.text(`Status:`, 14, finalY + 48);
       doc.setFont("helvetica", "normal");
       doc.text(apiResponse.sangiraData.Sangira_Status, 40, finalY + 48);
-      
+
       doc.setFont("helvetica", "bold");
       doc.text(`Expiry Date:`, 14, finalY + 54);
       doc.setFont("helvetica", "normal");
-      doc.text(formatDate(apiResponse.sangiraData.Expire_Date), 60, finalY + 54);
+      doc.text(
+        formatDate(apiResponse.sangiraData.Expire_Date),
+        60,
+        finalY + 54,
+      );
     }
 
     // Footer
@@ -529,21 +542,44 @@ export default function CustomerDetails() {
     try {
       const response = await apiClient.post(
         "/oxygen/oxygen-deposit",
-        invoiceData
+        invoiceData,
       );
-      
+
       if (response.ok && !response.data?.error) {
         toast.success("Invoice generated successfully");
-        
+
         // Generate and download PDF with response data
-        generateInvoicePDF(invoiceData, customer, response.data, pendingInvoices);
-        
+        // generateInvoicePDF(invoiceData, customer, response.data, pendingInvoices);
+
         // Reload customer data to refresh pending invoices
         await loadCustomerData();
-        
+
         return true;
       } else {
-        toast.error(response.data?.error || "Failed to generate invoice");
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to generate invoice";
+          }
+
+          toast.error(errorText);
+        }
+
         return false;
       }
     } catch (e) {
@@ -587,9 +623,12 @@ export default function CustomerDetails() {
     doc.setFontSize(10);
     doc.setTextColor(C.text);
     doc.setFont("helvetica", "normal");
-    
-    const invoiceNumber = invoice.sangira?.Sangira_Number || invoice.Sangira_Number || `INV-${invoice.Sangira_ID}`;
-    
+
+    const invoiceNumber =
+      invoice.sangira?.Sangira_Number ||
+      invoice.Sangira_Number ||
+      `INV-${invoice.Sangira_ID}`;
+
     doc.text(`Invoice #: ${invoiceNumber}`, 14, 58);
     doc.text(`Date: ${formatDate(invoice.Request_Date)}`, 14, 65);
     doc.text(
@@ -607,12 +646,16 @@ export default function CustomerDetails() {
     doc.text(customer?.Email || "N/A", 14, 106);
 
     // Items table
-    const tableData = [[
-      invoice.item?.Item_Name || "Cash Deposit",
-      invoice.Quantity || 1,
-      currencyFormatter.format(invoice.Price || invoice.Grand_Total_Price),
-      currencyFormatter.format(invoice.Grand_Total_Price || invoice.Price * invoice.Quantity),
-    ]];
+    const tableData = [
+      [
+        invoice.item?.Item_Name || "Cash Deposit",
+        invoice.Quantity || 1,
+        currencyFormatter.format(invoice.Price || invoice.Grand_Total_Price),
+        currencyFormatter.format(
+          invoice.Grand_Total_Price || invoice.Price * invoice.Quantity,
+        ),
+      ],
+    ];
 
     autoTable(doc, {
       startY: 115,
@@ -623,7 +666,9 @@ export default function CustomerDetails() {
           "",
           "",
           "Total Amount",
-          currencyFormatter.format(invoice.Grand_Total_Price || invoice.Price * invoice.Quantity || 0),
+          currencyFormatter.format(
+            invoice.Grand_Total_Price || invoice.Price * invoice.Quantity || 0,
+          ),
         ],
       ],
       headStyles: {
@@ -665,12 +710,12 @@ export default function CustomerDetails() {
       doc.text(`Sangira Number:`, 14, finalY + 26);
       doc.setFont("helvetica", "normal");
       doc.text(invoice.sangira.Sangira_Number, 70, finalY + 26);
-      
+
       doc.setFont("helvetica", "bold");
       doc.text(`Status:`, 14, finalY + 32);
       doc.setFont("helvetica", "normal");
       doc.text(invoice.sangira.Sangira_Status, 40, finalY + 32);
-      
+
       doc.setFont("helvetica", "bold");
       doc.text(`Expiry Date:`, 14, finalY + 38);
       doc.setFont("helvetica", "normal");
@@ -710,14 +755,15 @@ export default function CustomerDetails() {
 
   const totalCashDeposited = React.useMemo(() => {
     return cashDeposits.reduce(
-      (sum, item) => sum + (item.Price * (item.Quantity || 1)),
+      (sum, item) => sum + item.Price * (item.Quantity || 1),
       0,
     );
   }, [cashDeposits]);
 
   const totalPendingInvoiceAmount = React.useMemo(() => {
     return pendingInvoices.reduce(
-      (sum, inv) => sum + (inv.Grand_Total_Price || inv.Price * (inv.Quantity || 1) || 0),
+      (sum, inv) =>
+        sum + (inv.Grand_Total_Price || inv.Price * (inv.Quantity || 1) || 0),
       0,
     );
   }, [pendingInvoices]);
@@ -800,17 +846,18 @@ export default function CustomerDetails() {
               </p>
             </div>
           </div>
-          {pendingInvoices.length > 0 && (
-            <Button
-              onClick={() => setInvoiceOpen(true)}
-              variant="contained"
-              className="normal-case font-semibold"
-              style={{ backgroundColor: C.primary }}
-              startIcon={<MdReceipt />}
-            >
-              Generate Invoice ({pendingInvoices.length})
-            </Button>
-          )}
+          {/* {pendingInvoices.length > 0 && (
+            
+          )} */}
+          <Button
+            onClick={() => setInvoiceOpen(true)}
+            variant="contained"
+            className="normal-case font-semibold"
+            style={{ backgroundColor: C.primary }}
+            startIcon={<MdReceipt />}
+          >
+            Generate Invoice
+          </Button>
         </div>
 
         {/* Customer Info Cards */}
@@ -910,9 +957,13 @@ export default function CustomerDetails() {
               <div className="flex items-center gap-3">
                 <MdPendingActions className="text-amber-600" size={24} />
                 <div>
-                  <h3 className="font-bold text-amber-800">Pending Cash Deposit Invoices</h3>
+                  <h3 className="font-bold text-amber-800">
+                    Pending Cash Deposit Invoices
+                  </h3>
                   <p className="text-sm text-amber-700">
-                    {pendingInvoices.length} invoice(s) awaiting payment totaling {currencyFormatter.format(totalPendingInvoiceAmount)}
+                    {pendingInvoices.length} invoice(s) awaiting payment
+                    totaling{" "}
+                    {currencyFormatter.format(totalPendingInvoiceAmount)}
                   </p>
                 </div>
               </div>
@@ -1012,8 +1063,14 @@ export default function CustomerDetails() {
                               label={capitalize(item.Billing_Type || "credit")}
                               size="small"
                               style={{
-                                backgroundColor: item.Billing_Type === "credit" ? C.primaryBg : C.successBg,
-                                color: item.Billing_Type === "credit" ? C.primary : C.success,
+                                backgroundColor:
+                                  item.Billing_Type === "credit"
+                                    ? C.primaryBg
+                                    : C.successBg,
+                                color:
+                                  item.Billing_Type === "credit"
+                                    ? C.primary
+                                    : C.success,
                               }}
                             />
                           </StyledTableCell>
@@ -1036,7 +1093,8 @@ export default function CustomerDetails() {
               {oxygenOrders.length > 0 && (
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 text-right">
                   <span className="text-sm text-blue-700 font-semibold">
-                    Total Oxygen Orders: {currencyFormatter.format(totalOrdered)}
+                    Total Oxygen Orders:{" "}
+                    {currencyFormatter.format(totalOrdered)}
                   </span>
                 </div>
               )}
@@ -1072,12 +1130,18 @@ export default function CustomerDetails() {
                           <StyledTableCell>
                             {deposit.item?.Item_Name || "Cash Deposit"}
                           </StyledTableCell>
-                          <StyledTableCell>{deposit.Quantity || 1}</StyledTableCell>
+                          <StyledTableCell>
+                            {deposit.Quantity || 1}
+                          </StyledTableCell>
                           <StyledTableCell className="font-bold text-green-600">
-                            {currencyFormatter.format(deposit.Price * (deposit.Quantity || 1))}
+                            {currencyFormatter.format(
+                              deposit.Price * (deposit.Quantity || 1),
+                            )}
                           </StyledTableCell>
                           <StyledTableCell>
-                            {deposit.Payment_Date ? formatDate(deposit.Payment_Date) : "—"}
+                            {deposit.Payment_Date
+                              ? formatDate(deposit.Payment_Date)
+                              : "—"}
                           </StyledTableCell>
                           <StyledTableCell className="text-slate-500">
                             {deposit.Sangira_ID || "—"}
@@ -1104,7 +1168,8 @@ export default function CustomerDetails() {
               {cashDeposits.length > 0 && (
                 <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 text-right">
                   <span className="text-sm text-green-700 font-semibold">
-                    Total Cash Deposited: {currencyFormatter.format(totalCashDeposited)}
+                    Total Cash Deposited:{" "}
+                    {currencyFormatter.format(totalCashDeposited)}
                   </span>
                 </div>
               )}
@@ -1141,13 +1206,18 @@ export default function CustomerDetails() {
                           </StyledTableCell>
                           <StyledTableCell>{order.Quantity}</StyledTableCell>
                           <StyledTableCell className="font-bold text-green-600">
-                            {currencyFormatter.format(order.Price * order.Quantity)}
+                            {currencyFormatter.format(
+                              order.Price * order.Quantity,
+                            )}
                           </StyledTableCell>
                           <StyledTableCell>
-                            {order.Served_Date ? formatDate(order.Served_Date) : "—"}
+                            {order.Served_Date
+                              ? formatDate(order.Served_Date)
+                              : "—"}
                           </StyledTableCell>
                           <StyledTableCell>
-                            {order.served_by?.name || `Employee ${order.Served_By}`}
+                            {order.served_by?.name ||
+                              `Employee ${order.Served_By}`}
                           </StyledTableCell>
                         </TableRow>
                       ))
@@ -1191,21 +1261,33 @@ export default function CustomerDetails() {
                           className="hover:bg-slate-50"
                         >
                           <StyledTableCell className="font-mono text-sm">
-                            {invoice.sangira?.Sangira_Number || invoice.Sangira_Number}
+                            {invoice.sangira?.Sangira_Number ||
+                              invoice.Sangira_Number}
                           </StyledTableCell>
-                          <StyledTableCell>{invoice.Quantity || 1}</StyledTableCell>
+                          <StyledTableCell>
+                            {invoice.Quantity || 1}
+                          </StyledTableCell>
                           <StyledTableCell className="font-bold text-amber-600">
-                            {currencyFormatter.format(invoice.Grand_Total_Price || invoice.Price * (invoice.Quantity || 1))}
+                            {currencyFormatter.format(
+                              invoice.Grand_Total_Price ||
+                                invoice.Price * (invoice.Quantity || 1),
+                            )}
                           </StyledTableCell>
                           <StyledTableCell>
                             {formatDate(invoice.Request_Date)}
                           </StyledTableCell>
                           <StyledTableCell>
-                            {invoice.sangira?.Expire_Date ? formatDate(invoice.sangira.Expire_Date) : "—"}
+                            {invoice.sangira?.Expire_Date
+                              ? formatDate(invoice.sangira.Expire_Date)
+                              : "—"}
                           </StyledTableCell>
                           <StyledTableCell>
                             <Chip
-                              label={capitalize(invoice.sangira?.Sangira_Status || invoice.Customer_Status || "pending")}
+                              label={capitalize(
+                                invoice.sangira?.Sangira_Status ||
+                                  invoice.Customer_Status ||
+                                  "pending",
+                              )}
                               size="small"
                               style={{
                                 backgroundColor: C.accentBg,
@@ -1219,8 +1301,13 @@ export default function CustomerDetails() {
                               size="small"
                               variant="outlined"
                               startIcon={<MdDownload />}
-                              onClick={() => handleDownloadSingleInvoice(invoice)}
-                              style={{ borderColor: C.primary, color: C.primary }}
+                              onClick={() =>
+                                handleDownloadSingleInvoice(invoice)
+                              }
+                              style={{
+                                borderColor: C.primary,
+                                color: C.primary,
+                              }}
                             >
                               Download
                             </Button>
@@ -1244,7 +1331,8 @@ export default function CustomerDetails() {
               {pendingInvoices.length > 0 && (
                 <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200 text-right">
                   <span className="text-sm text-amber-700 font-semibold">
-                    Total Pending Invoices: {currencyFormatter.format(totalPendingInvoiceAmount)}
+                    Total Pending Invoices:{" "}
+                    {currencyFormatter.format(totalPendingInvoiceAmount)}
                   </span>
                 </div>
               )}

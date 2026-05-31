@@ -7,6 +7,10 @@ import Typography from "@mui/material/Typography";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PaymentCategories from "../../setups/payment-category/PaymentCategories";
 import SemesterSetup from "./SemesterSetup";
+import { IconButton } from "@mui/material";
+import { MdArrowBack } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
+import Reasons from "../../reasons/Reasons";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -44,6 +48,8 @@ function a11yProps(index) {
 export default function HostelSetupTabs() {
   const [value, setValue] = useState(0);
 
+  const navigate = useNavigate();
+
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
@@ -51,6 +57,14 @@ export default function HostelSetupTabs() {
   return (
     <>
       <Breadcrumb />
+      <div className="mb-1">
+        <IconButton
+          onClick={() => navigate(-1)}
+          className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+        >
+          <MdArrowBack />
+        </IconButton>
+      </div>
       <Box sx={{ bgcolor: "background.paper" }}>
         <Tabs
           value={value}
@@ -61,6 +75,7 @@ export default function HostelSetupTabs() {
         >
           <Tab label="ACADEMIC YEAR SETUPS" {...a11yProps(0)} />
           <Tab label="PAYMENT CATEGORY TYPES" {...a11yProps(1)} />
+          <Tab label="REVOKE ROOM ALLOCATION REASONS" {...a11yProps(2)} />
         </Tabs>
 
         <TabPanel value={value} index={0}>
@@ -68,6 +83,9 @@ export default function HostelSetupTabs() {
         </TabPanel>
         <TabPanel value={value} index={1}>
           <PaymentCategories />
+        </TabPanel>
+        <TabPanel value={value} index={2}>
+          <Reasons status={"hostel"} />
         </TabPanel>
       </Box>
     </>

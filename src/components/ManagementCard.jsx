@@ -1,6 +1,10 @@
 import { FiArrowRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { currencyFormatter, formatDateTimeForDb } from "../../helpers";
+import {
+  capitalize,
+  currencyFormatter,
+  formatDateTimeForDb,
+} from "../../helpers";
 
 const ManagementCard = ({
   title,
@@ -51,14 +55,15 @@ const ManagementCard = ({
       item?.name ||
       item?.description ||
       item?.Hostel_Name ||
-      item?.Customer_Name ||
+      capitalize(item?.Customer_Name) ||
       item?.Item_Name ||
       item?.Category_Name ||
-      item?.customer?.Customer_Name ||
+      capitalize(item?.customer?.Customer_Name) ||
       item?.estate?.name ||
       item?.Production_Date ||
       item?.Transaction_Date ||
       item?.Unit_Location ||
+      item?.Reason_Description ||
       formatDateTimeForDb(item?.created_at) ||
       ""
     );
@@ -128,7 +133,6 @@ const ManagementCard = ({
                 className="border-t border-slate-100 last:border-b-0"
               >
                 <td className="py-3 font-medium text-slate-700">
-
                   {rental ? item?.estate?.name : getItemName(item)}
                 </td>
                 {header1 && (

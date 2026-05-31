@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
-import { MdAdd } from "react-icons/md";
+import { MdEdit } from "react-icons/md";
 import apiClient from "../../api/Client";
+import Autocomplete from "@mui/material/Autocomplete";
+import { capitalize, formatter } from "../../../helpers";
 
 const style = {
   position: "absolute",
@@ -18,20 +20,34 @@ const style = {
   p: 4,
 };
 
-const AddFarm = ({ loadData }) => {
+const EditReason = ({ item, loadData, Project_Type }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
-    setName("");
-    setPrice("");
-    setSize("");
   };
 
-  const [name, setName] = useState("");
-  const [size, setSize] = useState("");
-  const [price, setPrice] = useState("");
+  const [name, setName] = useState(item?.Reason_Description);
+  const [status, setStatus] = useState({
+    id: item?.status,
+    label: capitalize(item?.status),
+  });
   const [loading, setLoading] = useState(false);
+
+  const sortedStatus = [
+    {
+      id: "active",
+      label: "Active",
+    },
+    {
+      id: "inactive",
+      label: "Inactive",
+    },
+  ];
+
+  const statusOnChange = (e, value) => {
+    setStatus(value);
+  };
 
   const dispatch = useDispatch();
 
@@ -39,17 +55,12 @@ const AddFarm = ({ loadData }) => {
     e.preventDefault();
 
     if (!name || name.trim() === "") {
-      toast.error("Please enter farm name");
+      toast.error("Please enter reason");
       return;
     }
 
-    if (!size) {
-      toast.error("Please enter total hectares");
-      return;
-    }
-
-    if (!price || price < 0) {
-      toast.error("Please enter valid price per 0.25 hectare");
+    if (!status) {
+      toast.error("Please select status");
       return;
     }
 
@@ -64,17 +75,16 @@ const AddFarm = ({ loadData }) => {
     setLoading(true);
 
     try {
-      // Prepare the data to send (match your API field names)
+      // Prepare the data to send
       const data = {
-        Item_Name: name.trim(),
-        Item_Type: "farm",
-        Item_Price: price,
-        Farm_Size: size,
+        Reason_Description: name.trim(),
+        status: status?.id,
+        Reason_ID: item?.Reason_ID,
         Employee_ID: employeeId,
       };
 
       // Make API request - Bearer token is automatically included by apiClient
-      const response = await apiClient.post("/settings/item", data);
+      const response = await apiClient.put(`/settings/reason`, data);
 
       // Check if request was successful
       if (!response.ok) {
@@ -99,7 +109,7 @@ const AddFarm = ({ loadData }) => {
           ) {
             errorText = Object.values(serverMessage).flat()[0];
           } else {
-            errorText = "Failed to add farm";
+            errorText = "Failed to edit reason";
           }
 
           toast.error(errorText);
@@ -109,8 +119,7 @@ const AddFarm = ({ loadData }) => {
 
       // Success
       setLoading(false);
-      toast.success("Farm created successfully");
-
+      toast.success("Reason updated successfully");
       // Close modal and reset form
       handleClose();
 
@@ -122,7 +131,7 @@ const AddFarm = ({ loadData }) => {
       // TODO: Dispatch action to update Redux store if needed
       // dispatch(addHostelToStore(response.data.data));
     } catch (error) {
-      console.error("Create farm error:", error);
+      console.error("Update item error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
@@ -130,12 +139,12 @@ const AddFarm = ({ loadData }) => {
 
   return (
     <div>
-      <div
+      <button
         onClick={handleOpen}
-        className="h-10 w-52 bg-oceanic cursor-pointer rounded-xl flex flex-row gap-1 justify-center text-white"
+        className="w-10 h-10 bg-white cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group"
       >
-        <MdAdd className="my-3" /> <p className="py-2">Create New Farm</p>
-      </div>
+        <MdEdit className="w-6 h-6 text-gray-800 group-hover:text-blue-600 transition-colors" />
+      </button>
 
       <Modal
         open={open}
@@ -145,13 +154,13 @@ const AddFarm = ({ loadData }) => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Add New Farm</h3>
+            <h3 className="text-center text-xl py-4">Edit Reason Details</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
                   id="outlined-basic"
-                  label="Farm Name"
+                  label="Reason"
                   variant="outlined"
                   className="w-[92%]"
                   value={name}
@@ -161,30 +170,17 @@ const AddFarm = ({ loadData }) => {
                 />
               </div>
               <div className="w-full py-2 flex justify-center">
-                <TextField
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedStatus}
                   size="small"
-                  id="outlined-basic"
-                  label="Total Hectare"
-                  variant="outlined"
+                  freeSolo
                   className="w-[92%]"
-                  type="number"
-                  value={size}
-                  onChange={(e) => setSize(e.target.value)}
-                  disabled={loading}
-                  autoFocus
-                />
-              </div>
-              <div className="w-full py-2 flex justify-center">
-                <TextField
-                  size="small"
-                  id="outlined-basic"
-                  label="Price Per 0.25 Hectare"
-                  variant="outlined"
-                  className="w-[92%]"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  disabled={loading}
-                  autoFocus
+                  value={status}
+                  onChange={statusOnChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Status" />
+                  )}
                 />
               </div>
 
@@ -194,7 +190,7 @@ const AddFarm = ({ loadData }) => {
                   disabled={loading}
                   className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Creating..." : "Save Farm"}
+                  {loading ? "Updating..." : "Edit Reason"}
                 </button>
               </div>
             </div>
@@ -205,4 +201,4 @@ const AddFarm = ({ loadData }) => {
   );
 };
 
-export default AddFarm;
+export default EditReason;

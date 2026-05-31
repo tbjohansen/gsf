@@ -8,18 +8,21 @@ import {
   Card,
   Alert,
   CircularProgress,
+  IconButton,
 } from "@mui/material";
 import Floors from "./Floors";
 import Wings from "./Wings";
 import Breadcrumb from "../../components/Breadcrumb";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { MdArrowBack } from "react-icons/md";
 
 const Block = () => {
   const hasFetchedData = useRef(false);
 
   const { blockID } = useSearchParams();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState(0);
   const [wings, setWings] = useState([]);
@@ -84,26 +87,34 @@ const Block = () => {
   return (
     <>
       <Breadcrumb />
-
+      <div className="flex flex-row gap-4 mb-1">
+        <IconButton
+          onClick={() => navigate(-1)}
+          className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+        >
+          <MdArrowBack />
+        </IconButton>
+        <h4 className="my-2">Hostel Wings & Floors List</h4>
+      </div>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="mx-auto">
           <Card className="shadow-xl rounded-2xl overflow-hidden">
             <Box
-              sx={{ 
-                borderBottom: 1, 
-                borderColor: "divider", 
+              sx={{
+                borderBottom: 1,
+                borderColor: "divider",
                 bgcolor: "white",
-                '& .MuiTabs-indicator': {
-                  backgroundColor: '#1976d2',
+                "& .MuiTabs-indicator": {
+                  backgroundColor: "#1976d2",
                   height: 3,
                 },
-                '& .Mui-selected': {
-                  color: '#1976d2 !important',
+                "& .Mui-selected": {
+                  color: "#1976d2 !important",
                 },
-                '& .MuiTab-root': {
-                  color: '#666',
-                  '&:hover': {
-                    color: '#1976d2',
+                "& .MuiTab-root": {
+                  color: "#666",
+                  "&:hover": {
+                    color: "#1976d2",
                   },
                 },
               }}
@@ -113,23 +124,23 @@ const Block = () => {
                 onChange={handleTabChange}
                 variant="fullWidth"
               >
-                <Tab 
-                  label="Wings" 
+                <Tab
+                  label="Wings"
                   className="text-lg font-semibold"
                   sx={{
-                    '&.Mui-selected': {
-                      color: '#1976d2',
-                      fontWeight: 'bold',
+                    "&.Mui-selected": {
+                      color: "#1976d2",
+                      fontWeight: "bold",
                     },
                   }}
                 />
-                <Tab 
-                  label="Floors" 
+                <Tab
+                  label="Floors"
                   className="text-lg font-semibold"
                   sx={{
-                    '&.Mui-selected': {
-                      color: '#1976d2',
-                      fontWeight: 'bold',
+                    "&.Mui-selected": {
+                      color: "#1976d2",
+                      fontWeight: "bold",
                     },
                   }}
                 />

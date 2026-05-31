@@ -72,6 +72,9 @@ import MonthlyPayments from "../src/views/hostels/MonthlyPayments";
 import OrderDetail from "../src/views/oxygen-requisition/OrderDetail";
 import CustomerDetails from "../src/views/oxygen-requisition/CustomerDetails";
 import GasCylinderInventory from "../src/views/oxygen-requisition/GasCylindersInventory";
+import Reasons from "../src/views/reasons/Reasons";
+import AssignedStudents from "../src/views/hostels/AssignedStudents";
+import StudentRoomDetails from "../src/views/hostels/StudentRoomDetails";
 
 const LoginElement = () => <Login />;
 
@@ -102,6 +105,12 @@ const HostelsDashbordElement = () => (
 const ItemsElement = (props) => (
   <AppLayout>
     <Items {...props} />
+  </AppLayout>
+);
+
+const ReasonsElement = (props) => (
+  <AppLayout>
+    <Reasons {...props} />
   </AppLayout>
 );
 
@@ -464,6 +473,18 @@ const PendingRoomAssignmentElement = () => (
   </AppLayout>
 );
 
+const RoomAssignedElement = () => (
+  <AppLayout>
+    <AssignedStudents />
+  </AppLayout>
+);
+
+const StudentRoomDetailsElement = () => (
+  <AppLayout>
+    <StudentRoomDetails />
+  </AppLayout>
+);
+
 const HouseRentalsElement = () => (
   <AppLayout>
     <HouseRentals />
@@ -587,7 +608,7 @@ const AppRoutes = () => {
           path="/projects/oxygen/items"
           element={<ItemsElement status="oxygen" />}
         />
-         <Route
+        <Route
           path="/projects/oxygen/cylinder-inventory"
           element={<CylinderInventoryElement status="oxygen" />}
         />
@@ -604,6 +625,11 @@ const AppRoutes = () => {
           path="/projects/oxygen/productions"
           element={<OxygenProductionElement status="oxygen" />}
         />
+
+        {/* <Route
+          path="/projects/oxygen/payments"
+          element={<OxygenProductionElement status="oxygen" />}
+        /> */}
 
         <Route
           path="/projects/oxygen/productions/new"
@@ -807,6 +833,10 @@ const AppRoutes = () => {
           path="/projects/hostels/items/:itemID/mapped-items"
           element={<MappedItemsElement status="student_accomodatio" />}
         />
+        {/* <Route
+          path="/projects/hostels/reasons"
+          element={<ReasonsElement status="hostel" />}
+        /> */}
         <Route
           path="/projects/hostels/payments"
           element={<HostelPaymentsElement />}
@@ -832,6 +862,16 @@ const AppRoutes = () => {
         <Route
           path="/projects/hostels/pending-room-assignments/:requestID/assign-room"
           element={<AssignRoomElement />}
+        />
+
+        <Route
+          path="/projects/hostels/students-rooms"
+          element={<RoomAssignedElement />}
+        />
+
+        <Route
+          path="/projects/hostels/students-rooms/:requestID"
+          element={<StudentRoomDetailsElement />}
         />
 
         {/* farms */}

@@ -20,10 +20,10 @@ import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
-import EditItem from "./EditItem";
-import AddItem from "./AddItem";
 import { IconButton } from "@mui/material";
 import { MdArrowBack } from "react-icons/md";
+import AddReason from "./AddReason";
+import EditReason from "./EditReason";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -35,34 +35,33 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function Items({ status }) {
-  const [page, setPage] = React.useState(0);
+export default function Reasons({ status }) {
+  const [page, setPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
-  const [items, setItems] = React.useState([]);
+  const [reasons, setReasons] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
+
+  const [pagination, setPagination] = React.useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
 
   const navigate = useNavigate();
 
   // Fetch hostels from API
   React.useEffect(() => {
     loadData();
-  }, []);
+  }, [page, rowsPerPage]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/settings/item?`;
-      if (status) {
-        if (
-          status === "student_accomodation" ||
-          status === "student_accomodatio"
-        ) {
-          url += `&Item_Type=${status},caution_money`;
-        } else {
-          url += `&Item_Type=${status}`;
-        }
-      }
+      let url = `/settings/reason?&Project_Type=${status}&page=${page}&limit=${rowsPerPage}`;
 
       const response = await apiClient.get(url);
 
@@ -89,7 +88,7 @@ export default function Items({ status }) {
           ) {
             errorText = Object.values(serverMessage).flat()[0];
           } else {
-            errorText = "Failed to fetch items";
+            errorText = "Failed to fetch reasons";
           }
 
           toast.error(errorText);
@@ -98,69 +97,68 @@ export default function Items({ status }) {
       }
 
       // Adjust based on your API response structure
-      const itemData = response?.data?.data;
-      const newData = itemData?.map((item, index) => ({
-        ...item,
-        key: index + 1,
+      const responseData = response?.data?.data;
+      const userData = responseData?.data;
+
+      // Update customers with keys
+      const newData = userData?.map((user, index) => ({
+        ...user,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
       // console.log(newData);
-      setItems(Array.isArray(newData) ? newData : []);
+      setReasons(Array.isArray(newData) ? newData : []);
+
+      // Update pagination state
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch items error:", error);
       setLoading(false);
-      toast.error("Failed to load items");
+      toast.error("Failed to load reasons");
     }
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event?.target?.value, 25);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
   const handleRowClick = (row) => {
-    if (row?.Item_Type === "caution_money") {
-      return null;
-    }
+    // if (row?.Item_Type === "caution_money") {
+    //   return null;
+    // }
     console.log(status);
     setSelectedRow(row);
-    navigate(
-      status === "oxygen"
-        ? `projects/${status}/items/${row?.Item_ID}/mapped-items`
-        : status === "student_accomodation" || status === "student_accomodatio"
-          ? `/projects/hostels/items/${row?.Item_ID}/mapped-items`
-          : `/items/${row?.Item_ID}/mapped-items`,
-    );
+    // navigate(
+    //   status === "oxygen"
+    //     ? `projects/${status}/items/${row?.Item_ID}/mapped-items`
+    //     : status === "student_accomodation" || status === "student_accomodatio"
+    //       ? `/projects/hostels/items/${row?.Item_ID}/mapped-items`
+    //       : `/items/${row?.Item_ID}/mapped-items`,
+    // );
   };
 
   // Inside the Hostels component, replace the columns definition with:
   const columns = React.useMemo(() => {
     return [
       { id: "key", label: "S/N" },
-      { id: "Item_Name", label: "Item Name" },
-
-      status === "oxygen" && {
-        id: "Item_Price_Inside",
-        label: "Internal Price",
-        format: (value) => <span>{currencyFormatter.format(value || 0)}</span>,
-        show: status === "oxygen",
-      },
-      status === "oxygen" && {
-        id: "Item_Price_Outside",
-        label: "External Price",
-        format: (value) => <span>{currencyFormatter.format(value || 0)}</span>,
-      },
-      status === "oxygen" && {
-        id: "Gsf_Quantity",
-        label: "GSF Cylinders",
-        format: (value) => <span>{formatter.format(value || 0)}</span>,
-      },
+      { id: "Reason_Description", label: "Item Name" },
       {
-        id: "Item_Status",
+        id: "status",
         label: "Status",
         format: (value) => (
           <Badge
@@ -180,7 +178,7 @@ export default function Items({ status }) {
         align: "center",
         format: (value, row) => (
           <div className="flex gap-4 justify-center">
-            <EditItem item={row} loadData={loadData} Item_Type={status} />
+            <EditReason item={row} loadData={loadData} Project_Type={status} />
           </div>
         ),
       },
@@ -189,19 +187,19 @@ export default function Items({ status }) {
 
   return (
     <>
-      <Breadcrumb />
+      {/* <Breadcrumb /> */}
       <div className="w-full h-12">
         <div className="w-full my-2 flex justify-between">
           <div className="flex flex-row gap-4 mb-1">
-            <IconButton
+            {/* <IconButton
               onClick={() => navigate(-1)}
               className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
             >
               <MdArrowBack />
             </IconButton>
-            <h4 className="my-2">Items List</h4>
+            <h4 className="my-2">Reasons List</h4> */}
           </div>
-          <AddItem Item_Type={status} loadData={loadData} />
+          <AddReason Project_Type={status} loadData={loadData} />
         </div>
       </div>
 
@@ -229,70 +227,71 @@ export default function Items({ status }) {
                   </TableCell>
                 </TableRow>
               )}
-              {items
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      onClick={() =>
-                        status === "student_accomodation" ||
-                        status === "student_accomodatio"
-                          ? handleRowClick(row)
-                          : null
-                      }
-                      sx={{
-                        cursor: "pointer",
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns
-                        .filter(
-                          (e) => typeof e.show === "undefined" || !!e.show,
-                        )
-                        .map((column) => {
-                          const value = row[column.id];
-                          return (
-                            <TableCell
-                              key={column.id}
-                              align={column.align}
-                              onClick={(e) => {
-                                // Prevent click event from bubbling up to the row
-                                // when clicking on action buttons
-                                if (column.id === "actions") {
-                                  e.stopPropagation();
-                                }
-                              }}
-                            >
-                              {column.format
-                                ? column.format(value, row, handleRowClick)
-                                : value}
-                            </TableCell>
-                          );
-                        })}
-                    </TableRow>
-                  );
-                })}
+              {reasons?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    onClick={() =>
+                      status === "student_accomodation" ||
+                      status === "student_accomodatio"
+                        ? handleRowClick(row)
+                        : null
+                    }
+                    sx={{
+                      cursor: "pointer",
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns
+                      .filter((e) => typeof e.show === "undefined" || !!e.show)
+                      .map((column) => {
+                        const value = row[column.id];
+                        return (
+                          <TableCell
+                            key={column.id}
+                            align={column.align}
+                            onClick={(e) => {
+                              // Prevent click event from bubbling up to the row
+                              // when clicking on action buttons
+                              if (column.id === "actions") {
+                                e.stopPropagation();
+                              }
+                            }}
+                          >
+                            {column.format
+                              ? column.format(value, row, handleRowClick)
+                              : value}
+                          </TableCell>
+                        );
+                      })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 200, 1000]}
           component="div"
-          count={items?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

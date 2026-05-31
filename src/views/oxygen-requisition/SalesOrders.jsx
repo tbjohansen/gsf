@@ -115,7 +115,7 @@ export default function SalesOrders({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/oxygen/oxygen-request?&limit=${rowsPerPage}&page=${page}`;
+      let url = `/oxygen/oxygen-request?&limit=${rowsPerPage}&page=${page}&Billing_Type=cash,credit`;
 
       if (startDate) url += `&Start_Date=${formatDateTimeForDb(startDate)}`;
       if (endDate) url += `&End_Date=${formatDateTimeForDb(endDate)}`;
