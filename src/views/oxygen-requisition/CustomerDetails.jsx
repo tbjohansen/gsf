@@ -7,6 +7,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   LinearProgress,
   Dialog,
   DialogTitle,
@@ -62,6 +63,7 @@ import {
 } from "../../../helpers";
 import apiClient from "../../api/Client";
 import Breadcrumb from "../../components/Breadcrumb";
+import Badge from "../../components/Badge";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -92,22 +94,16 @@ const C = {
   textDim: "#94a3b8",
 };
 
-/* ─── Styled helpers ───────────────────────────────────────────────────── */
-const StyledTableCell = styled(TableCell)(() => ({
+/* ─── Styled helpers (matching CylinderInventory) ───────────────────────────────────────────────────── */
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
-    backgroundColor: "#f8fafc",
-    color: C.textDim,
-    fontSize: 12,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    borderBottom: `1px solid ${C.border}`,
-    padding: "10px 16px",
+    backgroundColor: "#f5f6fa",
+    color: theme.palette.common.black,
+    fontWeight: 600,
+    fontSize: 13,
   },
   [`&.${tableCellClasses.body}`]: {
     fontSize: 14,
-    color: C.text,
-    borderBottom: `1px solid ${C.border}`,
-    padding: "14px 16px",
   },
 }));
 
@@ -133,25 +129,31 @@ function InvoiceDialog({
   customer,
   pendingInvoices,
   onGenerateInvoice,
+  outstandingBalance,
   loading,
 }) {
   const [invoiceAmount, setInvoiceAmount] = React.useState("");
   const [invoiceNotes, setInvoiceNotes] = React.useState("");
 
-  // Calculate total from pending invoices (cash deposits)
-  const totalFromInvoices = React.useMemo(() => {
-    if (!pendingInvoices || pendingInvoices.length === 0) return 0;
-    return pendingInvoices.reduce(
-      (sum, inv) =>
-        sum + (inv.Grand_Total_Price || inv.Price * inv.Quantity || 0),
-      0,
-    );
-  }, [pendingInvoices]);
+  React.useEffect(() => {
+    if (open) {
+      setInvoiceAmount(
+        outstandingBalance > 0 ? outstandingBalance.toString() : "",
+      );
+      setInvoiceNotes("");
+    }
+  }, [open, outstandingBalance]);
+
+  const handleClose = () => {
+    setInvoiceAmount("");
+    setInvoiceNotes("");
+    onClose();
+  };
 
   const handleGenerateAndDownload = async () => {
     let amount = invoiceAmount;
-    if (!amount && totalFromInvoices > 0) {
-      amount = totalFromInvoices;
+    if (!amount && outstandingBalance > 0) {
+      amount = outstandingBalance;
     }
 
     if (!amount || parseFloat(amount) <= 0) {
@@ -167,7 +169,6 @@ function InvoiceDialog({
     });
 
     if (success) {
-      // Clear form and close dialog
       setInvoiceAmount("");
       setInvoiceNotes("");
       onClose();
@@ -177,7 +178,7 @@ function InvoiceDialog({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth="md"
       fullWidth
       PaperProps={{
@@ -189,58 +190,12 @@ function InvoiceDialog({
           <MdReceipt style={{ color: C.primary }} size={20} />
           <span>Generate Invoice</span>
         </div>
-        <IconButton
-          onClick={onClose}
-          size="small"
-          className="text-slate-400 hover:text-slate-600"
-        >
+        <IconButton onClick={handleClose} size="small" className="text-slate-400 hover:text-slate-600">
           <MdClose />
         </IconButton>
       </DialogTitle>
 
       <DialogContent className="pt-6">
-        {/* Pending Invoices Summary (Cash Deposits) */}
-        {/* {pendingInvoices && pendingInvoices.length > 0 && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 mb-6 border border-amber-200">
-            <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
-              <MdPendingActions className="text-amber-600" size={20} />
-              Pending Cash Deposit Invoices
-            </h3>
-            <div className="space-y-2">
-              {pendingInvoices.map((invoice, idx) => (
-                <div
-                  key={idx}
-                  className="flex justify-between items-center text-sm"
-                >
-                  <div>
-                    <span className="font-medium">{invoice.item?.Item_Name || "Cash Deposit"}</span>
-                    {invoice.Sangira_Number && (
-                      <span className="text-xs text-slate-500 ml-2">
-                        Ref: {invoice.Sangira_Number}
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    {invoice.Quantity && <span className="mr-2">×{invoice.Quantity}</span>}
-                    <span className="font-semibold">
-                      {currencyFormatter.format(invoice.Grand_Total_Price || invoice.Price * invoice.Quantity)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              <div className="border-t border-amber-200 pt-2 mt-2">
-                <div className="flex justify-between items-center font-bold">
-                  <span>Total Pending Amount:</span>
-                  <span className="text-amber-700">
-                    {currencyFormatter.format(totalFromInvoices)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )} */}
-
-        {/* Generate New Invoice */}
         <div className="bg-white rounded-lg p-4 border border-slate-200">
           <div className="grid grid-cols-1 gap-4">
             <TextField
@@ -251,14 +206,25 @@ function InvoiceDialog({
               value={invoiceAmount}
               onChange={(e) => setInvoiceAmount(e.target.value)}
               placeholder={
-                totalFromInvoices > 0
-                  ? `Recommended: ${currencyFormatter.format(totalFromInvoices)}`
+                outstandingBalance > 0
+                  ? `Recommended amount: ${currencyFormatter.format(outstandingBalance)}`
                   : "Enter amount"
               }
               helperText={
-                totalFromInvoices > 0
-                  ? `Based on pending cash deposits: ${currencyFormatter.format(totalFromInvoices)}`
-                  : ""
+                outstandingBalance > 0 ? (
+                  <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>💰 Outstanding balance: <strong>{currencyFormatter.format(outstandingBalance)}</strong></span>
+                    {(!invoiceAmount || parseFloat(invoiceAmount) !== outstandingBalance) && (
+                      <Button 
+                        size="small" 
+                        onClick={() => setInvoiceAmount(outstandingBalance.toString())}
+                        style={{ textTransform: 'none', fontSize: '11px', padding: '2px 8px', minWidth: 'auto' }}
+                      >
+                        Use full amount
+                      </Button>
+                    )}
+                  </span>
+                ) : ""
               }
               InputProps={{
                 inputProps: { min: 0, step: "0.01" },
@@ -282,7 +248,7 @@ function InvoiceDialog({
 
       <DialogActions className="p-4 border-t border-slate-200 gap-2">
         <Button
-          onClick={onClose}
+          onClick={handleClose}
           className="text-slate-500 normal-case hover:bg-slate-50"
         >
           Cancel
@@ -317,9 +283,44 @@ export default function CustomerDetails() {
   const [tabValue, setTabValue] = React.useState(0);
   const [invoiceOpen, setInvoiceOpen] = React.useState(false);
 
+  // Pagination states
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
+
+  // Display data for each tab with pagination
+  const [displayedOxygenOrders, setDisplayedOxygenOrders] = React.useState([]);
+  const [displayedCashDeposits, setDisplayedCashDeposits] = React.useState([]);
+  const [displayedFulfilledOrders, setDisplayedFulfilledOrders] = React.useState([]);
+  const [displayedPendingInvoices, setDisplayedPendingInvoices] = React.useState([]);
+
   React.useEffect(() => {
     loadCustomerData();
   }, [customerID]);
+
+  // Update displayed data when page, rowsPerPage, or data changes
+  React.useEffect(() => {
+    const start = page * rowsPerPage;
+    const end = start + rowsPerPage;
+    setDisplayedOxygenOrders(oxygenOrders.slice(start, end));
+  }, [oxygenOrders, page, rowsPerPage]);
+
+  React.useEffect(() => {
+    const start = page * rowsPerPage;
+    const end = start + rowsPerPage;
+    setDisplayedCashDeposits(cashDeposits.slice(start, end));
+  }, [cashDeposits, page, rowsPerPage]);
+
+  React.useEffect(() => {
+    const start = page * rowsPerPage;
+    const end = start + rowsPerPage;
+    setDisplayedFulfilledOrders(fulfilledOrders.slice(start, end));
+  }, [fulfilledOrders, page, rowsPerPage]);
+
+  React.useEffect(() => {
+    const start = page * rowsPerPage;
+    const end = start + rowsPerPage;
+    setDisplayedPendingInvoices(pendingInvoices.slice(start, end));
+  }, [pendingInvoices, page, rowsPerPage]);
 
   const loadCustomerData = async () => {
     setLoading(true);
@@ -356,6 +357,8 @@ export default function CustomerDetails() {
           (order) => order?.Customer_Status?.toLowerCase() === "served",
         );
         setFulfilledOrders(servedOrders);
+        
+        setPage(0); // Reset to first page when new data arrives
       }
     } catch (e) {
       console.error("Failed to load customer data:", e);
@@ -363,178 +366,6 @@ export default function CustomerDetails() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const generateInvoicePDF = (
-    invoiceData,
-    customerData,
-    apiResponse,
-    pendingInvoicesList,
-  ) => {
-    const doc = new jsPDF();
-
-    // Add company header
-    doc.setFontSize(24);
-    doc.setTextColor(C.primary);
-    doc.setFont("helvetica", "bold");
-    doc.text("OXYGEN SUPPLIES INVOICE", 105, 20, { align: "center" });
-
-    // Company info
-    doc.setFontSize(9);
-    doc.setTextColor(C.muted);
-    doc.text("Oxygen Medical Supplies Ltd.", 105, 30, { align: "center" });
-    doc.text("P.O. Box 12345, Dar es Salaam, Tanzania", 105, 36, {
-      align: "center",
-    });
-    doc.text(
-      "Tel: +255 123 456 789 | Email: info@oxygensupplies.co.tz",
-      105,
-      42,
-      { align: "center" },
-    );
-
-    // Draw line
-    doc.setDrawColor(C.border);
-    doc.line(14, 48, 196, 48);
-
-    // Invoice details
-    doc.setFontSize(10);
-    doc.setTextColor(C.text);
-    doc.setFont("helvetica", "normal");
-
-    const invoiceNumber =
-      apiResponse?.sangiraData?.Sangira_Number ||
-      apiResponse?.Sangira_Number ||
-      `INV-${Date.now()}`;
-
-    doc.text(`Invoice #: ${invoiceNumber}`, 14, 58);
-    doc.text(`Date: ${formatDate(new Date())}`, 14, 65);
-    doc.text(
-      `Due Date: ${formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))}`,
-      14,
-      72,
-    );
-
-    // Customer details
-    doc.setFont("helvetica", "bold");
-    doc.text("Bill To:", 14, 85);
-    doc.setFont("helvetica", "normal");
-    doc.text(customerData?.Customer_Name || "N/A", 14, 92);
-    doc.text(customerData?.Phone_Number || "N/A", 14, 99);
-    doc.text(customerData?.Email || "N/A", 14, 106);
-
-    // Items table
-    const tableData = [];
-    if (pendingInvoicesList && pendingInvoicesList.length > 0) {
-      pendingInvoicesList.forEach((inv) => {
-        tableData.push([
-          inv.item?.Item_Name || "Cash Deposit",
-          inv.Quantity || 1,
-          currencyFormatter.format(inv.Price || inv.Grand_Total_Price),
-          currencyFormatter.format(
-            inv.Grand_Total_Price || inv.Price * inv.Quantity,
-          ),
-        ]);
-      });
-    } else {
-      tableData.push([
-        "Oxygen Supply & Services",
-        1,
-        currencyFormatter.format(invoiceData.Grand_Total_Price || 0),
-        currencyFormatter.format(invoiceData.Grand_Total_Price || 0),
-      ]);
-    }
-
-    autoTable(doc, {
-      startY: 115,
-      head: [["Description", "Qty", "Unit Price", "Amount"]],
-      body: tableData,
-      foot: [
-        [
-          "",
-          "",
-          "Total Amount",
-          currencyFormatter.format(invoiceData.Grand_Total_Price || 0),
-        ],
-      ],
-      headStyles: {
-        fillColor: [31, 67, 137],
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-        fontSize: 10,
-      },
-      footStyles: {
-        fillColor: [232, 237, 245],
-        textColor: [5, 150, 105],
-        fontStyle: "bold",
-        fontSize: 10,
-      },
-      bodyStyles: {
-        fontSize: 9,
-      },
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "right" },
-        3: { halign: "right" },
-      },
-      margin: { left: 14, right: 14 },
-    });
-
-    // Payment terms
-    const finalY = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(9);
-    doc.setTextColor(C.muted);
-    doc.setFont("helvetica", "bold");
-    doc.text("Payment Terms:", 14, finalY);
-    doc.setFont("helvetica", "normal");
-    doc.text("Payment is due within 30 days of invoice date.", 14, finalY + 6);
-
-    // Notes
-    if (invoiceData.Notes) {
-      doc.text("Notes:", 14, finalY + 16);
-      doc.text(invoiceData.Notes, 14, finalY + 22);
-    }
-
-    // Sangira Reference
-    if (apiResponse?.sangiraData) {
-      doc.text("Reference Information:", 14, finalY + 36);
-      doc.setFont("helvetica", "bold");
-      doc.text(`Sangira Number:`, 14, finalY + 42);
-      doc.setFont("helvetica", "normal");
-      doc.text(apiResponse.sangiraData.Sangira_Number, 70, finalY + 42);
-
-      doc.setFont("helvetica", "bold");
-      doc.text(`Status:`, 14, finalY + 48);
-      doc.setFont("helvetica", "normal");
-      doc.text(apiResponse.sangiraData.Sangira_Status, 40, finalY + 48);
-
-      doc.setFont("helvetica", "bold");
-      doc.text(`Expiry Date:`, 14, finalY + 54);
-      doc.setFont("helvetica", "normal");
-      doc.text(
-        formatDate(apiResponse.sangiraData.Expire_Date),
-        60,
-        finalY + 54,
-      );
-    }
-
-    // Footer
-    const pageHeight = doc.internal.pageSize.height;
-    doc.setFontSize(8);
-    doc.setTextColor(C.textDim);
-    doc.text("Thank you for your business!", 105, pageHeight - 20, {
-      align: "center",
-    });
-    doc.text(
-      "This is a computer-generated invoice. For inquiries, please contact our billing department.",
-      105,
-      pageHeight - 15,
-      { align: "center" },
-    );
-
-    doc.save(
-      `Invoice_${invoiceNumber}_${customerData?.Customer_Name || "Customer"}.pdf`,
-    );
   };
 
   const handleGenerateInvoice = async (invoiceData) => {
@@ -547,13 +378,7 @@ export default function CustomerDetails() {
 
       if (response.ok && !response.data?.error) {
         toast.success("Invoice generated successfully");
-
-        // Generate and download PDF with response data
-        // generateInvoicePDF(invoiceData, customer, response.data, pendingInvoices);
-
-        // Reload customer data to refresh pending invoices
         await loadCustomerData();
-
         return true;
       } else {
         if (response.problem === "NETWORK_ERROR") {
@@ -561,17 +386,12 @@ export default function CustomerDetails() {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          const serverMessage =
-            response?.data?.error || response?.data?.message;
-
+          const serverMessage = response?.data?.error || response?.data?.message;
           let errorText;
 
           if (typeof serverMessage === "string") {
             errorText = serverMessage;
-          } else if (
-            typeof serverMessage === "object" &&
-            serverMessage !== null
-          ) {
+          } else if (typeof serverMessage === "object" && serverMessage !== null) {
             errorText = Object.values(serverMessage).flat()[0];
           } else {
             errorText = "Failed to generate invoice";
@@ -579,7 +399,6 @@ export default function CustomerDetails() {
 
           toast.error(errorText);
         }
-
         return false;
       }
     } catch (e) {
@@ -592,16 +411,13 @@ export default function CustomerDetails() {
   };
 
   const handleDownloadSingleInvoice = (invoice) => {
-    // Create PDF for a single pending invoice
     const doc = new jsPDF();
 
-    // Add company header
     doc.setFontSize(24);
     doc.setTextColor(C.primary);
     doc.setFont("helvetica", "bold");
     doc.text("OXYGEN SUPPLIES INVOICE", 105, 20, { align: "center" });
 
-    // Company info
     doc.setFontSize(9);
     doc.setTextColor(C.muted);
     doc.text("Oxygen Medical Supplies Ltd.", 105, 30, { align: "center" });
@@ -615,11 +431,9 @@ export default function CustomerDetails() {
       { align: "center" },
     );
 
-    // Draw line
     doc.setDrawColor(C.border);
     doc.line(14, 48, 196, 48);
 
-    // Invoice details
     doc.setFontSize(10);
     doc.setTextColor(C.text);
     doc.setFont("helvetica", "normal");
@@ -637,7 +451,6 @@ export default function CustomerDetails() {
       72,
     );
 
-    // Customer details
     doc.setFont("helvetica", "bold");
     doc.text("Bill To:", 14, 85);
     doc.setFont("helvetica", "normal");
@@ -645,7 +458,6 @@ export default function CustomerDetails() {
     doc.text(customer?.Phone_Number || "N/A", 14, 99);
     doc.text(customer?.Email || "N/A", 14, 106);
 
-    // Items table
     const tableData = [
       [
         invoice.item?.Item_Name || "Cash Deposit",
@@ -694,7 +506,6 @@ export default function CustomerDetails() {
       margin: { left: 14, right: 14 },
     });
 
-    // Payment terms
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFontSize(9);
     doc.setTextColor(C.muted);
@@ -703,7 +514,6 @@ export default function CustomerDetails() {
     doc.setFont("helvetica", "normal");
     doc.text("Payment is due within 30 days of invoice date.", 14, finalY + 6);
 
-    // Sangira Reference
     if (invoice.sangira) {
       doc.text("Reference Information:", 14, finalY + 20);
       doc.setFont("helvetica", "bold");
@@ -722,7 +532,6 @@ export default function CustomerDetails() {
       doc.text(formatDate(invoice.sangira.Expire_Date), 60, finalY + 38);
     }
 
-    // Footer
     const pageHeight = doc.internal.pageSize.height;
     doc.setFontSize(8);
     doc.setTextColor(C.textDim);
@@ -743,6 +552,17 @@ export default function CustomerDetails() {
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+    setPage(0); // Reset to first page when changing tabs
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    const newRowsPerPage = parseInt(event?.target?.value, 10);
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
   };
 
   // Calculate totals
@@ -770,28 +590,218 @@ export default function CustomerDetails() {
 
   const outstandingBalance = totalOrdered - totalCashDeposited;
 
-  const getStatusChip = (status) => {
-    const config = {
-      pending: { color: C.accent, bg: C.accentBg },
-      approved: { color: C.primary, bg: C.primaryBg },
-      served: { color: C.success, bg: C.successBg },
-      dispatched: { color: C.info, bg: C.infoBg },
-      requested: { color: C.warning, bg: C.warningBg },
-      paid: { color: C.success, bg: C.successBg },
-    };
-    const cfg = config[status?.toLowerCase()] || config.pending;
-    return (
-      <Chip
-        label={capitalize(status || "pending")}
-        size="small"
-        style={{
-          backgroundColor: cfg.bg,
-          color: cfg.color,
-          fontWeight: "bold",
-        }}
-      />
-    );
+  const getStatusBadge = (status) => {
+    let color = "blue";
+    if (status === "active" || status === "served" || status === "approved" || status === "paid") {
+      color = "green";
+    } else if (status === "inactive" || status === "pending") {
+      color = "red";
+    } else if (status === "credit") {
+      color = "orange";
+    } else if (status === "cash") {
+      color = "green";
+    }
+    return <Badge name={capitalize(status || "pending")} color={color} />;
   };
+
+  // Column definitions (like CylinderInventory)
+  const oxygenOrdersColumns = [
+    { id: "Request_ID", label: "Request ID" },
+    { id: "Item_Name", label: "Item" },
+    { id: "Quantity", label: "Quantity", align: "center" },
+    { id: "Unit_Price", label: "Unit Price", align: "right" },
+    { id: "Total", label: "Total", align: "right" },
+    { id: "Status", label: "Status", align: "center" },
+    { id: "Payment_Method", label: "Payment Method", align: "center" },
+    { id: "Origin", label: "Origin", align: "center" },
+    { id: "Request_Date", label: "Request Date" },
+  ];
+
+  const cashDepositsColumns = [
+    { id: "Request_ID", label: "Request ID" },
+    { id: "Item_Name", label: "Item" },
+    { id: "Quantity", label: "Quantity", align: "center" },
+    { id: "Amount", label: "Amount", align: "right" },
+    { id: "Payment_Method", label: "Payment Method", align: "center" },
+    { id: "Customer_Status", label: "Customer Status", align: "center" },
+    { id: "Origin", label: "Origin", align: "center" },
+    { id: "Payment_Date", label: "Payment Date" },
+    { id: "Sangira_Number", label: "Sangira Number" },
+    { id: "Status", label: "Status", align: "center" },
+  ];
+
+  const fulfilledOrdersColumns = [
+    { id: "Request_ID", label: "Request ID" },
+    { id: "Item_Name", label: "Item" },
+    { id: "Quantity", label: "Quantity", align: "center" },
+    { id: "Amount", label: "Amount", align: "right" },
+    { id: "Payment_Method", label: "Payment Method", align: "center" },
+    { id: "Customer_Status", label: "Customer Status", align: "center" },
+    { id: "Origin", label: "Origin", align: "center" },
+    { id: "Served_Date", label: "Served Date" },
+    { id: "Served_By", label: "Served By" },
+  ];
+
+  const pendingInvoicesColumns = [
+    { id: "Sangira_Number", label: "Sangira Number" },
+    { id: "Quantity", label: "Quantity", align: "center" },
+    { id: "Amount", label: "Amount", align: "right" },
+    { id: "Request_Date", label: "Request Date" },
+    { id: "Expiry_Date", label: "Expiry Date" },
+    { id: "Status", label: "Status", align: "center" },
+    { id: "Action", label: "Action", align: "center" },
+  ];
+
+  // Helper function to get value from row
+  const getValue = (row, columnId) => {
+    switch (columnId) {
+      case "Item_Name":
+        return row.item?.Item_Name || `Item ${row.Item_ID}`;
+      case "Quantity":
+        return row.Quantity || 1;
+      case "Unit_Price":
+        return row.Price;
+      case "Total":
+        return row.Price * row.Quantity;
+      case "Status":
+        return row.Customer_Status;
+      case "Payment_Method":
+        return row.Billing_Type || "credit";
+      case "Origin":
+        return customer?.customer_origin === "outside" ? "External" : "Internal";
+      case "Amount":
+        return row.Price * (row.Quantity || 1);
+      case "Customer_Status":
+        return customer?.Customer_Status || "active";
+      case "Payment_Date":
+        return row.Payment_Date;
+      case "Sangira_Number":
+        return row.sangira?.Sangira_Number || row.Sangira_Number || "—";
+      case "Served_Date":
+        return row.Served_Date;
+      case "Served_By":
+        return row.served_by?.name || `Employee ${row.Served_By}`;
+      case "Expiry_Date":
+        return row.sangira?.Expire_Date;
+      case "Action":
+        return "download";
+      default:
+        return row[columnId];
+    }
+  };
+
+  // Format function for table cells
+  const formatValue = (columnId, value, row) => {
+    switch (columnId) {
+      case "Unit_Price":
+      case "Amount":
+      case "Total":
+        return currencyFormatter.format(value || 0);
+      case "Status":
+      case "Customer_Status":
+        return getStatusBadge(value);
+      case "Payment_Method":
+        return (
+          <Chip
+            label={capitalize(value || "credit")}
+            size="small"
+            style={{
+              backgroundColor:
+                value === "credit" ? C.primaryBg : C.successBg,
+              color: value === "credit" ? C.primary : C.success,
+            }}
+          />
+        );
+      case "Origin":
+        return (
+          <Chip
+            label={value}
+            size="small"
+            style={{
+              backgroundColor: value === "External" ? C.accentBg : C.successBg,
+              color: value === "External" ? C.accent : C.success,
+            }}
+          />
+        );
+      case "Action":
+        return (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<MdDownload />}
+            onClick={() => handleDownloadSingleInvoice(row)}
+            sx={{
+              textTransform: "none",
+              borderColor: C.primary,
+              color: C.primary,
+              "&:hover": {
+                borderColor: C.primaryDark,
+                backgroundColor: C.primaryBg,
+              },
+            }}
+          >
+            Download
+          </Button>
+        );
+      case "Request_Date":
+      case "Payment_Date":
+      case "Served_Date":
+        return value ? formatDate(value) : "—";
+      case "Expiry_Date":
+        return value ? formatDate(value) : "—";
+      default:
+        return value || "—";
+    }
+  };
+
+  const getCurrentData = () => {
+    switch (tabValue) {
+      case 0:
+        return displayedOxygenOrders;
+      case 1:
+        return displayedCashDeposits;
+      case 2:
+        return displayedFulfilledOrders;
+      case 3:
+        return displayedPendingInvoices;
+      default:
+        return displayedOxygenOrders;
+    }
+  };
+
+  const getTotalCount = () => {
+    switch (tabValue) {
+      case 0:
+        return oxygenOrders.length;
+      case 1:
+        return cashDeposits.length;
+      case 2:
+        return fulfilledOrders.length;
+      case 3:
+        return pendingInvoices.length;
+      default:
+        return oxygenOrders.length;
+    }
+  };
+
+  const getCurrentColumns = () => {
+    switch (tabValue) {
+      case 0:
+        return oxygenOrdersColumns;
+      case 1:
+        return cashDepositsColumns;
+      case 2:
+        return fulfilledOrdersColumns;
+      case 3:
+        return pendingInvoicesColumns;
+      default:
+        return oxygenOrdersColumns;
+    }
+  };
+
+  const currentData = getCurrentData();
+  const currentColumns = getCurrentColumns();
+  const totalCount = getTotalCount();
 
   if (loading) {
     return (
@@ -846,22 +856,21 @@ export default function CustomerDetails() {
               </p>
             </div>
           </div>
-          {/* {pendingInvoices.length > 0 && (
-            
-          )} */}
-          <Button
-            onClick={() => setInvoiceOpen(true)}
-            variant="contained"
-            className="normal-case font-semibold"
-            style={{ backgroundColor: C.primary }}
-            startIcon={<MdReceipt />}
-          >
-            Generate Invoice
-          </Button>
+          {outstandingBalance > 0 && (
+            <Button
+              onClick={() => setInvoiceOpen(true)}
+              variant="contained"
+              className="normal-case font-semibold"
+              style={{ backgroundColor: C.primary }}
+              startIcon={<MdReceipt />}
+            >
+              Generate Invoice
+            </Button>
+          )}
         </div>
 
         {/* Customer Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="shadow-sm border border-slate-200">
             <CardContent>
               <div className="flex items-center gap-2 mb-2">
@@ -882,9 +891,93 @@ export default function CustomerDetails() {
           <Card className="shadow-sm border border-slate-200">
             <CardContent>
               <div className="flex items-center gap-2 mb-2">
+                <MdPayment className="text-slate-400" size={20} />
+                <span className="text-xs text-slate-400 uppercase font-semibold">
+                  Payment Method
+                </span>
+              </div>
+              <div className="font-bold text-lg text-slate-800">
+                <Chip
+                  label={capitalize(customer.Payment_Method || "credit")}
+                  size="small"
+                  style={{
+                    backgroundColor:
+                      customer.Payment_Method === "credit"
+                        ? C.primaryBg
+                        : C.successBg,
+                    color:
+                      customer.Payment_Method === "credit"
+                        ? C.primary
+                        : C.success,
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                  }}
+                />
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                Default payment method
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border border-slate-200">
+            <CardContent>
+              <div className="flex items-center gap-2 mb-2">
+                <MdLocalShipping className="text-slate-400" size={20} />
+                <span className="text-xs text-slate-400 uppercase font-semibold">
+                  Customer Status
+                </span>
+              </div>
+              <div className="font-bold text-lg">
+                {getStatusBadge(customer.Customer_Status || "active")}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">Account status</div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border border-slate-200">
+            <CardContent>
+              <div className="flex items-center gap-2 mb-2">
+                <MdBusiness className="text-slate-400" size={20} />
+                <span className="text-xs text-slate-400 uppercase font-semibold">
+                  Customer Origin
+                </span>
+              </div>
+              <div className="font-bold text-lg text-slate-800">
+                <Chip
+                  label={customer.customer_origin === "outside" ? "External" : "Internal"}
+                  size="small"
+                  style={{
+                    backgroundColor:
+                      customer.customer_origin === "outside"
+                        ? C.accentBg
+                        : C.successBg,
+                    color:
+                      customer.customer_origin === "outside"
+                        ? C.accent
+                        : C.success,
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                  }}
+                />
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                {customer.customer_origin === "outside"
+                  ? "External customer"
+                  : "Internal customer"}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Second row with contact and balances */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="shadow-sm border border-slate-200">
+            <CardContent>
+              <div className="flex items-center gap-2 mb-2">
                 <MdEmail className="text-slate-400" size={20} />
                 <span className="text-xs text-slate-400 uppercase font-semibold">
-                  Contact
+                  Contact Info
                 </span>
               </div>
               <div className="text-sm text-slate-700">
@@ -916,26 +1009,9 @@ export default function CustomerDetails() {
           <Card className="shadow-sm border border-slate-200">
             <CardContent>
               <div className="flex items-center gap-2 mb-2">
-                <MdMonetizationOn className="text-slate-400" size={20} />
+                <MdAttachMoney className="text-slate-400" size={20} />
                 <span className="text-xs text-slate-400 uppercase font-semibold">
-                  Cash Deposits
-                </span>
-              </div>
-              <div className="font-bold text-xl text-green-600">
-                {currencyFormatter?.format(totalCashDeposited)}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                {cashDeposits.length} payment(s)
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm border border-slate-200">
-            <CardContent>
-              <div className="flex items-center gap-2 mb-2">
-                <MdPayment className="text-slate-400" size={20} />
-                <span className="text-xs text-slate-400 uppercase font-semibold">
-                  Balance
+                  Outstanding Balance
                 </span>
               </div>
               <div
@@ -944,7 +1020,7 @@ export default function CustomerDetails() {
                 {currencyFormatter.format(outstandingBalance)}
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                {outstandingBalance > 0 ? "Outstanding" : "Settled"}
+                {outstandingBalance > 0 ? "Amount due" : "Fully paid"}
               </div>
             </CardContent>
           </Card>
@@ -979,366 +1055,110 @@ export default function CustomerDetails() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
+        {/* Tabs with Tables styled like CylinderInventory */}
+        <Paper sx={{ width: "100%", overflow: "hidden" }}>
           <Tabs
             value={tabValue}
             onChange={handleTabChange}
-            className="border-b border-slate-200 px-4"
-            TabIndicatorProps={{ style: { backgroundColor: C.primary } }}
+            sx={{
+              borderBottom: 1,
+              borderColor: "divider",
+              px: 2,
+              "& .MuiTab-root": {
+                textTransform: "none",
+                fontWeight: 600,
+                minHeight: 48,
+              },
+            }}
           >
             <Tab
               label={`Oxygen Orders (${oxygenOrders.length})`}
               icon={<MdLocalShipping size={18} />}
               iconPosition="start"
-              className="normal-case font-semibold text-sm"
             />
             <Tab
               label={`Cash Deposits (${cashDeposits.length})`}
               icon={<MdMonetizationOn size={18} />}
               iconPosition="start"
-              className="normal-case font-semibold text-sm"
             />
             <Tab
               label={`Fulfilled Orders (${fulfilledOrders.length})`}
               icon={<MdCheckCircle size={18} />}
               iconPosition="start"
-              className="normal-case font-semibold text-sm"
             />
             <Tab
               label={`Pending Invoices (${pendingInvoices.length})`}
               icon={<MdPendingActions size={18} />}
               iconPosition="start"
-              className="normal-case font-semibold text-sm"
             />
           </Tabs>
 
-          {/* Oxygen Orders Tab */}
-          <TabPanel value={tabValue} index={0}>
-            <div className="p-4">
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <StyledTableCell>Request ID</StyledTableCell>
-                      <StyledTableCell>Item</StyledTableCell>
-                      <StyledTableCell>Quantity</StyledTableCell>
-                      <StyledTableCell>Unit Price</StyledTableCell>
-                      <StyledTableCell>Total</StyledTableCell>
-                      <StyledTableCell>Status</StyledTableCell>
-                      <StyledTableCell>Request Date</StyledTableCell>
-                      <StyledTableCell>Billing Type</StyledTableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {oxygenOrders.length > 0 ? (
-                      oxygenOrders.map((item) => (
-                        <TableRow
-                          key={item.Request_ID}
-                          className="hover:bg-slate-50"
-                        >
-                          <StyledTableCell className="font-semibold text-blue-600">
-                            #{item.Request_ID}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {item.item?.Item_Name || `Item ${item.Item_ID}`}
-                          </StyledTableCell>
-                          <StyledTableCell>{item.Quantity}</StyledTableCell>
-                          <StyledTableCell>
-                            {currencyFormatter.format(item.Price)}
-                          </StyledTableCell>
-                          <StyledTableCell className="font-bold">
-                            {currencyFormatter.format(
-                              item.Price * item.Quantity,
-                            )}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {getStatusChip(item.Customer_Status)}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {formatDate(item.Request_Date)}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            <Chip
-                              label={capitalize(item.Billing_Type || "credit")}
-                              size="small"
-                              style={{
-                                backgroundColor:
-                                  item.Billing_Type === "credit"
-                                    ? C.primaryBg
-                                    : C.successBg,
-                                color:
-                                  item.Billing_Type === "credit"
-                                    ? C.primary
-                                    : C.success,
-                              }}
-                            />
-                          </StyledTableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
+          {/* Table Container with Pagination */}
+          <TableContainer sx={{ maxHeight: 440 }}>
+            <Table stickyHeader aria-label="customer data table">
+              <TableHead>
+                <TableRow>
+                  {currentColumns.map((column) => (
+                    <StyledTableCell
+                      key={column.id}
+                      align={column.align}
+                    >
+                      {column.label}
+                    </StyledTableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading && (
+                  <TableRow>
+                    <TableCell colSpan={currentColumns.length} sx={{ padding: 0 }}>
+                      <LinearProgress />
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!loading && currentData?.map((row, index) => (
+                  <TableRow hover key={row.Request_ID || row.Sangira_ID || index}>
+                    {currentColumns.map((column) => {
+                      const value = getValue(row, column.id);
+                      return (
                         <StyledTableCell
-                          colSpan={8}
-                          className="text-center text-slate-400 py-8"
+                          key={column.id}
+                          align={column.align}
                         >
-                          No oxygen orders found
+                          {formatValue(column.id, value, row)}
                         </StyledTableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              {oxygenOrders.length > 0 && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 text-right">
-                  <span className="text-sm text-blue-700 font-semibold">
-                    Total Oxygen Orders:{" "}
-                    {currencyFormatter.format(totalOrdered)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </TabPanel>
-
-          {/* Cash Deposits Tab */}
-          <TabPanel value={tabValue} index={1}>
-            <div className="p-4">
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <StyledTableCell>Request ID</StyledTableCell>
-                      <StyledTableCell>Item</StyledTableCell>
-                      <StyledTableCell>Quantity</StyledTableCell>
-                      <StyledTableCell>Amount</StyledTableCell>
-                      <StyledTableCell>Payment Date</StyledTableCell>
-                      <StyledTableCell>Sangira Number</StyledTableCell>
-                      <StyledTableCell>Status</StyledTableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {cashDeposits.length > 0 ? (
-                      cashDeposits.map((deposit) => (
-                        <TableRow
-                          key={deposit.Request_ID}
-                          className="hover:bg-slate-50"
-                        >
-                          <StyledTableCell className="font-semibold">
-                            #{deposit.Request_ID}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {deposit.item?.Item_Name || "Cash Deposit"}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {deposit.Quantity || 1}
-                          </StyledTableCell>
-                          <StyledTableCell className="font-bold text-green-600">
-                            {currencyFormatter.format(
-                              deposit.Price * (deposit.Quantity || 1),
-                            )}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {deposit.Payment_Date
-                              ? formatDate(deposit.Payment_Date)
-                              : "—"}
-                          </StyledTableCell>
-                          <StyledTableCell className="text-slate-500">
-                            {deposit.Sangira_ID || "—"}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {getStatusChip(deposit.Customer_Status)}
-                          </StyledTableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <StyledTableCell
-                          colSpan={7}
-                          className="text-center text-slate-400 py-8"
-                        >
-                          No cash deposits recorded
-                        </StyledTableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              {cashDeposits.length > 0 && (
-                <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 text-right">
-                  <span className="text-sm text-green-700 font-semibold">
-                    Total Cash Deposited:{" "}
-                    {currencyFormatter.format(totalCashDeposited)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </TabPanel>
-
-          {/* Fulfilled Orders Tab */}
-          <TabPanel value={tabValue} index={2}>
-            <div className="p-4">
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <StyledTableCell>Request ID</StyledTableCell>
-                      <StyledTableCell>Item</StyledTableCell>
-                      <StyledTableCell>Quantity</StyledTableCell>
-                      <StyledTableCell>Amount</StyledTableCell>
-                      <StyledTableCell>Served Date</StyledTableCell>
-                      <StyledTableCell>Served By</StyledTableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {fulfilledOrders.length > 0 ? (
-                      fulfilledOrders.map((order) => (
-                        <TableRow
-                          key={order.Request_ID}
-                          className="hover:bg-slate-50"
-                        >
-                          <StyledTableCell className="font-semibold text-green-600">
-                            #{order.Request_ID}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {order.item?.Item_Name || `Item ${order.Item_ID}`}
-                          </StyledTableCell>
-                          <StyledTableCell>{order.Quantity}</StyledTableCell>
-                          <StyledTableCell className="font-bold text-green-600">
-                            {currencyFormatter.format(
-                              order.Price * order.Quantity,
-                            )}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {order.Served_Date
-                              ? formatDate(order.Served_Date)
-                              : "—"}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {order.served_by?.name ||
-                              `Employee ${order.Served_By}`}
-                          </StyledTableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <StyledTableCell
-                          colSpan={6}
-                          className="text-center text-slate-400 py-8"
-                        >
-                          No fulfilled orders yet
-                        </StyledTableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </div>
-          </TabPanel>
-
-          {/* Pending Invoices Tab - With Download Button */}
-          <TabPanel value={tabValue} index={3}>
-            <div className="p-4">
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <StyledTableCell>Sangira Number</StyledTableCell>
-                      <StyledTableCell>Quantity</StyledTableCell>
-                      <StyledTableCell>Amount</StyledTableCell>
-                      <StyledTableCell>Request Date</StyledTableCell>
-                      <StyledTableCell>Expiry Date</StyledTableCell>
-                      <StyledTableCell>Status</StyledTableCell>
-                      <StyledTableCell>Action</StyledTableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {pendingInvoices.length > 0 ? (
-                      pendingInvoices.map((invoice) => (
-                        <TableRow
-                          key={invoice.Sangira_ID}
-                          className="hover:bg-slate-50"
-                        >
-                          <StyledTableCell className="font-mono text-sm">
-                            {invoice.sangira?.Sangira_Number ||
-                              invoice.Sangira_Number}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {invoice.Quantity || 1}
-                          </StyledTableCell>
-                          <StyledTableCell className="font-bold text-amber-600">
-                            {currencyFormatter.format(
-                              invoice.Grand_Total_Price ||
-                                invoice.Price * (invoice.Quantity || 1),
-                            )}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {formatDate(invoice.Request_Date)}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {invoice.sangira?.Expire_Date
-                              ? formatDate(invoice.sangira.Expire_Date)
-                              : "—"}
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            <Chip
-                              label={capitalize(
-                                invoice.sangira?.Sangira_Status ||
-                                  invoice.Customer_Status ||
-                                  "pending",
-                              )}
-                              size="small"
-                              style={{
-                                backgroundColor: C.accentBg,
-                                color: C.accent,
-                                fontWeight: "bold",
-                              }}
-                            />
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<MdDownload />}
-                              onClick={() =>
-                                handleDownloadSingleInvoice(invoice)
-                              }
-                              style={{
-                                borderColor: C.primary,
-                                color: C.primary,
-                              }}
-                            >
-                              Download
-                            </Button>
-                          </StyledTableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <StyledTableCell
-                          colSpan={8}
-                          className="text-center text-slate-400 py-8"
-                        >
-                          No pending invoices
-                        </StyledTableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              {pendingInvoices.length > 0 && (
-                <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200 text-right">
-                  <span className="text-sm text-amber-700 font-semibold">
-                    Total Pending Invoices:{" "}
-                    {currencyFormatter.format(totalPendingInvoiceAmount)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </TabPanel>
-        </div>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+                {!loading && currentData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={currentColumns.length} align="center">
+                      <div className="py-8 text-gray-500">
+                        No data found
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          
+          <TablePagination
+            rowsPerPageOptions={[25, 50, 100, 500, 1000]}
+            component="div"
+            count={totalCount}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelDisplayedRows={({ from, to, count }) =>
+              `${from}-${to} of ${count}`
+            }
+            showFirstButton
+            showLastButton
+          />
+        </Paper>
       </div>
 
       {/* Invoice Dialog */}
@@ -1347,6 +1167,7 @@ export default function CustomerDetails() {
         onClose={() => setInvoiceOpen(false)}
         customer={customer}
         pendingInvoices={pendingInvoices}
+        outstandingBalance={outstandingBalance}
         onGenerateInvoice={handleGenerateInvoice}
         loading={actionLoading}
       />

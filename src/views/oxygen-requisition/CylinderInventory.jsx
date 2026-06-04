@@ -73,6 +73,7 @@ const CylinderInventory = () => {
   const [allOxygenItems, setAllOxygenItems] = useState([]);
   const [displayedOxygenItems, setDisplayedOxygenItems] = useState([]);
   const [rentals, setRentals] = useState([]);
+  const [transformedRentals, setTransformedRentals] = useState([]);
   const [repair, setRepair] = useState([]);
   const [damaged, setDamaged] = useState([]);
 
@@ -90,6 +91,8 @@ const CylinderInventory = () => {
   const [receivedLoading, setReceivedLoading] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState(null);
 
+  const [transformedDamaged, setTransformedDamaged] = useState([]);
+
   // Get employee info from localStorage
   const employeeId = localStorage.getItem("employeeId");
 
@@ -99,7 +102,6 @@ const CylinderInventory = () => {
     } else if (activeTab === 2) {
       fetchRentals();
     } else if (activeTab === 3) {
-      // fetchRepair();
       fetchDamaged();
     } else if (activeTab === 4) {
       fetchDamaged();
@@ -194,7 +196,6 @@ const CylinderInventory = () => {
         return;
       }
 
-      // Handle response without pagination
       let itemData = [];
       if (response?.data?.data && Array.isArray(response.data.data)) {
         itemData = response.data.data;
@@ -209,9 +210,7 @@ const CylinderInventory = () => {
         itemData = [];
       }
 
-      // Transform data for display
       const transformedData = itemData.map((item, index) => {
-        // Find production and sales balances
         const productionBalance =
           item.balance?.find((b) => b.Balance_Type === "production")
             ?.Item_Balance || 0;
@@ -230,7 +229,7 @@ const CylinderInventory = () => {
       });
 
       setAllOxygenItems(transformedData);
-      setPage(0); // Reset to first page when new data arrives
+      setPage(0);
     } catch (error) {
       console.error("Fetch oxygen items error:", error);
       toast.error("Failed to load oxygen items");
@@ -252,7 +251,6 @@ const CylinderInventory = () => {
         return;
       }
 
-      // Handle response without pagination
       let rentalsData = [];
       if (response?.data?.data && Array.isArray(response.data.data)) {
         rentalsData = response.data.data;
@@ -267,59 +265,21 @@ const CylinderInventory = () => {
         rentalsData = [];
       }
 
-      const transformedData = rentalsData.map((rental, index) => ({
+      const transformedData = rentalsData?.map((rental, index) => ({
         ...rental,
-        id: rental.Rental_ID || rental.id,
+        id: rental.Rental_ID,
         key: index + 1,
       }));
 
       setRentals(transformedData);
+
+      // Transform for display - each rented item becomes its own row
+      const transformedRentalRows = transformRentalData(transformedData);
+      setTransformedRentals(transformedRentalRows);
+      setPage(0);
     } catch (error) {
       console.error("Fetch rentals error:", error);
       toast.error("Failed to load rentals");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchRepair = async () => {
-    setLoading(true);
-    try {
-      let url = `/inventory/repair?status=pending`;
-
-      const response = await apiClient.get(url);
-
-      if (!response.ok) {
-        toast.error(response.data?.error || "Failed to fetch repair items");
-        setLoading(false);
-        return;
-      }
-
-      // Handle response without pagination
-      let repairData = [];
-      if (response?.data?.data && Array.isArray(response.data.data)) {
-        repairData = response.data.data;
-      } else if (Array.isArray(response?.data)) {
-        repairData = response.data;
-      } else if (
-        response?.data?.data?.data &&
-        Array.isArray(response.data.data.data)
-      ) {
-        repairData = response.data.data.data;
-      } else {
-        repairData = [];
-      }
-
-      const transformedData = repairData.map((repairItem, index) => ({
-        ...repairItem,
-        id: repairItem.Repair_ID || repairItem.id,
-        key: index + 1,
-      }));
-
-      setRepair(transformedData);
-    } catch (error) {
-      console.error("Fetch repair error:", error);
-      toast.error("Failed to load repair items");
     } finally {
       setLoading(false);
     }
@@ -338,7 +298,6 @@ const CylinderInventory = () => {
         return;
       }
 
-      // Handle response without pagination
       let damagedData = [];
       if (response?.data?.data && Array.isArray(response.data.data)) {
         damagedData = response.data.data;
@@ -355,17 +314,88 @@ const CylinderInventory = () => {
 
       const transformedData = damagedData.map((damagedItem, index) => ({
         ...damagedItem,
-        id: damagedItem.Damaged_ID || damagedItem.id,
+        id: damagedItem.Cache_ID,
         key: index + 1,
       }));
 
       setDamaged(transformedData);
+
+      // Transform for display - each rejected item becomes its own row
+      const transformedDamagedRows = transformDamagedData(transformedData);
+      setTransformedDamaged(transformedDamagedRows);
+      setPage(0);
     } catch (error) {
       console.error("Fetch damaged error:", error);
       toast.error("Failed to load damaged items");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Transform data - each rented item becomes its own row
+  const transformRentalData = (rentalsData) => {
+    const rentalRows = [];
+
+    rentalsData?.forEach((batch, batchIndex) => {
+      if (batch?.request && Array.isArray(batch.request)) {
+        batch.request.forEach((requestItem, itemIndex) => {
+          if (requestItem?.Gsf_Mitungi_Quantity > 0) {
+            rentalRows.push({
+              key: itemIndex + 1,
+              customer_name: batch.customer?.Customer_Name || "N/A",
+              customer_id: batch.Customer_ID,
+              cylinder: requestItem.item?.Item_Name || "N/A",
+              rented_quantity: requestItem.Gsf_Mitungi_Quantity,
+              price_per_unit: requestItem.Price || 0,
+              total_price:
+                (requestItem.Price || 0) *
+                (requestItem.Gsf_Mitungi_Quantity || 0),
+              request_date: requestItem.Request_Date,
+              billing_type: requestItem.Billing_Type,
+              status: requestItem.Customer_Status,
+              payment_date: requestItem.Payment_Date,
+              employee_name: batch.employee?.name,
+            });
+          }
+        });
+      }
+    });
+
+    return rentalRows;
+  };
+
+  const transformDamagedData = (damagedData) => {
+    const damagedRows = [];
+
+    damagedData?.forEach((batch, batchIndex) => {
+      if (batch?.rejectedItem && Array.isArray(batch.rejectedItem)) {
+        batch.rejectedItem.forEach((rejectedItem, itemIndex) => {
+          damagedRows.push({
+            key: itemIndex + 1,
+            cache_id: batch.Cache_ID,
+            item_name: rejectedItem.item?.Item_Name || "N/A",
+            quantity: rejectedItem.Rejected_Quantity || 0,
+            reason_id: rejectedItem.Rejected_Reason_ID,
+            reason: rejectedItem.reason?.Reason_Description || "",
+            transaction_date: batch.Transaction_Date,
+            rejected_date: batch.Rejected_Time,
+            rejected_by: batch.rejected_employee?.name,
+            approved_by: batch.employee?.name,
+            status: batch.Cache_Status,
+            shifted_quantity:
+              batch.ShiftedItem?.find(
+                (item) => item.Item_ID === rejectedItem.Item_ID,
+              )?.Shifted_Balance || 0,
+            accepted_quantity:
+              batch.ShiftedItem?.find(
+                (item) => item.Item_ID === rejectedItem.Item_ID,
+              )?.Sales_Accepted_Quantity || null,
+          });
+        });
+      }
+    });
+
+    return damagedRows;
   };
 
   const handleTabChange = (event, newValue) => {
@@ -383,15 +413,12 @@ const CylinderInventory = () => {
     setPage(0);
   };
 
-  // Handle Return to Production
   const handleOpenReturnModal = async (item) => {
     setSelectedItem(item);
     setReturnQuantity("");
     setReturnReason("");
     setSelectedTransfer(null);
     setReturnModalOpen(true);
-
-    // Load received transfers when opening modal
     await loadReceivedTransfers(item);
   };
 
@@ -403,11 +430,7 @@ const CylinderInventory = () => {
     setSelectedTransfer(null);
   };
 
-  //   console.log(selectedItem);
-  //   console.log(selectedTransfer);
-
   const handleReturnSubmit = async () => {
-    // Validate inputs
     if (!returnQuantity || parseInt(returnQuantity) <= 0) {
       toast.error("Please enter a valid quantity");
       return;
@@ -435,12 +458,10 @@ const CylinderInventory = () => {
 
     setSubmitting(true);
     try {
-      // Find the selected reason object to get Reason_ID and description
       const selectedReason = rejectionReasons.find(
         (r) => r.Reason_ID === returnReason,
       );
 
-      // Make API call to reject/return item from sales to production
       const response = await apiClient.post("/oxygen/oxygen-reject-item", {
         Cache_ID: selectedTransfer.Cache_ID || selectedTransfer.id,
         Employee_ID: employeeId,
@@ -454,8 +475,6 @@ const CylinderInventory = () => {
       });
 
       if (!response.ok) {
-        setLoading(false);
-
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
@@ -463,10 +482,8 @@ const CylinderInventory = () => {
         } else {
           const serverMessage =
             response?.data?.error || response?.data?.message;
-
           let errorText;
 
-          console.log(response);
           if (typeof serverMessage === "string") {
             errorText = serverMessage;
           } else if (
@@ -488,11 +505,10 @@ const CylinderInventory = () => {
       );
 
       handleCloseReturnModal();
-      fetchOxygenItems(); // Refresh the data
+      fetchOxygenItems();
     } catch (error) {
       console.error("Return to production error:", error);
-      const errorMessage = "Failed to process return to production";
-      toast.error(errorMessage);
+      toast.error("Failed to process return to production");
     } finally {
       setSubmitting(false);
     }
@@ -508,11 +524,10 @@ const CylinderInventory = () => {
         data = allOxygenItems;
         break;
       case 2:
-        data = rentals;
+        data = transformedRentals;
         break;
       case 3:
-        // data = repair;
-        data = damaged;
+        data = transformedDamaged;
         break;
       case 4:
         data = damaged;
@@ -531,10 +546,14 @@ const CylinderInventory = () => {
   const getStatusBadge = (status) => {
     let color = "blue";
 
-    if (status === "active") {
+    if (status === "active" || status === "served") {
       color = "green";
-    } else if (status === "inactive") {
+    } else if (status === "inactive" || status === "pending") {
       color = "red";
+    } else if (status === "credit") {
+      color = "orange";
+    } else if (status === "cash") {
+      color = "green";
     }
 
     return <Badge name={capitalize(status)} color={color} />;
@@ -578,7 +597,6 @@ const CylinderInventory = () => {
       id: "action",
       label: "Action",
       format: (value, row) => {
-        // Only show button if sales balance is greater than 0
         if (row.sales_balance > 0) {
           return (
             <Button
@@ -623,51 +641,73 @@ const CylinderInventory = () => {
     },
   ];
 
+  // Columns for rentals - transformed data
   const rentalsColumns = [
     { id: "key", label: "S/N" },
     {
       id: "customer_name",
       label: "Customer Name",
-      format: (row, value) => <span>{value?.customer?.Customer_Name}</span>,
+      format: (value) => <span className="font-medium">{value || "-"}</span>,
     },
-    { id: "cylinder", label: "Cylinder" },
-    { id: "quantity", label: "Quantity" },
-    { id: "rental_start_date", label: "Start Date" },
-    { id: "rental_end_date", label: "Returned Date" },
-  ];
-
-  const repairColumns = [
-    { id: "key", label: "S/N" },
-    { id: "cylinder_id", label: "Cylinder ID" },
-    { id: "serial_number", label: "Serial Number" },
-    { id: "repair_notes", label: "Repair Notes" },
-    { id: "reported_date", label: "Reported Date" },
-    { id: "estimated_completion", label: "Est. Completion" },
     {
-      id: "repair_cost",
-      label: "Cost",
-      format: (value) => currencyFormatter.format(value || 0),
+      id: "cylinder",
+      label: "Cylinder Type",
+      format: (value) => <span>{value || "-"}</span>,
     },
-    { id: "status", label: "Status", format: (value) => getStatusBadge(value) },
+    {
+      id: "rented_quantity",
+      label: "Rented Quantity",
+      format: (value) => (
+        <span className="font-bold text-blue-600">
+          {formatter.format(value || 0)}
+        </span>
+      ),
+    },
+    {
+      id: "payment_date",
+      label: "Rental Date",
+      format: (value) => (value ? formatDateTimeForDb(value) : "-"),
+    },
+    {
+      id: "employee_name",
+      label: "Processed By",
+      format: (value) => capitalize(value) || "-",
+    },
   ];
 
   const damagedColumns = [
     { id: "key", label: "S/N" },
-    { id: "cylinder_id", label: "Cylinder ID" },
-    { id: "serial_number", label: "Serial Number" },
-    { id: "damage_notes", label: "Damage Notes" },
     {
-      id: "damage_severity",
-      label: "Severity",
-      format: (value) => getStatusBadge(value),
+      id: "item_name",
+      label: "Item Name",
+      format: (value) => <span className="font-medium">{value || "-"}</span>,
     },
-    { id: "reported_date", label: "Reported Date" },
     {
-      id: "estimated_repair_cost",
-      label: "Est. Repair Cost",
-      format: (value) => currencyFormatter.format(value || 0),
+      id: "quantity",
+      label: "Quantity",
+      format: (value) => (
+        <span className="font-bold text-red-600">
+          {formatter.format(value || 0)}
+        </span>
+      ),
     },
-    { id: "status", label: "Status", format: (value) => getStatusBadge(value) },
+    {
+      id: "reason",
+      label: "Reason for Damage",
+      format: (value) => <span>{value || ""}</span>,
+    },
+
+    {
+      id: "rejected_date",
+      label: "Reported Date",
+      format: (value) => formatDateTimeForDb(value),
+    },
+    {
+      id: "rejected_by",
+      label: "Reported By",
+      format: (value) => capitalize(value) || "-",
+    },
+    
   ];
 
   const getCurrentColumns = () => {
@@ -680,7 +720,6 @@ const CylinderInventory = () => {
         return rentalsColumns;
       case 3:
         return damagedColumns;
-      // return repairColumns;
       case 4:
         return damagedColumns;
       default:
@@ -695,10 +734,15 @@ const CylinderInventory = () => {
       case 1:
         return displayedOxygenItems;
       case 2:
-        return rentals;
+        // Apply pagination to transformed rentals
+        const rentalStart = page * rowsPerPage;
+        const rentalEnd = rentalStart + rowsPerPage;
+        return transformedRentals.slice(rentalStart, rentalEnd);
       case 3:
-        return damaged;
-      // return repair;
+        // Apply pagination to transformed damaged items
+        const damagedStart = page * rowsPerPage;
+        const damagedEnd = damagedStart + rowsPerPage;
+        return transformedDamaged.slice(damagedStart, damagedEnd);
       case 4:
         return damaged;
       default:
@@ -713,10 +757,9 @@ const CylinderInventory = () => {
       case 1:
         return allOxygenItems.length;
       case 2:
-        return rentals.length;
+        return transformedRentals.length;
       case 3:
-        return damaged.length;
-      // return repair.length;
+        return transformedDamaged.length;
       case 4:
         return damaged.length;
       default:
@@ -732,7 +775,6 @@ const CylinderInventory = () => {
     { label: "Sales Stock", icon: <MdGasMeter /> },
     { label: "Cylinders", icon: <MdOutlinePropaneTank /> },
     { label: "Rentals", icon: <MdLocalShipping /> },
-    // { label: "Repair", icon: <MdBuild /> },
     { label: "Damaged", icon: <MdWarning /> },
   ];
 
@@ -754,8 +796,7 @@ const CylinderInventory = () => {
                 Cylinder Inventory Management
               </h1>
               <p className="text-gray-500 text-xs mt-1">
-                Manage sales stock, cylinders, rentals, repair, and damaged
-                items
+                Manage sales stock, cylinders, rentals, and damaged items
               </p>
             </div>
           </div>
@@ -832,27 +873,28 @@ const CylinderInventory = () => {
                   </TableCell>
                 </TableRow>
               )}
-              {currentData?.map((row) => {
-                return (
-                  <TableRow
-                    hover
-                    role="checkbox"
-                    tabIndex={-1}
-                    key={row.key || row.Item_ID || row.id}
-                  >
-                    {columns.map((column) => {
-                      const value = row[column.id];
-                      return (
-                        <TableCell key={column.id} align={column.align}>
-                          {column.format
-                            ? column.format(value, row)
-                            : value || "-"}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
+              {!loading &&
+                currentData?.map((row, index) => {
+                  return (
+                    <TableRow
+                      hover
+                      role="checkbox"
+                      tabIndex={-1}
+                      key={row.key || row.id || index}
+                    >
+                      {columns.map((column) => {
+                        const value = row[column.id];
+                        return (
+                          <TableCell key={column.id} align={column.align}>
+                            {column.format
+                              ? column.format(value, row)
+                              : value || "-"}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })}
               {!loading && currentData.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={columns.length} align="center">
@@ -902,14 +944,12 @@ const CylinderInventory = () => {
                 <strong>{formatter.format(selectedItem.sales_balance)}</strong>
               </Typography>
 
-              {/* Transfer Selection Autocomplete */}
               <Autocomplete
                 fullWidth
                 options={receivedTransfers}
                 value={selectedTransfer}
                 onChange={(event, newValue) => {
                   setSelectedTransfer(newValue);
-                  // Reset quantity when transfer changes
                   setReturnQuantity("");
                 }}
                 loading={receivedLoading}
@@ -985,11 +1025,6 @@ const CylinderInventory = () => {
                   onChange={(e) => setReturnReason(e.target.value)}
                   label="Reason for Return"
                   disabled={loadingReasons}
-                  startAdornment={
-                    loadingReasons ? (
-                      <CircularProgress size={20} sx={{ mr: 1 }} />
-                    ) : null
-                  }
                 >
                   {loadingReasons ? (
                     <MenuItem disabled>
