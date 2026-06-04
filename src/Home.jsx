@@ -68,6 +68,7 @@ const Home = () => {
   const setups = [
     { name: "Academic Year", status: "active" },
     { name: "Payment Categories", status: "active" },
+    { name: "Revoke Allocation Reasons", status: "active" },
   ];
 
   const loadPaymentsData = async () => {

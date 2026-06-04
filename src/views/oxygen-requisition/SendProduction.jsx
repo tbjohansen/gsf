@@ -2,11 +2,12 @@ import React, { useEffect, useState } from "react";
 import TextField from "@mui/material/TextField";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
-import { MdAdd, MdDelete } from "react-icons/md";
+import { MdAdd, MdArrowBack, MdDelete } from "react-icons/md";
 import apiClient from "../../api/Client";
 import { Autocomplete, IconButton } from "@mui/material";
 import { formatter } from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
+import { useNavigate } from "react-router-dom";
 
 const SendProduction = ({ loadData }) => {
   const [items, setItems] = useState([]);
@@ -16,6 +17,7 @@ const SendProduction = ({ loadData }) => {
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleReset = () => {
     setSelectedItems([{ item: null, quantity: "" }]);
@@ -27,7 +29,7 @@ const SendProduction = ({ loadData }) => {
       return 0;
     }
     const productionBalance = item.balance.find(
-      (b) => b.Balance_Type === "production"
+      (b) => b.Balance_Type === "production",
     );
     return productionBalance ? Number(productionBalance.Item_Balance) : 0;
   };
@@ -85,7 +87,7 @@ const SendProduction = ({ loadData }) => {
   const getSelectedItemIds = (currentIndex) => {
     return selectedItems
       .map((item, idx) =>
-        idx !== currentIndex && item.item ? item.item.id : null
+        idx !== currentIndex && item.item ? item.item.id : null,
       )
       .filter((id) => id !== null);
   };
@@ -103,17 +105,17 @@ const SendProduction = ({ loadData }) => {
   const handleQuantityChange = (index, value) => {
     const newItems = [...selectedItems];
     const rawValue = value.replace(/[^\d.]/g, "");
-    
+
     // Get the selected item's production balance
     const selectedItem = newItems[index].item;
     if (selectedItem) {
       const maxBalance = getProductionBalance(selectedItem);
       const enteredQuantity = Number(rawValue);
-      
+
       // Validate quantity doesn't exceed production balance
       if (enteredQuantity > maxBalance) {
         toast.error(
-          `Quantity cannot exceed production balance of ${formatter.format(maxBalance)}`
+          `Quantity cannot exceed production balance of ${formatter.format(maxBalance)}`,
         );
         newItems[index].quantity = maxBalance.toString();
       } else {
@@ -122,7 +124,7 @@ const SendProduction = ({ loadData }) => {
     } else {
       newItems[index].quantity = rawValue;
     }
-    
+
     setSelectedItems(newItems);
   };
 
@@ -131,7 +133,7 @@ const SendProduction = ({ loadData }) => {
 
     // Validate all items are selected and have quantities
     const invalidItems = selectedItems.filter(
-      (item) => !item.item || !item.quantity || Number(item.quantity) <= 0
+      (item) => !item.item || !item.quantity || Number(item.quantity) <= 0,
     );
 
     if (invalidItems.length > 0) {
@@ -144,10 +146,10 @@ const SendProduction = ({ loadData }) => {
       const item = selectedItems[i];
       const maxBalance = getProductionBalance(item.item);
       const quantity = Number(item.quantity);
-      
+
       if (quantity > maxBalance) {
         toast.error(
-          `${item.item.label}: Quantity (${formatter.format(quantity)}) exceeds production balance (${formatter.format(maxBalance)})`
+          `${item.item.label}: Quantity (${formatter.format(quantity)}) exceeds production balance (${formatter.format(maxBalance)})`,
         );
         return;
       }
@@ -179,38 +181,38 @@ const SendProduction = ({ loadData }) => {
       // Make API request
       const response = await apiClient.post(
         "/oxygen/shift-oxygen-to-sales",
-        data
+        data,
       );
 
-      if (!response.ok) {
-        setLoading(false);
-
-        if (response.problem === "NETWORK_ERROR") {
-          toast.error("Network error. Please check your connection");
-        } else if (response.problem === "TIMEOUT_ERROR") {
-          toast.error("Request timeout. Please try again");
-        } else {
-          console.log("Error:", response.data?.error);
-          toast.error(
-            response?.data?.error || "Failed to send production to sales"
-          );
-        }
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-
-        if (response.data?.error && typeof response.data.error === "object") {
-          console.log(response.data.error);
-          toast.error("Failed to send production to sales");
-        } else {
-          const errorMessage =
-            response?.data?.error || "Failed to send production to sales";
-          toast.error(errorMessage);
-        }
-        return;
-      }
+       if (!response.ok) {
+              setLoading(false);
+      
+              if (response.problem === "NETWORK_ERROR") {
+                toast.error("Network error. Please check your connection");
+              } else if (response.problem === "TIMEOUT_ERROR") {
+                toast.error("Request timeout. Please try again");
+              } else {
+                const serverMessage =
+                  response?.data?.error || response?.data?.message;
+      
+                let errorText;
+      
+                console.log(response);
+                if (typeof serverMessage === "string") {
+                  errorText = serverMessage;
+                } else if (
+                  typeof serverMessage === "object" &&
+                  serverMessage !== null
+                ) {
+                  errorText = Object.values(serverMessage).flat()[0];
+                } else {
+                  errorText = "Failed to send production";
+                }
+      
+                toast.error(errorText);
+              }
+              return;
+            }
 
       // Success
       setLoading(false);
@@ -240,9 +242,20 @@ const SendProduction = ({ loadData }) => {
       <Breadcrumb />
       <div className="w-full max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-center text-2xl font-semibold py-4 text-gray-800">
-            Send Produced Items To Sales
-          </h3>
+          <div className="flex flex-row gap-2">
+            <div className="w-[30%]">
+              <IconButton
+                onClick={() => navigate(-1)}
+                className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+              >
+                <MdArrowBack />
+              </IconButton>
+            </div>
+            <h3 className="text-center text-2xl font-semibold py-4 text-gray-800">
+              Send Produced Items To Sales
+            </h3>
+          </div>
+
           <div className="max-h-[70vh] overflow-y-auto px-2">
             {selectedItems.map((selectedItem, index) => (
               <div
@@ -257,7 +270,7 @@ const SendProduction = ({ loadData }) => {
                     className="w-full"
                     value={selectedItem.item}
                     onChange={(e, value) => handleItemChange(index, value)}
-                    getOptionLabel={(option) => 
+                    getOptionLabel={(option) =>
                       `${option.label} (Balance: ${formatter.format(option.productionBalance)})`
                     }
                     isOptionEqualToValue={(option, value) =>

@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from "react";
-import TextField from "@mui/material/TextField";
-import MenuItem from "@mui/material/MenuItem";
-import { toast } from "react-hot-toast";
-import apiClient from "../../api/Client";
-import { MdEdit } from "react-icons/md";
-import Modal from "@mui/material/Modal";
+import React, { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
-import { capitalize } from "lodash";
+import Modal from "@mui/material/Modal";
+import TextField from "@mui/material/TextField";
 import { Autocomplete } from "@mui/material";
-import { validPhoneNumber } from "../../../helpers";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-hot-toast";
+import { MdEdit } from "react-icons/md";
+import apiClient from "../../api/Client";
 
 const style = {
   position: "absolute",
-  top: "50%",
+  top: "45%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 600,
@@ -21,26 +19,50 @@ const style = {
   p: 4,
 };
 
-const EditCustomerDetails = ({ loadData, customerData, customerId }) => {
+const EditEmployee = ({ status, loadData, employee }) => {
   const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => {
+    setOpen(false);
+    // Don't reset form data here as it will reset from employee prop on next open
+  };
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("");
+  const [nationality, setNationality] = useState("");
+  const [Customer_Nature, setCustomerNature] = useState("");
+  const [dob, setDob] = useState("");
+  const [employeeNumber, setEmployeeNumber] = useState("");
+
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    Customer_Name: "",
-    Gender: null,
-    Nationality: null,
-    Phone_Number: "",
-    Email: "",
-    Student_ID: "",
-    Program_Study: "",
-    Year_Study: "",
-    Customer_Status: "active",
-    Customer_Nature: "",
-    customer_origin: "",
-    Customer_Type: "",
-    Admission_ID: "",
-    Semester: "",
-    Date_Birth: null,
-  });
+
+  const dispatch = useDispatch();
+
+  // Populate form when employee data changes or modal opens
+  useEffect(() => {
+    if (employee && open) {
+      setName(employee?.Customer_Name || "");
+      setEmail(employee?.Email || "");
+      setPhone(employee?.Phone_Number || "");
+      setGender(employee?.Gender || "");
+      setNationality(employee?.Nationality || "");
+      setCustomerNature(employee?.Customer_Nature || "");
+      setDob(employee?.Date_Birth || "");
+      setEmployeeNumber(employee?.Student_ID || "");
+    }
+  }, [employee, open]);
+
+  const sortedGender = [
+    { id: "male", label: "Male" },
+    { id: "female", label: "Female" },
+  ];
+
+  const sortedNatures = [
+    { id: "farm", label: "Farm" },
+    { id: "house_rent", label: "Real Estate" },
+  ];
 
   const sortedNationalities = [
     { id: "Tanzanian", label: "Tanzanian" },
@@ -213,113 +235,49 @@ const EditCustomerDetails = ({ loadData, customerData, customerId }) => {
     { id: "Zimbabwean", label: "Zimbabwean" },
   ];
 
-  const sortedGender = [
-    { id: "male", label: "Male" },
-    { id: "female", label: "Female" },
-  ];
-
-  const sortedCustomerType = [
-    { id: "inside", label: "Internal (Employee)" },
-    { id: "outside", label: "External" },
-  ];
-
-  const sortedNatures = [
-    { id: "farm", label: "Farm" },
-    { id: "house_rent", label: "Real Estate" },
-  ];
-
-  const sortedStatus = [
-    {
-      id: "active",
-      label: "Active",
-    },
-    {
-      id: "inactive",
-      label: "Inactive",
-    },
-  ];
-
-  // Populate form data when customerData changes or modal opens
-  useEffect(() => {
-    if (open && customerData) {
-      setFormData({
-        Customer_Name: customerData.Customer_Name || "",
-        Gender: customerData.Gender || null,
-        Nationality: customerData.Nationality || null,
-        Phone_Number: customerData.Phone_Number || "",
-        Email: customerData.Email || "",
-        Student_ID: customerData.Student_ID || "",
-        Program_Study: customerData.Program_Study || "",
-        Year_Study: customerData.Year_Study || "",
-        Customer_Status: customerData.Customer_Status || "active",
-        Customer_Nature: customerData.Customer_Nature || "house_rent",
-        customer_origin: customerData.customer_origin || "",
-        Customer_Type: customerData.Customer_Type || "",
-        Admission_ID: customerData.Admission_ID || "",
-        Semester: customerData.Semester || "",
-        Date_Birth: customerData.Date_Birth || null,
-      });
-    }
-  }, [open, customerData]);
-
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => {
-    setOpen(false);
-    setLoading(false);
+  const handleNationChange = (e, newValue) => {
+    setNationality(newValue);
   };
 
-  const handleChange = (field) => (e, newValue) => {
-    // For Autocomplete components
-    if (newValue !== undefined) {
-      setFormData((prev) => ({
-        ...prev,
-        [field]: newValue?.id,
-      }));
-      return;
-    }
-
-    // For regular TextField components
-    setFormData((prev) => ({
-      ...prev,
-      [field]: e.target.value,
-    }));
+  const handleNatureChange = (e, newValue) => {
+    setCustomerNature(newValue);
   };
 
-  const handlePhoneChange = (e) => {
-    const value = e.target.value.replace(/\D/g, ""); // Remove non-digits
-    if (value.length <= 10) {
-      setFormData((prev) => ({
-        ...prev,
-        Phone_Number: value,
-      }));
-    }
+  const handleGenderChange = (e, newValue) => {
+    setGender(newValue);
   };
 
   const submit = async (e) => {
     e.preventDefault();
 
-    if (!formData.Customer_Name || formData.Customer_Name.trim() === "") {
-      toast.error("Please enter customer name");
+    if (!name || name.trim() === "") {
+      toast.error("Please enter employee name");
       return;
     }
 
-    if (!formData.Phone_Number || formData.Phone_Number.trim() === "") {
+    if (!email || email.trim() === "") {
+      toast.error("Please enter employee email");
+      return;
+    }
+
+    if (!phone || phone.trim() === "") {
       toast.error("Please enter phone number");
       return;
     }
 
-    if (!formData.Email || formData.Email.trim() === "") {
-      toast.error("Please enter email");
+    if (status == "farm" && !Customer_Nature) {
+      toast.error("Please select employee nature");
       return;
     }
 
-    if (!validPhoneNumber(formData?.Phone_Number)) {
-      toast.error("Please enter a valid phone number");
-      return;
-    }
-
-    if (!formData?.customer_origin) {
-      toast.error("Please select customer type");
+    // Validate phone number format
+    if (
+      phone.length !== 10 ||
+      !["05", "06", "07"].includes(phone.slice(0, 2))
+    ) {
+      toast.error(
+        "Please enter a valid phone number (10 digits starting with 05, 06, or 07)",
+      );
       return;
     }
 
@@ -331,32 +289,38 @@ const EditCustomerDetails = ({ loadData, customerData, customerId }) => {
       return;
     }
 
-    if (!customerId) {
-      toast.error("Customer ID not found");
+    if (!employee?.Customer_ID) {
+      toast.error("Employee record not found. Please refresh and try again.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // Prepare the data to send
+      // Prepare the data to send (match your API field names)
       const data = {
-        ...formData,
-        Customer_Name: formData.Customer_Name.trim(),
-        Customer_Type:
-          formData?.Nationality === "Tanzanian" ? "local" : "foreigner",
-        Phone_Number: formData.Phone_Number.startsWith("0")
-          ? formData.Phone_Number
-          : `0${formData.Phone_Number}`,
-        Customer_Nature: formData?.Customer_Nature,
+        Customer_Name: name.trim(),
+        Gender: gender?.id,
+        Nationality: nationality?.id,
+        Phone_Number: phone,
+        Email: email,
+        Student_ID: employeeNumber,
+        Program_Study: "",
+        Year_Study: "",
+        Customer_Status: "active",
+        Customer_Nature: status ? Customer_Nature?.id : "house_rent",
+        Customer_Type: nationality?.id === "Tanzanian" ? "local" : "foreigner",
+        Admission_ID: "",
+        Semester: "",
+        Date_Birth: null,
+        customer_origin: "inside",
         Employee_ID: employeeId,
-        Customer_ID: customerId,
+        Customer_ID: employee.Customer_ID, // Include the ID for update
       };
 
-      // Make API request for update
-      const response = await apiClient.put(`/customer/customer`, data);
+      // Make API request - using PUT for update
+      const response = await apiClient.put("/customer/customer", data);
 
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
@@ -377,7 +341,7 @@ const EditCustomerDetails = ({ loadData, customerData, customerId }) => {
           ) {
             errorText = Object.values(serverMessage).flat()[0];
           } else {
-            errorText = "Failed to update customer";
+            errorText = "Failed to update employee";
           }
 
           toast.error(errorText);
@@ -387,7 +351,9 @@ const EditCustomerDetails = ({ loadData, customerData, customerId }) => {
 
       // Success
       setLoading(false);
-      toast.success("Customer updated successfully");
+      toast.success("Employee updated successfully");
+
+      // Close modal
       handleClose();
 
       // Trigger parent component refresh
@@ -395,19 +361,19 @@ const EditCustomerDetails = ({ loadData, customerData, customerId }) => {
         loadData();
       }
     } catch (error) {
-      console.error("Update customer error:", error);
+      console.error("Update employee error:", error);
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again");
     }
   };
 
   return (
-    <>
+    <div>
       <button
         onClick={handleOpen}
         className="w-10 h-10 bg-white cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center group"
       >
-        <MdEdit className="w-6 h-6 text-gray-800 group-hover:text-blue-600 transition-colors" />
+        <MdEdit className="w-6 h-6 text-gray-800 group-hover:text-oceanic transition-colors" />
       </button>
 
       <Modal
@@ -418,151 +384,143 @@ const EditCustomerDetails = ({ loadData, customerData, customerId }) => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Edit Customer
-            </h3>
-            <form onSubmit={submit} className="space-y-4">
-              <Autocomplete
-                id="combo-box-demo"
-                options={sortedCustomerType}
-                size="small"
-                className="w-full"
-                freeSolo
-                fullWidth
-                value={sortedCustomerType.find(
-                  (option) => option.id === formData?.customer_origin,
-                )}
-                onChange={handleChange("customer_origin")}
-                renderInput={(params) => (
-                  <TextField {...params} label="Select Customer Type" />
-                )}
-              />
-              <TextField
-                size="small"
-                label={"Customer Name"}
-                variant="outlined"
-                fullWidth
-                className="w-full"
-                sx={{
-                  mb: 2,
-                }}
-                value={formData.Customer_Name}
-                onChange={handleChange("Customer_Name")}
-                disabled={loading}
-              />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 className="text-center text-xl py-4">Edit Employee</h3>
+            <div>
+              <div className="w-full py-2 flex flex-row justify-center">
+                <TextField
+                  size="small"
+                  id="outlined-basic"
+                  label="Employee Name"
+                  variant="outlined"
+                  className="w-[92%]"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+              <div className="w-full py-2 flex flex-row gap-2 justify-center">
                 <Autocomplete
                   id="combo-box-demo"
                   options={sortedGender}
                   size="small"
                   freeSolo
-                  className="w-full"
-                  value={sortedGender?.find(
-                    (option) => option.id === formData?.Gender,
-                  )}
-                  onChange={handleChange("Gender")}
+                  className="w-[45%]"
+                  value={
+                    sortedGender.find((option) => option.id === gender) || null
+                  }
+                  onChange={handleGenderChange}
                   renderInput={(params) => (
                     <TextField {...params} label="Select Gender" />
                   )}
                 />
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedNationalities}
+                  size="small"
+                  freeSolo
+                  className="w-[45%]"
+                  value={
+                    sortedNationalities.find(
+                      (option) => option.id === nationality,
+                    ) || null
+                  }
+                  onChange={handleNationChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Nationality" />
+                  )}
+                />
+              </div>
+              <div className="w-full py-2 flex flex-row gap-2 justify-center">
                 <TextField
                   size="small"
+                  id="outlined-basic"
+                  label="Email"
+                  variant="outlined"
+                  type="email"
+                  className="w-[45%]"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                />
+                <TextField
+                  size="small"
+                  id="outlined-basic"
                   label="Phone Number"
                   variant="outlined"
                   type="tel"
-                  fullWidth
-                  value={formData?.Phone_Number}
-                  onChange={handlePhoneChange}
+                  className="w-[45%]"
+                  value={phone}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "");
+                    if (value.length <= 10) {
+                      setPhone(value);
+                    }
+                  }}
                   disabled={loading}
                   error={
-                    formData?.Phone_Number?.length > 0 &&
-                    !validPhoneNumber(formData?.Phone_Number)
+                    phone.length > 0 &&
+                    (phone.length !== 10 ||
+                      !["05", "06", "07"].includes(phone.slice(0, 2)))
                   }
                   helperText={
-                    formData?.Phone_Number?.length > 0 &&
-                    !validPhoneNumber(formData?.Phone_Number)
-                      ? formData?.Phone_Number?.length !== 10
-                        ? "Phone number must be 10 digits"
-                        : "Phone number must start with 06, or 07"
-                      : ""
+                    phone.length > 0 && phone.length !== 10
+                      ? "Phone number must be 10 digits"
+                      : phone.length === 10 &&
+                          !["05", "06", "07"].includes(phone.slice(0, 2))
+                        ? "Phone number must start with 06, or 07"
+                        : ""
                   }
                   inputProps={{
                     maxLength: 10,
                     pattern: "0[567][0-9]{8}",
                   }}
                 />
+              </div>
+              <div className="w-full py-2 flex flex-row gap-2 justify-center">
                 <TextField
                   size="small"
-                  label="Email"
+                  id="outlined-basic"
+                  label="Employee ID Number"
                   variant="outlined"
-                  type="email"
-                  fullWidth
-                  value={formData.Email}
-                  onChange={handleChange("Email")}
+                  className="w-[45%]"
+                  value={employeeNumber}
+                  onChange={(e) => setEmployeeNumber(e.target.value)}
                   disabled={loading}
-                />
-                <Autocomplete
-                  id="combo-box-demo"
-                  options={sortedNationalities}
-                  size="small"
-                  className="w-full"
-                  freeSolo
-                  fullWidth
-                  value={sortedNationalities.find(
-                    (option) => option.id === formData?.Nationality,
-                  )}
-                  onChange={handleChange("Nationality")}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Select Nationality" />
-                  )}
-                />
-                <Autocomplete
-                  id="combo-box-demo"
-                  options={sortedStatus}
-                  size="small"
-                  className="w-full"
-                  freeSolo
-                  fullWidth
-                  value={sortedStatus.find(
-                    (option) => option.id === formData?.Customer_Status,
-                  )}
-                  onChange={handleChange("Customer_Status")}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Select Status" />
-                  )}
                 />
                 <Autocomplete
                   id="combo-box-demo"
                   options={sortedNatures}
                   size="small"
-                  className="w-full"
                   freeSolo
-                  fullWidth
-                  value={sortedNatures.find(
-                    (option) => option.id === formData?.Customer_Nature,
-                  )}
-                  onChange={handleChange("Customer_Nature")}
+                  className="w-[45%]"
+                  value={
+                    sortedNatures.find(
+                      (option) => option.id === Customer_Nature,
+                    ) || null
+                  }
+                  onChange={handleNatureChange}
                   renderInput={(params) => (
-                    <TextField {...params} label="Select Customer Nature" />
+                    <TextField {...params} label="Select Employee Nature" />
                   )}
                 />
               </div>
 
-              <div className="pt-2 flex justify-center gap-2">
+              <div className="w-full py-2 mt-5 flex justify-center">
                 <button
-                  type="submit"
+                  onClick={(e) => submit(e)}
                   disabled={loading}
-                  className="w-full h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Updating..." : `Update Customer`}
+                  {loading ? "Updating..." : "Update Employee"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </Box>
       </Modal>
-    </>
+    </div>
   );
 };
 
-export default EditCustomerDetails;
+export default EditEmployee;

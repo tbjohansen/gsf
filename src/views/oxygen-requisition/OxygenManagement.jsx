@@ -21,6 +21,7 @@ import {
 } from "react-icons/md";
 import { LuContainer } from "react-icons/lu";
 import ManagementCard from "../../components/ManagementCard";
+import { RiListSettingsLine } from "react-icons/ri";
 
 const numberFormatter = new Intl.NumberFormat("en-US");
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -40,6 +41,8 @@ const OxygenManagement = () => {
 
   const [summaryData, setSummary] = useState("");
 
+  const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   React.useEffect(() => {
     loadCustomers();
@@ -54,7 +57,7 @@ const OxygenManagement = () => {
     setLoading(true);
     try {
       const response = await apiClient.get(
-        "/oxygen/oxygen-request?&Billing_Type=cash_deposit",
+        "/oxygen/oxygen-request?&Billing_Type=cash,cash_deposit",
       );
 
       if (!response.ok) {
@@ -282,6 +285,10 @@ const OxygenManagement = () => {
     }
   };
 
+    const setups = [
+    { name: "Rejection Reasons", status: "active" },
+  ];
+
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -376,25 +383,25 @@ const OxygenManagement = () => {
           {payments?.slice(0, 4).map((item) => {
             // Determine status display
             const getStatusInfo = () => {
-              if (item.Customer_Status === "served") {
+              if (item?.request[0]?.Customer_Status === "served") {
                 return {
                   label: "Served",
                   color: "text-green-600 bg-green-50",
                 };
-              } else if (item?.Customer_Status === "paid") {
+              } else if (item?.request[0]?.Customer_Status === "paid") {
                 return {
                   label: "Paid",
                   color: "text-green-600 bg-green-50",
                 };
               } else if (
-                item.Customer_Status === "requested" &&
+                item?.request[0]?.Customer_Status === "requested" &&
                 item.Received_Time
               ) {
                 return {
                   label: "Requested",
                   color: "text-blue-600 bg-blue-50",
                 };
-              } else if (item.Customer_Status === "requested") {
+              } else if (item?.request[0]?.Customer_Status === "requested") {
                 return {
                   label: "Pending",
                   color: "text-yellow-600 bg-yellow-50",
@@ -404,7 +411,7 @@ const OxygenManagement = () => {
                   label: "Pending Payment",
                   color: "text-yellow-600 bg-yellow-50",
                 };
-              } else if (item.Customer_Status === "expired") {
+              } else if (item?.request[0]?.Customer_Status === "expired") {
                 return {
                   label: "Expired",
                   color: "text-red-600 bg-red-50",
@@ -419,10 +426,7 @@ const OxygenManagement = () => {
             const statusInfo = getStatusInfo();
 
             // Use Served_Date for served items without sangira, otherwise use Request_Date
-            const displayDate =
-              item.Customer_Status === "served" && !item.Sangira_ID
-                ? item.Served_Date
-                : item.Request_Date;
+            const displayDate = item?.Request_Batch_Date;
 
             const timeAgo = formatTimeAgo(displayDate);
             const itemName = item?.item?.Item_Name || "N/A";
@@ -438,7 +442,7 @@ const OxygenManagement = () => {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-800">
                     {`${capitalize(removeUnderscore(item?.Request_Type))}
-                              - Cylinder - ${itemName}`}
+                              - Cylinder`}
                   </p>
                   <p className="text-xs text-gray-500">{timeAgo}</p>
                 </div>
@@ -494,7 +498,7 @@ const OxygenManagement = () => {
             route="/projects/oxygen/productions"
           />
           <ManagementCard
-            title="Pending Transfers To Sales"
+            title="Transfers To Sales"
             icon={FiPackage}
             items={salesProductions}
             header={"Status"}
@@ -506,11 +510,11 @@ const OxygenManagement = () => {
             title="Point Of Sales"
             icon={FiPackage}
             items={[]}
-            tableHeader={"*"}
+            tableHeader={"Click here to create customer order"}
             route="/projects/oxygen/point-of-sales"
           />
           <ManagementCard
-            title="Sales Orders"
+            title="Sales & Orders"
             icon={FiPackage}
             items={productions}
             tableHeader={"Date"}
@@ -518,14 +522,22 @@ const OxygenManagement = () => {
             route="/projects/oxygen/sales-orders"
           />
 
-          {/* <ManagementCard
-            title="Cylinders Inventory"
+          <ManagementCard
+            title="Sales & Cylinders Stock"
             icon={FiPackage}
             items={items}
             header={"GSF Cylinders"}
             headerValue={"Gsf_Quantity"}
             route="/projects/oxygen/cylinder-inventory"
-          /> */}
+          />
+          <ManagementCard
+            title="Setups"
+            icon={RiListSettingsLine}
+            items={setups}
+            route="/projects/oxygen/setups"
+            header={"Status"}
+            headerValue={"status"}
+          />
         </div>
       </div>
     </section>

@@ -144,7 +144,7 @@ const FarmDashboard = () => {
   const loadEmployees = async () => {
     setLoading(true);
     try {
-      const url = `/customer/customer?&Customer_Nature=house_rent`;
+      const url = `/customer/customer?&Customer_Nature=farm`;
       const response = await apiClient.get(url);
 
       // For axios, check status or data.error

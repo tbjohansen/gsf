@@ -11,7 +11,7 @@ import TextField from "@mui/material/TextField";
 import LinearProgress from "@mui/material/LinearProgress";
 import Button from "@mui/material/Button";
 import Autocomplete from "@mui/material/Autocomplete";
-import { MdAdd, MdRemove, MdDeleteForever } from "react-icons/md";
+import { MdAdd, MdRemove, MdDeleteForever, MdArrowBack } from "react-icons/md";
 import { FiSearch } from "react-icons/fi";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
@@ -22,6 +22,8 @@ import {
   reportError,
 } from "../../../helpers";
 import Breadcrumb from "../../components/Breadcrumb";
+import { IconButton } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -44,6 +46,8 @@ const SalesPOS = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [previousRequests, setPreviousRequests] = useState([]);
   const [loadingPreviousRequests, setLoadingPreviousRequests] = useState(false);
+
+  const navigate = useNavigate();
 
   // Fetch items and customers from API
   useEffect(() => {
@@ -331,8 +335,32 @@ const SalesPOS = () => {
 
       // Check if request was successful
       if (!response.ok) {
-        setSubmitting(false);
-        reportError(response, "Failed to submit order");
+        setLoading(false);
+
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+
+          console.log(response);
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to submit order";
+          }
+
+          toast.error(errorText);
+        }
         return;
       }
 
@@ -353,18 +381,30 @@ const SalesPOS = () => {
     }
   };
 
-  console.log(selectedCustomer);
-
   return (
     <>
       <Breadcrumb />
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="flex justify-between items-center flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <IconButton
+              onClick={() => navigate(-1)}
+              className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <MdArrowBack />
+            </IconButton>
+            <div>
+              <h1 className="font-bold text-xl text-gray-800">Point Of Sale</h1>
+              <p className="text-gray-500 text-xs mt-1">
+                Create customer orders
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="w-full my-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">
-          Point of Sale
-        </h2>
-
         {/* Customer Selection */}
-        <div className="mb-6">
+        <div className="mb-6 bg-white">
           <Autocomplete
             options={customers}
             loading={loadingCustomers}
@@ -632,116 +672,6 @@ const SalesPOS = () => {
               )}
             </Paper>
           </div>
-        </div>
-
-        {/* Previous Requests Section */}
-        <div className="mt-6">
-          <Paper sx={{ width: "100%", overflow: "hidden" }}>
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Previous Orders
-              </h3>
-            </div>
-
-            <TableContainer sx={{ maxHeight: 400 }}>
-              <Table stickyHeader aria-label="previous requests table">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>SN</TableCell>
-                    <TableCell>Order No</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Items (Quantity)</TableCell>
-                    <TableCell>Total Amount (TZS)</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {loadingPreviousRequests && (
-                    <TableRow>
-                      <TableCell colSpan={5} sx={{ padding: 0 }}>
-                        <LinearProgress />
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {previousRequests.length === 0 &&
-                    !loadingPreviousRequests && (
-                      <TableRow>
-                        <TableCell colSpan={5} align="center">
-                          No previous requests found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  {previousRequests?.map((batch, index) => {
-                    // Calculate total amount from all items in the batch
-                    const totalAmount =
-                      batch?.request?.reduce(
-                        (sum, item) => sum + item?.Price * item?.Quantity,
-                        0,
-                      ) || 0;
-
-                    const sn = index + 1;
-
-                    // Get status from first request item
-                    const status =
-                      batch?.request?.[0]?.Customer_Status || "N/A";
-
-                    return (
-                      <TableRow
-                        key={batch?.Request_Batch_ID}
-                        hover
-                        sx={{
-                          "&:hover": {
-                            backgroundColor: "rgba(0, 0, 0, 0.04)",
-                          },
-                        }}
-                      >
-                        <TableCell>{sn}</TableCell>
-                        <TableCell>
-                          {batch?.Request_Batch_ID || "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          {batch?.Request_Batch_Date
-                            ? batch?.Request_Batch_Date
-                            : batch?.created_at
-                              ? formatDateTimeForDb(batch?.created_at)
-                              : "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          {batch?.request && Array.isArray(batch?.request) ? (
-                            <div className="flex flex-col gap-1">
-                              {batch?.request.map((item, idx) => (
-                                <div key={idx} className="text-sm">
-                                  {item?.item?.Item_Name} ({item.Quantity})
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            "N/A"
-                          )}
-                        </TableCell>
-                        <TableCell>{formatter.format(totalAmount)}</TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              status === "active"
-                                ? "bg-blue-100 text-green-800"
-                                : status === "pending"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : status === "inactive"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {capitalize(status)}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
         </div>
       </div>
     </>

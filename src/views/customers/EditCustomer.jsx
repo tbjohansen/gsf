@@ -76,26 +76,7 @@ const EditCustomer = ({ loadData, status, customer }) => {
     });
   }, [customer]);
 
-  // const [formData, setFormData] = useState({
-  //   Customer_Name: customer?.Customer_Name,
-  //   Gender: customer?.Gender,
-  //   Nationality: customer?.Nationality,
-  //   Phone_Number: customer?.Phone_Number,
-  //   Email: customer?.Email,
-  //   Student_ID: customer?.Student_ID,
-  //   Program_Study: customer?.Program_Study,
-  //   Year_Study: customer?.Year_Study,
-  //   Customer_Status: customer?.Customer_Status,
-  //   Customer_Nature: status || "student",
-  //   customer_origin: customer?.customer_origin,
-  //   Customer_Type: customer?.Customer_Type,
-  //   Admission_ID: customer?.Admission_ID,
-  //   Semester: customer?.Semester,
-  //   Date_Birth: moment(customer?.Date_Birth),
-  //   Emergency_Contact_Name: customer?.Emergency_Contact_Name,
-  //   Next_Kin_Relationship: customer?.Next_Kin_Relationship,
-  //   Emergency_Contact_Phone: customer?.Emergency_Contact_Phone,
-  // });
+
 
   const sortedStatus = [
     {
@@ -514,7 +495,7 @@ const EditCustomer = ({ loadData, status, customer }) => {
 
       // Success
       setLoading(false);
-      toast.success("Customer created successfully");
+      toast.success("Customer updated successfully");
 
       // Reset form
       // setFormData({

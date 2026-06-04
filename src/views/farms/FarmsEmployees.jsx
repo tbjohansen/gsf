@@ -19,6 +19,7 @@ import Badge from "../../components/Badge";
 import { FcSynchronize } from "react-icons/fc";
 import AddEmployee from "../real-estate/AddEmployee";
 import { TextField } from "@mui/material";
+import EditEmployee from "../real-estate/EditEmployee";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -64,7 +65,7 @@ export default function FarmsEmployees() {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer?&Customer_Nature=house_rent`;
+      let url = `/customer/customer?&Customer_Nature=farm`;
 
       if (name) {
         url += `&Customer_Name=${name}`;
@@ -229,6 +230,12 @@ export default function FarmsEmployees() {
         minWidth: 170,
       },
       {
+        id: "Customer_Nature",
+        label: `Nature`,
+        minWidth: 170,
+        format: (value) => <span>{value === "house_rent" ? "Real Estate" : capitalize(value)}</span>,
+      },
+      {
         id: "Customer_Status",
         label: "Status",
         format: (value) => (
@@ -241,18 +248,19 @@ export default function FarmsEmployees() {
       {
         id: "created_at",
         label: "Created At",
+        minWidth: 170,
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
       },
-      // {
-      //   id: "actions",
-      //   label: "Actions",
-      //   align: "center",
-      //   format: (value, row) => (
-      //     <div className="flex gap-2 justify-center">
-      //       <EditFeature feature={row} loadData={loadData} />
-      //     </div>
-      //   ),
-      // },
+      {
+        id: "actions",
+        label: "Actions",
+        align: "center",
+        format: (value, row) => (
+          <div className="flex gap-2 justify-center">
+            <EditEmployee status={"farm"} employee={row} loadData={loadData} />
+          </div>
+        ),
+      },
     ],
     [],
   );
@@ -275,7 +283,7 @@ export default function FarmsEmployees() {
                 <span className="sm:hidden">Sync</span>
               </div>
             </button>
-            <AddEmployee loadData={loadData} />
+            <AddEmployee status={"farm"} loadData={loadData} />
           </div>
         </div>
       </div>

@@ -19,7 +19,7 @@ const style = {
   p: 4,
 };
 
-const AddEmployee = ({ loadData }) => {
+const AddEmployee = ({ status, loadData }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -283,7 +283,7 @@ const AddEmployee = ({ loadData }) => {
         Program_Study: "",
         Year_Study: "",
         Customer_Status: "active",
-        Customer_Nature: "house_rent",
+        Customer_Nature: status ? "farm" : "house_rent",
         Customer_Type: nationality === "Tanzanian" ? "local" : "foreigner",
         Admission_ID: "",
         Semester: "",

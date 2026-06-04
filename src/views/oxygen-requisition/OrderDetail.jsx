@@ -52,6 +52,8 @@ import {
 } from "../../../helpers";
 import apiClient from "../../api/Client";
 import Breadcrumb from "../../components/Breadcrumb";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const employeeId = localStorage.getItem("employeeId");
 
@@ -128,6 +130,232 @@ const STATUS_CONFIG = {
 };
 
 const STEPS = ["Pending", "Approved", "Fulfilled", "Dispatched"];
+
+/* ─── PDF Generation Function ─────────────────────────────────────────── */
+const generateDeliveryNotePDF = async (order, orderID, employeeName) => {
+  try {
+    // Create PDF document
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    // Set font
+    doc.setFont("helvetica");
+
+    // Page dimensions
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    let yPos = 20;
+
+    // Header - Organization name
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("GOOD SAMARITAN FOUNDATION", pageWidth / 2, yPos, {
+      align: "center",
+    });
+    yPos += 8;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("OXYGEN PLANT", pageWidth / 2, yPos, { align: "center" });
+    yPos += 6;
+
+    doc.setFontSize(8);
+    doc.text("P.O. BOX 545", pageWidth / 2, yPos, { align: "center" });
+    yPos += 4;
+    doc.text("MOSHI", pageWidth / 2, yPos, { align: "center" });
+    yPos += 4;
+    doc.text(
+      "TEL: 255 27 2754377/80  Fax: 225 27 2754381",
+      pageWidth / 2,
+      yPos,
+      { align: "center" },
+    );
+    yPos += 4;
+    doc.text("Email: kcmcadmin@kcmc.ac.tz", pageWidth / 2, yPos, {
+      align: "center",
+    });
+    yPos += 8;
+
+    // Line separator
+    doc.setDrawColor(0, 0, 0);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 8;
+
+    // Order ID (left) and Date (right)
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(`NO: ${orderID || "058423"}`, margin, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `Date: ${new Date().toLocaleDateString()}`,
+      pageWidth - margin - 30,
+      yPos,
+    );
+    yPos += 8;
+
+    // Customer Details - Name and Phone on separate lines
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`To: ${order.customer?.Customer_Name || "N/A"}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Phone: ${order.customer?.Phone_Number || "N/A"}`, margin, yPos);
+    yPos += 10;
+
+    // "Please receive the following goods:" text
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text("Please receive the following goods:", margin, yPos);
+    yPos += 8;
+
+    // Calculate totals and get fulfilled quantities
+    const getFulfilledQuantity = (request) => {
+      if (
+        request.Quantity_Fulfilled !== undefined &&
+        request.Quantity_Fulfilled !== null
+      ) {
+        return request.Quantity_Fulfilled;
+      }
+      const status = (request.Customer_Status || "").toLowerCase();
+      if (
+        status === "requested" ||
+        status === "fulfilled" ||
+        status === "dispatched" ||
+        status === "paid"
+      ) {
+        return request.Quantity;
+      }
+      return 0;
+    };
+
+    // Prepare table data with S/N
+    const tableHeaders = [
+      ["S/N", "Quantity", "Item Name", "Unit Price", "Total"],
+    ];
+    const tableData = [];
+
+    let grandTotal = 0;
+    let serialNumber = 1;
+
+    order.request?.forEach((item) => {
+      const fulfilledQty = getFulfilledQuantity(item);
+      const total = item?.Price * item?.Quantity;
+      grandTotal += total;
+
+      tableData.push([
+        serialNumber.toString(),
+        item?.Quantity.toString(),
+        item?.item?.Item_Name || "N/A",
+        `TZS ${item.Price.toLocaleString()}`,
+        `TZS ${total.toLocaleString()}`,
+      ]);
+      serialNumber++;
+    });
+
+    // Add total row
+    tableData.push([
+      "",
+      "",
+      "",
+      "GRAND TOTAL:",
+      `TZS ${grandTotal.toLocaleString()}`,
+    ]);
+
+    // Generate table using autoTable
+    autoTable(doc, {
+      startY: yPos,
+      head: tableHeaders,
+      body: tableData,
+      theme: "grid",
+      styles: {
+        fontSize: 9,
+        cellPadding: 2,
+        valign: "middle",
+        halign: "center",
+      },
+      headStyles: {
+        fillColor: [31, 67, 137],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        halign: "center",
+      },
+      columnStyles: {
+        0: { cellWidth: 15, halign: "center" },
+        1: { cellWidth: 25, halign: "center" },
+        2: { cellWidth: 70, halign: "left" },
+        3: { cellWidth: 35, halign: "right" },
+        4: { cellWidth: 35, halign: "right" },
+      },
+      bodyStyles: {
+        halign: "center",
+      },
+      didParseCell: function (data) {
+        // Style the total row differently
+        if (data.row.index === tableData.length - 1) {
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fillColor = [240, 240, 240];
+          if (data.column.index === 3 || data.column.index === 4) {
+            data.cell.styles.halign = "right";
+          }
+        }
+      },
+    });
+
+    // Get the Y position after the table
+    yPos = doc.lastAutoTable.finalY + 15;
+
+    // Add acknowledgment text
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      "Receive the above mentioned goods in good order and condition",
+      margin,
+      yPos,
+    );
+    yPos += 12;
+
+    // Signature section with lines in front of names
+    const signatureY = yPos;
+    const leftX = margin;
+    const rightX = pageWidth - margin - 55;
+    const lineLength = 50;
+
+    // Left side - Receiver signature
+    doc.text("Signature of Receiver:", leftX, signatureY);
+    
+    yPos += 8;
+
+    doc.text("Name:", leftX, signatureY + 8);
+    
+
+    // Reset yPos for right side
+    const rightY = signatureY;
+
+    // Right side - Authorized signature with employee name
+    doc.text("Authorized Signature:", rightX, rightY);
+
+    doc.text("Name:", rightX, rightY + 8);
+    doc.text(`${capitalize(employeeName)}`, rightX + 25, rightY + 8);
+
+    // Footer
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Thank you for your business!", pageWidth / 2, pageHeight - 15, {
+      align: "center",
+    });
+
+    // Save the PDF
+    doc.save(`Delivery_Note_${orderID}_${order?.customer?.Customer_Name}.pdf`);
+
+    toast.success("Delivery note downloaded successfully");
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    toast.error("Failed to generate delivery note");
+  }
+};
 
 /* ─── Reusable card ────────────────────────────────────────────────────── */
 function InfoCard({ title, icon: Icon, children }) {
@@ -271,8 +499,6 @@ function FulfillDialog({ open, onClose, order, onSubmit, loading }) {
       return;
     }
 
-    // const employeeId = localStorage.getItem("employeeId");
-
     if (!employeeId) {
       toast.error("User information not found. Please login again.");
       return;
@@ -342,7 +568,7 @@ function FulfillDialog({ open, onClose, order, onSubmit, loading }) {
       <DialogContent className="pt-6">
         <p className="text-slate-500 text-sm mb-5">
           Set the quantity to provide for each item. If less than ordered,
-          provide a reason and the remaining will be sent back to production.
+          provide a reason.
         </p>
 
         {/* Billing Type Info */}
@@ -425,7 +651,7 @@ function FulfillDialog({ open, onClose, order, onSubmit, loading }) {
                         <span className="font-medium">
                           {toProduction} units
                         </span>{" "}
-                        will be sent back to production
+                        will not be fulfilled
                       </div>
                     </div>
 
@@ -475,14 +701,14 @@ function FulfillDialog({ open, onClose, order, onSubmit, loading }) {
                           <span className="font-medium">
                             {stockToProduction} stock cylinders
                           </span>{" "}
-                          will be sent back to production
+                          will not be fulfilled
                         </div>
                       </div>
 
                       <TextField
                         fullWidth
                         size="small"
-                        label="Reason for reduced stock cylinders"
+                        label="Reason for reduced requested cylinders"
                         value={stockReasons[r.Request_ID] || ""}
                         onChange={(e) =>
                           setStockReasons((prev) => ({
@@ -514,8 +740,7 @@ function FulfillDialog({ open, onClose, order, onSubmit, loading }) {
           onClick={handleSubmit}
           disabled={loading}
           variant="contained"
-          className="text-white normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow"
-          style={{ backgroundColor: C.success }}
+          className="text-white bg-oceanic normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow"
         >
           {loading ? "Fulfilling…" : "Confirm Fulfillment"}
         </Button>
@@ -901,8 +1126,7 @@ function DispatchDialog({ open, onClose, order, onSubmit, loading }) {
           onClick={handleSubmit}
           disabled={loading}
           variant="contained"
-          className="text-white normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow"
-          style={{ backgroundColor: C.dispatch }}
+          className="text-white bg-oceanic normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow"
         >
           {loading ? "Dispatching…" : "Confirm Dispatch"}
         </Button>
@@ -1144,16 +1368,14 @@ export default function OrderDetail() {
   }, [originalStatus]);
 
   const canFulfill = originalStatus === "approved";
-  // const canDispatch =
-  //   originalStatus === "fulfilled" ||
-  //   originalStatus === "requested" ||
-  //   originalStatus === "paid";
-
-
   const canDispatch =
     originalStatus === "fulfilled" ||
     originalStatus === "paid" ||
     (originalStatus === "requested" && paymentMode === "credit");
+
+  // Get employee name for the PDF
+  const employeeName =
+    order?.employee?.name || localStorage.getItem("employeeName") || "";
 
   /* ── render ── */
   if (loading) {
@@ -1603,8 +1825,7 @@ export default function OrderDetail() {
               <button
                 onClick={() => setFulfillOpen(true)}
                 disabled={actionLoading}
-                className="text-white border-none rounded-lg px-6 py-2.5 font-bold text-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-150 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
-                style={{ backgroundColor: C.success }}
+                className="text-white bg-oceanic border-none rounded-lg px-6 py-2.5 font-bold text-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-150 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
               >
                 <MdLocalShipping size={18} />
                 Fulfill Order
@@ -1616,11 +1837,25 @@ export default function OrderDetail() {
               <button
                 onClick={() => setDispatchOpen(true)}
                 disabled={actionLoading}
-                className="text-white border-none rounded-lg px-6 py-2.5 font-bold text-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-150 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
-                style={{ backgroundColor: C.dispatch }}
+                className="text-white bg-oceanic border-none rounded-lg px-6 py-2.5 font-bold text-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-150 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
               >
                 <MdFlightTakeoff size={18} />
                 Dispatch Order
+              </button>
+            )}
+
+            {/* Download Delivery Note - Show when order is served/dispatched */}
+            {(originalStatus === "served" ||
+              originalStatus === "dispatched") && (
+              <button
+                onClick={() =>
+                  generateDeliveryNotePDF(order, orderID, employeeName)
+                }
+                className="text-white border-none rounded-lg px-6 py-2.5 font-bold text-sm cursor-pointer flex items-center gap-2 transition-all duration-150 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                style={{ backgroundColor: "#059669" }}
+              >
+                <MdReceipt size={18} />
+                Download Delivery Note
               </button>
             )}
 

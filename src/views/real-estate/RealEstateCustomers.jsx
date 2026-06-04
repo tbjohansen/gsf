@@ -190,6 +190,16 @@ export default function RealEstateCustomers() {
         ),
       },
       {
+        id: "Customer_Nature",
+        label: `Nature`,
+        minWidth: 170,
+        format: (value) => (
+          <span>
+            {value === "house_rent" ? "Real Estate" : capitalize(value)}
+          </span>
+        ),
+      },
+      {
         id: "Customer_Status",
         label: "Status",
         format: (value) => (
@@ -199,6 +209,7 @@ export default function RealEstateCustomers() {
           />
         ),
       },
+
       {
         id: "created_at",
         label: "Created At",

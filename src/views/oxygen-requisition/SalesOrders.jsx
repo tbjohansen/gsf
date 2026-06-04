@@ -212,7 +212,7 @@ export default function SalesOrders({ status }) {
 
           return (
             <div className="flex flex-col gap-1">
-              {row.request.map((reqItem, idx) => (
+              {row?.request?.map((reqItem, idx) => (
                 <div key={idx} className="text-sm">
                   • {reqItem?.item?.Item_Name} (
                   {formatter.format(Number(reqItem?.Quantity))} units)

@@ -75,6 +75,10 @@ import GasCylinderInventory from "../src/views/oxygen-requisition/GasCylindersIn
 import Reasons from "../src/views/reasons/Reasons";
 import AssignedStudents from "../src/views/hostels/AssignedStudents";
 import StudentRoomDetails from "../src/views/hostels/StudentRoomDetails";
+import ProductionDetails from "../src/views/oxygen-requisition/ProductionDetails";
+import OxygenSetupTabs from "../src/views/oxygen-requisition/setups/OxygenSetupTabs";
+import CylinderInventory from "../src/views/oxygen-requisition/CylinderInventory";
+import OxygenPayments from "../src/views/oxygen-requisition/OxygenPayments";
 
 const LoginElement = () => <Login />;
 
@@ -365,6 +369,12 @@ const OxygenProductionElement = (props) => (
   </AppLayout>
 );
 
+const OxygenSetupsElement = (props) => (
+  <AppLayout>
+    <OxygenSetupTabs {...props} />
+  </AppLayout>
+);
+
 const OxygenOrderElement = (props) => (
   <AppLayout>
     <OrderDetail {...props} />
@@ -379,7 +389,7 @@ const OxygenCustomerElement = (props) => (
 
 const CylinderInventoryElement = (props) => (
   <AppLayout>
-    <GasCylinderInventory {...props} />
+    <CylinderInventory {...props} />
   </AppLayout>
 );
 
@@ -388,6 +398,14 @@ const OxygenProductionNewElement = (props) => (
     <AddProduction {...props} />
   </AppLayout>
 );
+
+
+const OxygenPaymentsElement = (props) => (
+  <AppLayout>
+    <OxygenPayments {...props} />
+  </AppLayout>
+);
+
 
 const OxygenProductionToSalesNewElement = (props) => (
   <AppLayout>
@@ -422,6 +440,12 @@ const OxygenCustomerOrdersElement = (props) => (
 const OxygenCustomerPaymentsElement = (props) => (
   <AppLayout>
     <CustomerOxygenPayments {...props} />
+  </AppLayout>
+);
+
+const OxygenProductionDetailsElement = (props) => (
+  <AppLayout>
+    <ProductionDetails {...props} />
   </AppLayout>
 );
 
@@ -626,10 +650,20 @@ const AppRoutes = () => {
           element={<OxygenProductionElement status="oxygen" />}
         />
 
+        <Route
+          path="/projects/oxygen/setups"
+          element={<OxygenSetupsElement status="oxygen" />}
+        />
+
         {/* <Route
-          path="/projects/oxygen/payments"
-          element={<OxygenProductionElement status="oxygen" />}
+          path="/projects/oxygen/productions/:productionID"
+          element={<OxygenProductionDetailsElement status="oxygen" />}
         /> */}
+
+        <Route
+          path="/projects/oxygen/payments"
+          element={<OxygenPaymentsElement status="oxygen" />}
+        />
 
         <Route
           path="/projects/oxygen/productions/new"
