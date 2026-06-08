@@ -18,6 +18,7 @@ import MapItem from "./MapItem";
 import RemoveItem from "./RemoveItem";
 import { Autocomplete, IconButton, TextField } from "@mui/material";
 import { MdArrowBack } from "react-icons/md";
+import EditMappedItem from "./EditMappedItem";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -379,6 +380,7 @@ export default function MappedItems() {
         align: "center",
         format: (value, row) => (
           <div className="flex gap-2 justify-center">
+            {/* <EditMappedItem mappedItem={row} loadData={loadData} /> */}
             <RemoveItem item={row} loadData={loadData} />
           </div>
         ),
