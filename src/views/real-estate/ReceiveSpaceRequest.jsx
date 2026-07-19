@@ -71,6 +71,7 @@ export default function ReceiveSpaceRequest() {
   const [numberOfMonths, setNumberOfMonths] = useState(1);
   const [numberOfYears, setNumberOfYears] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // For double-click prevention
   const [activeTab, setActiveTab] = useState("details");
 
   const [open, setOpen] = useState(false);
@@ -245,7 +246,10 @@ export default function ReceiveSpaceRequest() {
 
   const receiveRequest = async (e) => {
     e.preventDefault();
-
+    
+    // Prevent double click
+    if (isProcessing) return;
+    
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -260,6 +264,7 @@ export default function ReceiveSpaceRequest() {
       return;
     }
 
+    setIsProcessing(true);
     setLoading(true);
 
     try {
@@ -277,23 +282,29 @@ export default function ReceiveSpaceRequest() {
 
       if (!response.ok) {
         setLoading(false);
+        setIsProcessing(false);
         reportError(response, "Failed to receive rental space request");
         return;
       }
 
       setLoading(false);
+      setIsProcessing(false);
       toast.success("Rental space request is received successfully");
       loadData();
     } catch (error) {
       console.error("Update unit error:", error);
       setLoading(false);
+      setIsProcessing(false);
       toast.error("An unexpected error occurred. Please try again");
     }
   };
 
   const acceptHouseRequest = async (e) => {
     e.preventDefault();
-
+    
+    // Prevent double click
+    if (isProcessing) return;
+    
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -321,6 +332,7 @@ export default function ReceiveSpaceRequest() {
       return;
     }
 
+    setIsProcessing(true);
     setLoading(true);
 
     try {
@@ -348,11 +360,13 @@ export default function ReceiveSpaceRequest() {
 
       if (!response.ok) {
         setLoading(false);
+        setIsProcessing(false);
         reportError(response, "Failed to accept rental space request");
         return;
       }
 
       setLoading(false);
+      setIsProcessing(false);
       toast.success("Rental space request is accepted successfully");
       loadData();
       setPaymentMethod("");
@@ -361,13 +375,17 @@ export default function ReceiveSpaceRequest() {
     } catch (error) {
       console.error("Update unit error:", error);
       setLoading(false);
+      setIsProcessing(false);
       toast.error("An unexpected error occurred. Please try again");
     }
   };
 
   const declineHouseRequest = async (e) => {
     e.preventDefault();
-
+    
+    // Prevent double click
+    if (isProcessing) return;
+    
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -387,6 +405,7 @@ export default function ReceiveSpaceRequest() {
       return;
     }
 
+    setIsProcessing(true);
     setLoading(true);
 
     try {
@@ -405,11 +424,13 @@ export default function ReceiveSpaceRequest() {
 
       if (!response.ok) {
         setLoading(false);
+        setIsProcessing(false);
         reportError(response, "Failed to decline rental space request");
         return;
       }
 
       setLoading(false);
+      setIsProcessing(false);
       toast.success("Rental space request is declined successfully");
       loadData();
       setDeclineReason("");
@@ -417,6 +438,7 @@ export default function ReceiveSpaceRequest() {
     } catch (error) {
       console.error("Update unit error:", error);
       setLoading(false);
+      setIsProcessing(false);
       toast.error("An unexpected error occurred. Please try again");
     }
   };
@@ -652,11 +674,12 @@ export default function ReceiveSpaceRequest() {
           requestData?.Customer_Status === "active") && (
           <button
             onClick={receiveRequest}
-            className="w-full cursor-pointer text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+            disabled={isProcessing}
+            className="w-full cursor-pointer text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             style={{ backgroundColor: colors.primary }}
           >
             <LuClock className="mr-2" size={20} />
-            Receive Request
+            {isProcessing ? "Processing..." : "Receive Request"}
           </button>
         )}
 
@@ -664,14 +687,16 @@ export default function ReceiveSpaceRequest() {
           <div className="flex gap-4">
             <button
               onClick={() => setShowDeclineModal(true)}
-              className="flex-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg"
+              disabled={isProcessing}
+              className="flex-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <LuCircleX className="mr-2" size={20} />
               Reject Request
             </button>
             <button
               onClick={() => setShowAcceptModal(true)}
-              className="flex-1 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg"
+              disabled={isProcessing}
+              className="flex-1 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <LuCircleCheckBig className="mr-2" size={20} />
               Accept Request
@@ -684,7 +709,8 @@ export default function ReceiveSpaceRequest() {
           <div>
             <button
               onClick={handleConfirmOpen}
-              className="w-full cursor-pointer text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+              disabled={isProcessing}
+              className="w-full cursor-pointer text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               style={{ backgroundColor: colors.primary }}
             >
               <IoArrowUndoCircleOutline className="mr-2" size={20} />
@@ -723,9 +749,10 @@ export default function ReceiveSpaceRequest() {
                   variant="outlined"
                   color="error"
                   onClick={(e) => revokeAllocation(e)}
-                  className="border-red-500 text-red-600 hover:bg-red-50"
+                  disabled={isProcessing}
+                  className="border-red-500 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  REVOKE
+                  {isProcessing ? "REVOKING..." : "REVOKE"}
                 </Button>
               </DialogActions>
             </Dialog>
@@ -1039,7 +1066,10 @@ export default function ReceiveSpaceRequest() {
 
   const revokeAllocation = async (e) => {
     e.preventDefault();
-
+    
+    // Prevent double click
+    if (isProcessing) return;
+    
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -1054,6 +1084,7 @@ export default function ReceiveSpaceRequest() {
       return;
     }
 
+    setIsProcessing(true);
     setLoading(true);
 
     try {
@@ -1071,17 +1102,20 @@ export default function ReceiveSpaceRequest() {
 
       if (!response.ok) {
         setLoading(false);
+        setIsProcessing(false);
         reportError(response, "Failed to revoke rental space allocation");
         return;
       }
 
       setLoading(false);
+      setIsProcessing(false);
       toast.success("Rental space allocation is revoked successfully");
       loadData();
       handleClose();
     } catch (error) {
       console.error("Update unit error:", error);
       setLoading(false);
+      setIsProcessing(false);
       toast.error("An unexpected error occurred. Please try again");
     }
   };
@@ -1205,16 +1239,17 @@ export default function ReceiveSpaceRequest() {
                     setShowDeclineModal(false);
                     setDeclineReason("");
                   }}
-                  className="flex-1 cursor-pointer bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2 px-4 rounded-lg transition duration-200"
+                  disabled={isProcessing}
+                  className="flex-1 cursor-pointer bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={declineHouseRequest}
-                  disabled={!declineReason.trim()}
+                  disabled={!declineReason.trim() || isProcessing}
                   className="flex-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Confirm Reject
+                  {isProcessing ? "Processing..." : "Confirm Reject"}
                 </button>
               </div>
             </div>
@@ -1343,16 +1378,17 @@ export default function ReceiveSpaceRequest() {
                     setPaymentMethod("");
                     setNumberOfMonths(1);
                   }}
-                  className="flex-1 cursor-pointer bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2 px-4 rounded-lg transition duration-200"
+                  disabled={isProcessing}
+                  className="flex-1 cursor-pointer bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={acceptHouseRequest}
-                  disabled={!paymentMethod}
+                  disabled={!paymentMethod || isProcessing}
                   className="flex-1 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Confirm Accept
+                  {isProcessing ? "Processing..." : "Confirm Accept"}
                 </button>
               </div>
             </div>

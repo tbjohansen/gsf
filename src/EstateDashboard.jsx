@@ -25,6 +25,7 @@ import {
   BsPeople,
 } from "react-icons/bs";
 import { HiOutlineInboxArrowDown } from "react-icons/hi2";
+import { RiListSettingsLine } from "react-icons/ri";
 
 const EstateDashboard = () => {
   const [page, setPage] = useState(0);
@@ -432,6 +433,10 @@ const EstateDashboard = () => {
     return parseFloat(rate.toFixed(2));
   }
 
+    const setups = [
+    { name: "Sangira Expiration Time", status: "active" },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -686,6 +691,14 @@ const EstateDashboard = () => {
               route="/projects/real-estates/locations"
               header={"Status"}
               headerValue={"Location_Status"}
+            />
+            <ManagementCard
+              title="Setups"
+              icon={RiListSettingsLine}
+              items={setups}
+              route="/projects/real-estates/setups"
+              header={"Status"}
+              headerValue={"status"}
             />
           </div>
         </div>

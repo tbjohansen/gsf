@@ -20,6 +20,8 @@ import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
+import { IconButton } from "@mui/material";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -32,7 +34,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function RentedHouses() {
-  const [page, setPage] = React.useState(1); // Backend uses 1-based indexing
+  const [page, setPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [requestsList, setList] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
@@ -91,7 +93,7 @@ export default function RentedHouses() {
           (responseData?.current_page - 1) * responseData?.per_page + index + 1,
       }));
 
-      console.log(newData);
+      // console.log(newData);
       setList(Array.isArray(newData) ? newData : []);
 
       // Update pagination state
@@ -113,14 +115,13 @@ export default function RentedHouses() {
   };
 
   const handleChangePage = (event, newPage) => {
-    // MUI TablePagination uses 0-based indexing, backend uses 1-based
     setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
     const newRowsPerPage = parseInt(event.target.value, 10);
     setRowsPerPage(newRowsPerPage);
-    setPage(1); // Reset to first page when changing rows per page
+    setPage(1);
   };
 
   // Inside the Hostels component, replace the columns definition with:
@@ -260,8 +261,14 @@ export default function RentedHouses() {
     <>
       <Breadcrumb />
       <div className="w-full h-12">
-        <div className="w-full my-2 flex justify-between">
-          <h4>Rented Houses List</h4>
+        <div className="flex flex-row gap-4">
+          <IconButton
+            onClick={() => navigate(-1)}
+            className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+          >
+            <MdArrowBack />
+          </IconButton>
+          <h4 className="mt-2">Rented Houses List</h4>
         </div>
       </div>
 
@@ -340,7 +347,7 @@ export default function RentedHouses() {
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[25, 50, 100, 1000]}
+          rowsPerPageOptions={[25, 50, 100, 200, 500, 1000]}
           component="div"
           count={pagination.total}
           rowsPerPage={rowsPerPage}

@@ -12,6 +12,9 @@ const apiClient = create({
   },
 });
 
+// Flag to track if we're in a login request
+let isLoginRequest = false;
+
 // Function to handle logout
 const handleLogout = () => {
   // Prevent multiple redirects
@@ -53,11 +56,14 @@ const isTokenExpired = () => {
 // Add request interceptor to attach token to every request
 apiClient.axiosInstance.interceptors.request.use(
   (config) => {
-    // Skip token check for login/refresh endpoints
-    if (
-      config.url?.includes("/login") ||
-      config.url?.includes("/refresh-token")
-    ) {
+    // Check if this is a login request
+    if (config.url?.includes("/login")) {
+      isLoginRequest = true;
+      return config;
+    }
+
+    // Skip token check for refresh endpoints
+    if (config.url?.includes("/refresh-token")) {
       return config;
     }
 
@@ -88,6 +94,9 @@ apiClient.axiosInstance.interceptors.request.use(
 // Add response interceptor to handle common errors
 apiClient.axiosInstance.interceptors.response.use(
   (response) => {
+    // Reset login flag
+    isLoginRequest = false;
+
     // Check if response contains error even in 200 status
     if (
       response.data?.error ||
@@ -97,13 +106,15 @@ apiClient.axiosInstance.interceptors.response.use(
       const message = response?.data?.message || response?.data?.error;
       const lowerMessage = message?.toLowerCase() || "";
 
+      // Only trigger logout if this is NOT a login request
       if (
-        response.data?.code === 401 ||
-        lowerMessage.includes("token") ||
-        lowerMessage.includes("expired") ||
-        lowerMessage.includes("unauthorized") ||
-        lowerMessage.includes("invalid") ||
-        lowerMessage.includes("session")
+        !isLoginRequest &&
+        (response.data?.code === 401 ||
+          lowerMessage.includes("token") ||
+          lowerMessage.includes("expired") ||
+          lowerMessage.includes("unauthorized") ||
+          lowerMessage.includes("invalid") ||
+          lowerMessage.includes("session"))
       ) {
         handleLogout();
       }
@@ -123,6 +134,10 @@ apiClient.axiosInstance.interceptors.response.use(
     // Handle network errors
     if (!error.response) {
       console.error("Network Error:", error.message);
+      // Don't logout for network errors during login
+      if (!isLoginRequest) {
+        // You might want to handle network errors differently
+      }
       return Promise.reject(error);
     }
 
@@ -142,6 +157,7 @@ apiClient.axiosInstance.interceptors.response.use(
       "";
 
     // Check for token expiration across multiple status codes
+    // But skip logout for login requests
     if (status === 401 || status === 403 || status === 440) {
       if (
         errorMessage.includes("token") ||
@@ -152,9 +168,17 @@ apiClient.axiosInstance.interceptors.response.use(
         errorMessage.includes("login") ||
         errorMessage.includes("authenticate")
       ) {
-        handleLogout();
-        return Promise.reject(error); // Return after logout
+        // Only trigger logout if this is NOT a login request
+        if (!isLoginRequest) {
+          handleLogout();
+        }
+        return Promise.reject(error); // Return after checking logout
       }
+    }
+
+    // Reset login flag on error
+    if (isLoginRequest) {
+      isLoginRequest = false;
     }
 
     // Log other errors for debugging (can be removed in production)
@@ -298,6 +322,11 @@ export const setupTokenRefresh = () => {
       }
     }, refreshTime);
   }
+};
+
+// Helper function to reset login flag (call this after login attempt completes)
+export const resetLoginFlag = () => {
+  isLoginRequest = false;
 };
 
 // export const baseURL = "/v2";

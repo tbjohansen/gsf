@@ -19,7 +19,7 @@ import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import AddUnit from "./AddUnit";
 import EditUnit from "./EditUnit";
-import { MdCloudUpload, MdDelete } from "react-icons/md";
+import { MdArrowBack, MdCloudUpload, MdDelete } from "react-icons/md";
 
 // Add these Material-UI dialog imports
 import Dialog from "@mui/material/Dialog";
@@ -383,7 +383,9 @@ export default function Units() {
         id: "usd_price",
         label: "Price (USD)",
         minWidth: 130,
-        format: (value) => <span>{value > 0 ? `USD ${formatter.format(value)}` : null}</span>,
+        format: (value) => (
+          <span>{value > 0 ? `USD ${formatter.format(value)}` : null}</span>
+        ),
       },
       {
         id: "locations",
@@ -486,9 +488,17 @@ export default function Units() {
   return (
     <>
       <Breadcrumb />
-      <div className="w-full h-12">
-        <div className="w-full my-2 flex justify-between">
-          <h4>Real Estate Units</h4>
+      <div className="w-full mb-2">
+        <div className="w-full flex justify-between">
+          <div className="flex flex-row gap-4">
+            <IconButton
+              onClick={() => navigate(-1)}
+              className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <MdArrowBack />
+            </IconButton>
+            <h4 className="mt-2">Real Estate Units</h4>
+          </div>
           <AddUnit loadData={loadData} />
         </div>
       </div>

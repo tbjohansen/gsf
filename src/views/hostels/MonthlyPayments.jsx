@@ -298,7 +298,13 @@ export default function MonthlyPayments() {
       if (name) url += `&Customer_Name=${name}`;
       if (customerID) url += `&Student_ID=${customerID}`;
       if (sangiraNumber) url += `&Sangira_Number=${sangiraNumber}`;
-      if (paymentStatus) url += `&Customer_Status=${paymentStatus?.id}`;
+      if (paymentStatus?.id) {
+        if (paymentStatus.id === "paid") {
+          url += `&Customer_Status=${paymentStatus.id},served`;
+        } else {
+          url += `&Customer_Status=${paymentStatus.id}`;
+        }
+      }
       if (hostel) url += `&Hostel_ID=${hostel?.id}`;
       if (bank) url += `&Payment_Channel=${bank?.id}`;
       if (startDate) url += `&Start_Date=${formatDateForDb(startDate)}`;

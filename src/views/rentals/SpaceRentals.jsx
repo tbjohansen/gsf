@@ -107,7 +107,7 @@ const SpaceRentals = () => {
       const params = {
         real_estate_type: "business land",
         page: page,
-        per_page: pagination.perPage,
+        limit: pagination.perPage,
       };
 
       // Add search parameter if exists

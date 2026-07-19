@@ -16,6 +16,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
 import MapUnitFeature from "./MapUnitFeature";
 import RemoveMappedUnitFeature from "./RemoveMappedUnitFeature";
+import { IconButton } from "@mui/material";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -53,13 +55,13 @@ export default function MappedUnitFeatures() {
         "/settings/real-estate-assigned-feature",
         {
           real_estate_id: unitID,
-        }
+        },
       );
 
       if (!response.ok) {
         setLoading(false);
         toast.error(
-          response.data?.error || "Failed to fetch assigned features"
+          response.data?.error || "Failed to fetch assigned features",
         );
         return;
       }
@@ -126,15 +128,23 @@ export default function MappedUnitFeatures() {
         ),
       },
     ],
-    []
+    [],
   );
 
   return (
     <>
       <Breadcrumb />
-      <div className="w-full h-12">
-        <div className="w-full my-2 flex justify-between">
-          <h4>Assigned Unit Features List</h4>
+      <div className="w-full mb-2">
+        <div className="w-full flex justify-between">
+          <div className="flex flex-row gap-4">
+            <IconButton
+              onClick={() => navigate(-1)}
+              className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <MdArrowBack />
+            </IconButton>
+            <h4 className="mt-2">Assigned Unit Features List</h4>
+          </div>
           <MapUnitFeature loadData={loadData} />
         </div>
       </div>

@@ -18,6 +18,8 @@ import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import AddLocation from "./AddLocation";
 import EditLocation from "./EditLocation";
+import { IconButton } from "@mui/material";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -61,7 +63,7 @@ export default function Locations() {
 
       if (!response.ok) {
         setLoading(false);
-       reportError(response, "Failed to fetch locations");
+        reportError(response, "Failed to fetch locations");
         return;
       }
 
@@ -115,15 +117,24 @@ export default function Locations() {
         ),
       },
     ],
-    [loadData]
+    [loadData],
   ); // Add loadData as dependency
 
   return (
     <>
       <Breadcrumb />
-      <div className="w-full h-12">
-        <div className="w-full my-2 flex justify-between">
-          <h4>Real Estate Unit Locations</h4>
+
+      <div className="w-full mb-2">
+        <div className="w-full flex justify-between">
+          <div className="flex flex-row gap-4">
+            <IconButton
+              onClick={() => navigate(-1)}
+              className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <MdArrowBack />
+            </IconButton>
+            <h4 className="mt-2">Real Estate Unit Locations</h4>
+          </div>
           <AddLocation loadData={loadData} />
         </div>
       </div>

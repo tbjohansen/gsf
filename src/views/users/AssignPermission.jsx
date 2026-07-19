@@ -33,38 +33,42 @@ const AssignPermission = ({ employee, loadData }) => {
   console.log(employee);
 
   const [Can_Access_Hostel, setHostelPermission] = useState(
-    employee?.Can_Access_Hostel || "no",
+    employee?.permission?.Can_Access_Hostel || "no",
   );
   const [Can_Access_Real_Estate, setRealEstatePermission] = useState(
-    employee?.Can_Access_Real_Estate || "no",
+    employee?.permission?.Can_Access_Real_Estate || "no",
   );
   const [Can_Access_Oxygen, setOxygenPermission] = useState(
-    employee?.Can_Access_Oxygen || "no",
+    employee?.permission?.Can_Access_Oxygen || "no",
   );
   const [Can_Access_Farm, setFarmPermission] = useState(
-    employee?.Can_Access_Farm || "no",
+    employee?.permission?.Can_Access_Farm || "no",
   );
   const [Can_Access_Production, setOxygenProductionPermission] = useState(
-    employee?.Can_Access_Production || "no",
+    employee?.permission?.Can_Access_Production || "no",
   );
   const [Can_Access_Sales, setOxygenSalesPermission] = useState(
-    employee?.Can_Access_Sales || "no",
+    employee?.permission?.Can_Access_Sales || "no",
   );
 
   const [Contact_Person_Hostel, setHostelContactPerson] = useState(
-    employee?.Contact_Person_Hostel || "no",
+    employee?.permission?.Contact_Person_Hostel || "no",
   );
 
   const [Contact_Person_Farm, setFarmContactPerson] = useState(
-    employee?.Contact_Person_Farm || "no",
+    employee?.permission?.Contact_Person_Farm || "no",
   );
 
   const [Contact_Person_Oxygen, setOxygenContactPerson] = useState(
-    employee?.Contact_Person_Oxygen || "no",
+    employee?.permission?.Contact_Person_Oxygen || "no",
   );
 
   const [Contact_Person_Real_Estate, setRealEstateContactPerson] = useState(
-    employee?.Contact_Person_Real_Estate || "no",
+    employee?.permission?.Contact_Person_Real_Estate || "no",
+  );
+
+  const [Can_Edit_Employee, setEditEmployee] = useState(
+    employee?.permission?.Can_Edit_Employee || "no",
   );
 
   const [loading, setLoading] = useState(false);
@@ -119,6 +123,11 @@ const AssignPermission = ({ employee, loadData }) => {
     setRealEstateContactPerson(event.target.checked ? "yes" : "no");
   };
 
+  // Handler for edit employee or customer permission checkbox
+  const handleEditEmployeeChange = (event) => {
+    setEditEmployee(event.target.checked ? "yes" : "no");
+  };
+
   const dispatch = useDispatch();
 
   const submit = async (e) => {
@@ -149,6 +158,7 @@ const AssignPermission = ({ employee, loadData }) => {
         Contact_Person_Oxygen: Contact_Person_Oxygen,
         Contact_Person_Farm: Contact_Person_Farm,
         Contact_Person_Real_Estate: Contact_Person_Real_Estate,
+        Can_Edit_Employee: Can_Edit_Employee,
       };
 
       // console.log("Submitting user data:", data);
@@ -158,26 +168,31 @@ const AssignPermission = ({ employee, loadData }) => {
 
       // console.log("Response:", response);
 
-      // Check if request was successful
       if (!response.ok) {
         setLoading(false);
 
-        // Handle apisauce errors
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          toast.error("Failed to update user permission");
-        }
-        return;
-      }
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
 
-      // Check if response contains an error (your API pattern)
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        const errorMessage = "Failed to update user permission";
-        toast.error(errorMessage);
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to update user permission";
+          }
+
+          toast.error(errorText);
+        }
         return;
       }
 
@@ -326,6 +341,17 @@ const AssignPermission = ({ employee, loadData }) => {
                           />
                         }
                         label="Farms Contact Person"
+                      />
+                    </div>
+                    <div className="flex flex-row gap-2">
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={Can_Edit_Employee === "yes"}
+                            onChange={handleEditEmployeeChange}
+                          />
+                        }
+                        label="Can Edit User or Customer"
                       />
                     </div>
                   </div>

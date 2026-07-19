@@ -62,7 +62,7 @@ export default function HostelRequests() {
   const sortedPaymentStatus = [
     { id: "pending", label: "Pending" },
     { id: "expired", label: "Expired" },
-    { id: "completed", label: "Completed" },
+    { id: "paid", label: "Completed" },
   ];
 
   const paymentStatuOnChange = (e, value) => {
@@ -86,8 +86,12 @@ export default function HostelRequests() {
         url += `&Sangira_Number=${sangiraNumber}`;
       }
 
-      if (paymentStatus) {
-        url += `&Customer_Status=${paymentStatus?.id}`;
+      if (paymentStatus?.id) {
+        if (paymentStatus.id === "paid") {
+          url += `&Customer_Status=${paymentStatus.id},served`;
+        } else {
+          url += `&Customer_Status=${paymentStatus.id}`;
+        }
       }
 
       const response = await apiClient.get(url);

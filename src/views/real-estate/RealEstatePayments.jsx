@@ -23,7 +23,7 @@ import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
-import { Autocomplete, Button, TextField } from "@mui/material";
+import { Autocomplete, Button, IconButton, TextField } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import moment from "moment";
 import jsPDF from "jspdf";
@@ -31,6 +31,7 @@ import autoTable from "jspdf-autotable";
 import { TbDownload } from "react-icons/tb";
 import * as XLSX from "xlsx";
 import DatePick from "../../components/DatePicker";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -61,6 +62,7 @@ export default function RealEstatePayments() {
   const [bank, setBank] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [sangiraLoadingId, setSangiraLoadingId] = useState(null); // Add loading state for reconcile
 
   const navigate = useNavigate();
 
@@ -126,6 +128,51 @@ export default function RealEstatePayments() {
     },
   ];
 
+  // Add reconcile function
+  const sangiraReconciliation = async (recoData) => {
+    setSangiraLoadingId(recoData?.Sangira?.Sangira_Number);
+
+    const employeeId = localStorage.getItem("employeeId");
+    if (!employeeId) {
+      toast.error("User information not found. Please login again.");
+      setSangiraLoadingId(null);
+      return;
+    }
+
+    try {
+      const response = await apiClient.post("/customer/sychronize-sangira", {
+        Sangira_Number: recoData?.Sangira?.Sangira_Number,
+        Employee_ID: employeeId,
+      });
+
+      if (!response.ok) {
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to reconcile sangira payment",
+          );
+        }
+        setSangiraLoadingId(null);
+        return;
+      }
+
+      toast.success("Sangira payment reconciled successfully");
+      setSangiraLoadingId(null);
+      loadData();
+    } catch (error) {
+      console.error("Sangira reconcile error:", error);
+      setSangiraLoadingId(null);
+      toast.error("Failed to reconcile sangira payment");
+    }
+  };
+
   // Fetch payments from API
   useEffect(() => {
     loadData();
@@ -151,7 +198,13 @@ export default function RealEstatePayments() {
       if (name) url += `&Customer_Name=${name}`;
       if (unitName) url += `&Item_Name=${unitName}`;
       if (sangiraNumber) url += `&Sangira_Number=${sangiraNumber}`;
-      if (paymentStatus) url += `&Customer_Status=${paymentStatus?.id}`;
+      if (paymentStatus?.id) {
+        if (paymentStatus.id === "paid") {
+          url += `&Customer_Status=${paymentStatus.id},served`;
+        } else {
+          url += `&Customer_Status=${paymentStatus.id}`;
+        }
+      }
       if (paymentType) url += `&Request_Type=${paymentType?.id}`;
       if (location) url += `&Hostel_ID=${location?.id}`;
       if (bank) url += `&Payment_Channel=${bank?.id}`;
@@ -255,9 +308,8 @@ export default function RealEstatePayments() {
       0,
     );
 
-    // Fix: Use "Total" instead of "TOTAL" and add empty strings for alignment
     const totalRow = [
-      "Total", // Shorter word to fit in narrow column
+      "Total",
       "",
       "",
       "",
@@ -281,7 +333,7 @@ export default function RealEstatePayments() {
       },
       alternateRowStyles: { fillColor: [250, 250, 252] },
       columnStyles: {
-        0: { cellWidth: 35 }, // Increased from 28 to 35 to fit "Total"
+        0: { cellWidth: 35 },
         1: { cellWidth: 80 },
         2: { cellWidth: 65 },
         3: { cellWidth: 55 },
@@ -352,17 +404,14 @@ export default function RealEstatePayments() {
     const totalPaid = payments?.reduce((sum, r) => {
       const sangiraNumber = r?.Sangira?.Sangira_Number;
 
-      // If this Sangira_Number has been seen before, skip adding its value
       if (sangiraNumber && seenSangiraNumbers.has(sangiraNumber)) {
         return sum;
       }
 
-      // Mark this Sangira_Number as seen
       if (sangiraNumber) {
         seenSangiraNumbers.add(sangiraNumber);
       }
 
-      // Add the price to sum
       return sum + (r?.Sangira?.Grand_Total_Price || r?.Price || 0);
     }, 0);
 
@@ -406,7 +455,7 @@ export default function RealEstatePayments() {
     XLSX.writeFile(workbook, `GSF-Houses-Payments-${Date.now()}.xlsx`);
   };
 
-  // Inside the Hostels component, replace the columns definition with:
+  // Updated columns with actions column
   const columns = useMemo(
     () => [
       { id: "key", label: "S/N" },
@@ -485,7 +534,6 @@ export default function RealEstatePayments() {
           </>
         ),
       },
-
       {
         id: "requested_at",
         label: "Requested Date",
@@ -522,9 +570,16 @@ export default function RealEstatePayments() {
         label: "Monthly Price",
         minWidth: 170,
         format: (row, value) => (
-          <span>{value?.customer?.Customer_Type === "foreigner" ? <>USD {formatter?.format(value?.estate?.usd_price)}</> : <>{currencyFormatter?.format(value?.estate?.price)}</>}</span>
+          <span>
+            {value?.customer?.Customer_Type === "foreigner" ? (
+              <>USD {formatter?.format(value?.estate?.usd_price)}</>
+            ) : (
+              <>{currencyFormatter?.format(value?.estate?.price)}</>
+            )}
+          </span>
         ),
       },
+      { id: "actions", label: "Actions", align: "center" }, // Add actions column
     ],
     [],
   );
@@ -533,7 +588,15 @@ export default function RealEstatePayments() {
     <>
       <Breadcrumb />
       <div className="w-full h-12 flex items-center justify-between">
-        <h4>Payments List</h4>
+        <div className="flex flex-row gap-4">
+          <IconButton
+            onClick={() => navigate(-1)}
+            className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+          >
+            <MdArrowBack />
+          </IconButton>
+          <h4 className="mt-2">Payment List</h4>
+        </div>
         <div className="flex items-center justify-end gap-2">
           <Button
             variant="contained"
@@ -687,14 +750,42 @@ export default function RealEstatePayments() {
                     }}
                   >
                     {columns.map((column) => {
+                      // Handle actions column
+                      if (column.id === "actions") {
+                        const isLoading =
+                          sangiraLoadingId === row?.Sangira?.Sangira_Number;
+                        const isPaid =
+                          row?.Customer_Status === "completed" ||
+                          row?.Customer_Status === "paid" ||
+                          row?.Customer_Status === "served" ||
+                          row?.Customer_Status === "admitted";
+                        return (
+                          <TableCell
+                            key={column.id}
+                            align={column.align}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex gap-4 justify-center">
+                              {!isPaid ? (
+                                <button
+                                  onClick={() => sangiraReconciliation(row)}
+                                  disabled={isLoading}
+                                  className="flex h-8 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-1.5 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isLoading ? "Loading..." : "Reconcile"}
+                                </button>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                        );
+                      }
+
                       const value = row[column.id];
                       return (
                         <TableCell
                           key={column.id}
                           align={column.align}
                           onClick={(e) => {
-                            // Prevent click event from bubbling up to the row
-                            // when clicking on action buttons
                             if (column.id === "actions") {
                               e.stopPropagation();
                             }

@@ -466,11 +466,20 @@ const AddCustomer = ({ loadData, status }) => {
         } else {
           const serverMessage =
             response?.data?.error || response?.data?.message;
-          toast.error(
-            typeof serverMessage === "string"
-              ? serverMessage
-              : "Failed to create customer",
-          );
+
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to create customer";
+          }
+
+          toast.error(errorText);
         }
         return;
       }

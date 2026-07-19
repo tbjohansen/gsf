@@ -15,6 +15,8 @@ import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
+import { IconButton } from "@mui/material";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -27,11 +29,21 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function RentedSpaces() {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [page, setPage] = React.useState(1);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const [requestsList, setList] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
+
+  // Add pagination state from backend
+  const [pagination, setPagination] = React.useState({
+    total: 0,
+    perPage: 25,
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+  });
 
   const navigate = useNavigate();
 
@@ -64,20 +76,36 @@ export default function RentedSpaces() {
       }
 
       // Adjust based on your API response structure
-      const paymentsData = response?.data?.data?.data;
-      const newData = paymentsData
-        ?.filter(
-          (house) =>
-            house?.Customer_Status === "served" ||
-            house?.Customer_Status === "assign" ||
-            house?.Customer_Status === "requested",
-        )
-        ?.map((payment, index) => ({
-          ...payment,
-          key: index + 1,
-        }));
-      console.log(newData);
+      const responseData = response?.data?.data;
+      const paymentsData = responseData?.data || [];
+
+      const filteredData = paymentsData?.filter(
+        (house) =>
+          house?.Customer_Status === "served" ||
+          house?.Customer_Status === "assign" ||
+          house?.Customer_Status === "requested",
+      );
+
+      // Calculate sequential keys based on pagination
+      const newData = filteredData?.map((payment, index) => ({
+        ...payment,
+        key:
+          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
+      }));
+
+      // console.log(newData);
       setList(Array.isArray(newData) ? newData : []);
+
+      // Update pagination state
+      setPagination({
+        total: responseData?.total || 0,
+        perPage: responseData?.per_page || 25,
+        currentPage: responseData?.current_page || 1,
+        lastPage: responseData?.last_page || 1,
+        from: responseData?.from || 0,
+        to: responseData?.to || 0,
+      });
+
       setLoading(false);
     } catch (error) {
       console.error("Fetch requests error:", error);
@@ -87,12 +115,13 @@ export default function RentedSpaces() {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
   };
 
   // Inside the Hostels component, replace the columns definition with:
@@ -218,8 +247,14 @@ export default function RentedSpaces() {
     <>
       <Breadcrumb />
       <div className="w-full h-12">
-        <div className="w-full my-2 flex justify-between">
-          <h4>Rented Spaces List</h4>
+        <div className="flex flex-row gap-4">
+          <IconButton
+            onClick={() => navigate(-1)}
+            className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+          >
+            <MdArrowBack />
+          </IconButton>
+          <h4 className="mt-2">Rented Spaces List</h4>
         </div>
       </div>
 
@@ -247,59 +282,62 @@ export default function RentedSpaces() {
                   </TableCell>
                 </TableRow>
               )}
-              {requestsList
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      onClick={() => handleRowClick(row)}
-                      sx={{
-                        cursor: "pointer",
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format ? column.format(value, row) : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
+              {requestsList?.map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    onClick={() => handleRowClick(row)}
+                    sx={{
+                      cursor: "pointer",
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell
+                          key={column.id}
+                          align={column.align}
+                          onClick={(e) => {
+                            // Prevent click event from bubbling up to the row
+                            // when clicking on action buttons
+                            if (column.id === "actions") {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
+                          {column.format ? column.format(value, row) : value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[25, 50, 100, 500, 1000]}
           component="div"
-          count={requestsList?.length}
+          count={pagination.total}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={page - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} of ${count}`
+          }
+          showFirstButton
+          showLastButton
         />
       </Paper>
     </>

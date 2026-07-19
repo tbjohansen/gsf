@@ -76,8 +76,6 @@ const EditCustomer = ({ loadData, status, customer }) => {
     });
   }, [customer]);
 
-
-
   const sortedStatus = [
     {
       id: "active",
@@ -459,7 +457,7 @@ const EditCustomer = ({ loadData, status, customer }) => {
           ? formData.Phone_Number
           : `0${formData.Phone_Number}`,
         Date_Birth:
-          status === "oxygen" ? null: formatDateForDb(formData?.Date_Birth),
+          status === "oxygen" ? null : formatDateForDb(formData?.Date_Birth),
         Employee_ID: employeeId,
         Customer_ID: customer?.Customer_ID,
         Emergency_Contact_Name:
@@ -482,13 +480,22 @@ const EditCustomer = ({ loadData, status, customer }) => {
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
-          // ✅ Use the server's error message if available
-          const serverMessage = response.data?.error || response.data?.message;
-          toast.error(
-            typeof serverMessage === "string"
-              ? serverMessage
-              : "Failed to update customer",
-          );
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+
+          let errorText;
+          if (typeof serverMessage === "string") {
+            errorText = serverMessage;
+          } else if (
+            typeof serverMessage === "object" &&
+            serverMessage !== null
+          ) {
+            errorText = Object.values(serverMessage).flat()[0];
+          } else {
+            errorText = "Failed to update customer";
+          }
+
+          toast.error(errorText);
         }
         return;
       }

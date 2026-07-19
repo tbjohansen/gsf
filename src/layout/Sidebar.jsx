@@ -93,10 +93,10 @@ const SideBar = ({
     { id: 4, name: "Profile", icon: LuFileUser, url: "/profile" },
   ];
 
+  const employeeData = localStorage.getItem("userInfo");
+
   // Check employee data and set appropriate links
   useEffect(() => {
-    const employeeData = localStorage.getItem("userInfo");
-
     // console.log(employeeData);
 
     if (employeeData) {
@@ -104,37 +104,41 @@ const SideBar = ({
         const employee = JSON.parse(employeeData);
         const customer = employee?.customer;
 
+        // console.log("Customer:", customer);
+        // console.log("Customer Nature:", customer?.Customer_Nature);
+        // console.log("Customer Origin:", customer?.customer_origin);
+
         if (customer && customer?.Customer_Nature) {
           const customerNature = customer?.Customer_Nature.toLowerCase();
+          const customerOrigin = customer?.customer_origin?.toLowerCase();
+
+          // console.log("customerNature:", customerNature);
+          // console.log("customerOrigin:", customerOrigin);
 
           if (customerNature === "oxygen") {
             setCurrentLinks(oxygenCustomerLinks);
           } else if (
             customerNature === "house_rent" &&
-            customer?.customer_origin === "inside"
+            customerOrigin === "inside"
           ) {
             setCurrentLinks(housesCustomerLinks);
           } else if (
             customerNature === "house_rent" &&
-            !customer?.customer_origin === "outside"
+            customerOrigin === "outside"
           ) {
             setCurrentLinks(spacesCustomerLinks);
           } else {
             setCurrentLinks(mainLinks);
           }
         } else {
-          // Customer is null, show default links
           setCurrentLinks(mainLinks);
         }
       } catch (error) {
         console.error("Error parsing employee data:", error);
         setCurrentLinks(mainLinks);
       }
-    } else {
-      // No employee data, show default links
-      setCurrentLinks(mainLinks);
     }
-  }, []);
+  }, [employeeData]);
 
   const handleLinkClick = (url) => {
     // Don't navigate if already on the same page

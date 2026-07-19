@@ -22,9 +22,17 @@ import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
-import { MdAdd, MdArrowBack, MdSend } from "react-icons/md";
-import { Autocomplete, TextField, Checkbox, IconButton } from "@mui/material";
+import { MdAdd, MdArrowBack, MdSend, MdFileDownload } from "react-icons/md";
+import {
+  Autocomplete,
+  TextField,
+  Checkbox,
+  IconButton,
+  Button,
+} from "@mui/material";
 import DatePick from "../../components/DatePicker";
+import * as XLSX from "xlsx";
+import { FaFileExport } from "react-icons/fa";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -42,14 +50,28 @@ export default function SalesOrders({ status }) {
   const [requests, setRequests] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState(null);
+  const [downloading, setDownloading] = React.useState(false);
+  const [allData, setAllData] = React.useState([]);
 
   const [startDate, setStartDate] = React.useState(null);
   const [endDate, setEndDate] = React.useState(null);
   const [item, setItem] = React.useState("");
   const [customer, setCustomer] = React.useState("");
+  const [orderStatus, setOrderStatus] = React.useState("");
+  const [paymentType, setPaymentType] = React.useState("");
 
   const [customers, setCustomers] = React.useState([]);
   const [items, setItems] = React.useState([]);
+
+  const sortedStatus = [
+    { id: "served", label: "Served" },
+    { id: "approved", label: "Approved" },
+    { id: "requested", label: "Requested" },
+  ];
+  const sortedPaymentType = [
+    { id: "cash", label: "Cash" },
+    { id: "credit", label: "Credit" },
+  ];
 
   const [pagination, setPagination] = React.useState({
     total: 0,
@@ -158,12 +180,126 @@ export default function SalesOrders({ status }) {
     }
   };
 
+  const fetchAllDataForExport = async () => {
+    try {
+      let url = `/oxygen/oxygen-request?&limit=10000&page=1&Billing_Type=cash,credit`;
+
+      if (startDate) url += `&Start_Date=${formatDateTimeForDb(startDate)}`;
+      if (endDate) url += `&End_Date=${formatDateTimeForDb(endDate)}`;
+      if (item) url += `&Item_ID=${item?.Item_ID}`;
+      if (customer) url += `&Customer_ID=${customer?.Customer_ID}`;
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch data for export");
+      }
+
+      const responseData = response?.data?.data;
+      const unitsData = responseData?.data || [];
+      return unitsData;
+    } catch (error) {
+      console.error("Fetch all data for export error:", error);
+      throw error;
+    }
+  };
+
+  const handleDownloadExcel = async () => {
+    setDownloading(true);
+    try {
+      const dataToExport = await fetchAllDataForExport();
+
+      if (!dataToExport || dataToExport.length === 0) {
+        toast.error("No data to export");
+        setDownloading(false);
+        return;
+      }
+
+      // Prepare data for Excel
+      const excelData = dataToExport.map((row, index) => {
+        // Calculate total amount
+        const totalAmount =
+          row.request?.reduce(
+            (sum, item) => sum + item.Price * item.Quantity,
+            0,
+          ) || 0;
+
+        // Get items list
+        const itemsList =
+          row.request
+            ?.map(
+              (reqItem) =>
+                `${reqItem?.item?.Item_Name} (${reqItem?.Quantity} units)`,
+            )
+            .join(", ") || "No items";
+
+        return {
+          "S/N": index + 1,
+          "Order ID": row.Request_Batch_ID || "N/A",
+          "Customer Name": row?.customer?.Customer_Name || "N/A",
+          "Phone Number": row?.customer?.Phone_Number || "N/A",
+          Items: itemsList,
+          Amount: totalAmount,
+          Status: row.request?.[0]?.Customer_Status || "N/A",
+          "Ordered By": row?.employee?.name || "N/A",
+          "Order Date": row.Request_Batch_Date
+            ? formatDateTimeForDb(row.Request_Batch_Date)
+            : "N/A",
+        };
+      });
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sales Orders");
+
+      // Auto-size columns
+      const colWidths = [
+        { wch: 8 }, // S/N
+        { wch: 15 }, // Order ID
+        { wch: 25 }, // Customer Name
+        { wch: 15 }, // Phone Number
+        { wch: 40 }, // Items
+        { wch: 15 }, // Amount
+        { wch: 15 }, // Status
+        { wch: 20 }, // Ordered By
+        { wch: 20 }, // Order Date
+      ];
+      ws["!cols"] = colWidths;
+
+      // Generate filename with current date
+      const date = new Date();
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      const fileName = `sales-orders-report-${dateStr}.xlsx`;
+
+      // Download file
+      XLSX.writeFile(wb, fileName);
+
+      toast.success(
+        `Report downloaded successfully (${dataToExport.length} records)`,
+      );
+    } catch (error) {
+      console.error("Download Excel error:", error);
+      toast.error("Failed to download report");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const itemOnChange = (e, value) => {
     setItem(value);
   };
 
   const customerOnChange = (e, value) => {
     setCustomer(value);
+  };
+
+  const statusOnChange = (e, value) => {
+    setOrderStatus(value);
+  };
+
+  const typeOnChange = (e, value) => {
+    setPaymentType(value);
   };
 
   const handleChangePage = (event, newPage) => {
@@ -285,19 +421,40 @@ export default function SalesOrders({ status }) {
   return (
     <>
       <Breadcrumb />
-      <div className="w-full h-12">
-        <div className="flex items-center gap-3">
-          <IconButton
-            onClick={() => navigate(-1)}
-            className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
-          >
-            <MdArrowBack />
-          </IconButton>
-          <div>
-            <h1 className="m-0 text-xl font-extrabold tracking-tight text-slate-800">
-              Sales Orders List
-            </h1>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="flex justify-between items-center flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <IconButton
+              onClick={() => navigate(-1)}
+              className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <MdArrowBack />
+            </IconButton>
+            <div>
+              <h1 className="m-0 text-xl font-extrabold tracking-tight text-slate-800">
+                Sales Orders List
+              </h1>
+            </div>
           </div>
+          <Button
+            variant="outlined"
+            startIcon={<FaFileExport />}
+            onClick={handleDownloadExcel}
+            disabled={downloading}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              borderRadius: "10px",
+              borderColor: "#1F4389",
+              color: "#1F4389",
+              "&:hover": {
+                borderColor: "#07286f",
+                backgroundColor: "rgba(31, 67, 137, 0.04)",
+              },
+            }}
+          >
+            {downloading ? "Downloading..." : "Excel Report"}
+          </Button>
         </div>
       </div>
 
@@ -306,19 +463,19 @@ export default function SalesOrders({ status }) {
           label="Start Date"
           value={startDate}
           onChange={(newValue) => setStartDate(newValue)}
-          className="w-[25%]"
+          className="w-[33%]"
         />
         <DatePick
           label="End Date"
           value={endDate}
           onChange={(newValue) => setEndDate(newValue)}
-          className="w-[25%]"
+          className="w-[34%]"
         />
         <Autocomplete
           id="item-select"
           options={items}
           size="small"
-          className={`w-[25%]`}
+          className={`w-[33%]`}
           value={item}
           onChange={itemOnChange}
           getOptionLabel={(option) => option.label || option.Item_Name || ""}
@@ -329,11 +486,13 @@ export default function SalesOrders({ status }) {
             <TextField {...params} label="Select Item" />
           )}
         />
+      </div>
+      <div className="w-full py-2 flex gap-2 mb-1">
         <Autocomplete
           id="customer-select"
           options={customers}
           size="small"
-          className={`w-[25%]`}
+          className={`w-[33%]`}
           value={customer}
           onChange={customerOnChange}
           getOptionLabel={(option) =>
@@ -344,6 +503,40 @@ export default function SalesOrders({ status }) {
           }
           renderInput={(params) => (
             <TextField {...params} label="Select Customer" />
+          )}
+        />
+        <Autocomplete
+          id="customer-select"
+          options={sortedStatus}
+          size="small"
+          className={`w-[34%]`}
+          value={orderStatus}
+          onChange={statusOnChange}
+          // getOptionLabel={(option) =>
+          //   option.label || option.Customer_Name || ""
+          // }
+          // isOptionEqualToValue={(option, value) =>
+          //   option.Customer_ID === value?.Customer_ID
+          // }
+          renderInput={(params) => (
+            <TextField {...params} label="Select Order Status" />
+          )}
+        />
+        <Autocomplete
+          id="customer-select"
+          options={sortedPaymentType}
+          size="small"
+          className={`w-[33%]`}
+          value={paymentType}
+          onChange={typeOnChange}
+          // getOptionLabel={(option) =>
+          //   option.label || option.Customer_Name || ""
+          // }
+          // isOptionEqualToValue={(option, value) =>
+          //   option.Customer_ID === value?.Customer_ID
+          // }
+          renderInput={(params) => (
+            <TextField {...params} label="Select Payment Type" />
           )}
         />
       </div>

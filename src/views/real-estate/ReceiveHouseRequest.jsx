@@ -74,6 +74,7 @@ export default function ReceiveHouseRequest() {
   const [numberOfMonths, setNumberOfMonths] = useState(1);
   const [exchangeRate, setExchangeRate] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // For double-click prevention
   const [activeTab, setActiveTab] = useState("details");
 
   const [open, setOpen] = useState(false);
@@ -252,6 +253,9 @@ export default function ReceiveHouseRequest() {
   const receiveRequest = async (e) => {
     e.preventDefault();
 
+    // Prevent double click
+    if (isProcessing) return;
+
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -266,6 +270,7 @@ export default function ReceiveHouseRequest() {
       return;
     }
 
+    setIsProcessing(true);
     setLoading(true);
 
     try {
@@ -283,22 +288,28 @@ export default function ReceiveHouseRequest() {
 
       if (!response.ok) {
         setLoading(false);
+        setIsProcessing(false);
         reportError(response, "Failed to receive house request");
         return;
       }
 
       setLoading(false);
+      setIsProcessing(false);
       toast.success("House request is received successfully");
       loadData();
     } catch (error) {
       console.error("Update unit error:", error);
       setLoading(false);
+      setIsProcessing(false);
       toast.error("An unexpected error occurred. Please try again");
     }
   };
 
   const acceptHouseRequest = async (e) => {
     e.preventDefault();
+
+    // Prevent double click
+    if (isProcessing) return;
 
     const employeeId = localStorage.getItem("employeeId");
 
@@ -336,6 +347,7 @@ export default function ReceiveHouseRequest() {
       return;
     }
 
+    setIsProcessing(true);
     setLoading(true);
 
     try {
@@ -358,25 +370,21 @@ export default function ReceiveHouseRequest() {
       // Add exchange rate for foreign customers
       if (isForeigner) {
         // data.Exchange_Rate = exchangeRate;
-        data.Grand_Total_Price = calculateGrandTotal() * parseFloat(exchangeRate);
+        data.Grand_Total_Price =
+          calculateGrandTotal() * parseFloat(exchangeRate);
       }
 
       const response = await apiClient.put(`/estate/real-estate-request`, data);
 
       if (!response.ok) {
         setLoading(false);
+        setIsProcessing(false);
         reportError(response, "Failed to accept house request");
         return;
       }
 
-      // if (response.data?.error || response.data?.code >= 400) {
-      //   setLoading(false);
-      //   const errorMessage = "Failed to accept house request";
-      //   toast.error(errorMessage);
-      //   return;
-      // }
-
       setLoading(false);
+      setIsProcessing(false);
       toast.success("House request is accepted successfully");
       loadData();
       setPaymentMethod("");
@@ -386,12 +394,16 @@ export default function ReceiveHouseRequest() {
     } catch (error) {
       console.error("Update unit error:", error);
       setLoading(false);
+      setIsProcessing(false);
       toast.error("An unexpected error occurred. Please try again");
     }
   };
 
   const declineHouseRequest = async (e) => {
     e.preventDefault();
+
+    // Prevent double click
+    if (isProcessing) return;
 
     const employeeId = localStorage.getItem("employeeId");
 
@@ -412,6 +424,7 @@ export default function ReceiveHouseRequest() {
       return;
     }
 
+    setIsProcessing(true);
     setLoading(true);
 
     try {
@@ -430,18 +443,13 @@ export default function ReceiveHouseRequest() {
 
       if (!response.ok) {
         setLoading(false);
+        setIsProcessing(false);
         reportError(response, "Failed to decline house request");
         return;
       }
 
-      // if (response.data?.error || response.data?.code >= 400) {
-      //   setLoading(false);
-      //   const errorMessage = "Failed to decline house request";
-      //   toast.error(errorMessage);
-      //   return;
-      // }
-
       setLoading(false);
+      setIsProcessing(false);
       toast.success("House request is declined successfully");
       loadData();
       setDeclineReason("");
@@ -449,6 +457,7 @@ export default function ReceiveHouseRequest() {
     } catch (error) {
       console.error("Update unit error:", error);
       setLoading(false);
+      setIsProcessing(false);
       toast.error("An unexpected error occurred. Please try again");
     }
   };
@@ -595,7 +604,11 @@ export default function ReceiveHouseRequest() {
           <div>
             <p className="text-sm text-gray-600">Price</p>
             <p className="font-semibold text-green-600 text-lg">
-             {requestData?.customer?.Customer_Type === "foreigner" ? <>USD {formatter.format(requestData?.Price)}</> : <> {currencyFormatter.format(requestData?.Price)}</>}{" "}
+              {requestData?.customer?.Customer_Type === "foreigner" ? (
+                <>USD {formatter.format(requestData?.Price)}</>
+              ) : (
+                <> {currencyFormatter.format(requestData?.Price)}</>
+              )}{" "}
               <span className="text-black">/ Month</span>
             </p>
           </div>
@@ -662,10 +675,11 @@ export default function ReceiveHouseRequest() {
           requestData?.Customer_Status === "active") && (
           <button
             onClick={receiveRequest}
-            className="w-full cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center"
+            disabled={isProcessing}
+            className="w-full cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <LuClock className="mr-2" size={20} />
-            Receive Request
+            {isProcessing ? "Processing..." : "Receive Request"}
           </button>
         )}
 
@@ -673,14 +687,16 @@ export default function ReceiveHouseRequest() {
           <div className="flex gap-4">
             <button
               onClick={() => setShowDeclineModal(true)}
-              className="flex-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center"
+              disabled={isProcessing}
+              className="flex-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <LuCircleX className="mr-2" size={20} />
               Reject Request
             </button>
             <button
               onClick={() => setShowAcceptModal(true)}
-              className="flex-1 cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center"
+              disabled={isProcessing}
+              className="flex-1 cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <LuCircleCheckBig className="mr-2" size={20} />
               Accept Request
@@ -693,7 +709,8 @@ export default function ReceiveHouseRequest() {
           <div>
             <button
               onClick={handleConfirmOpen}
-              className="w-full cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center"
+              disabled={isProcessing}
+              className="w-full cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <IoArrowUndoCircleOutline className="mr-2" size={20} />
               Revoke House Allocation
@@ -727,7 +744,8 @@ export default function ReceiveHouseRequest() {
               <DialogActions className="p-4 border-t border-slate-200 gap-2">
                 <Button
                   onClick={handleClose}
-                  className="text-slate-500 normal-case hover:bg-slate-50"
+                  disabled={isProcessing}
+                  className="text-slate-500 normal-case hover:bg-slate-50 disabled:opacity-50"
                 >
                   Cancel
                 </Button>
@@ -735,9 +753,10 @@ export default function ReceiveHouseRequest() {
                   variant="contained"
                   color="error"
                   onClick={(e) => revokeAllocation(e)}
-                  className="text-white normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow"
+                  disabled={isProcessing}
+                  className="text-white normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
                 >
-                  REVOKE
+                  {isProcessing ? "REVOKING..." : "REVOKE"}
                 </Button>
               </DialogActions>
             </Dialog>
@@ -1045,6 +1064,9 @@ export default function ReceiveHouseRequest() {
   const revokeAllocation = async (e) => {
     e.preventDefault();
 
+    // Prevent double click
+    if (isProcessing) return;
+
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -1059,6 +1081,7 @@ export default function ReceiveHouseRequest() {
       return;
     }
 
+    setIsProcessing(true);
     setLoading(true);
 
     try {
@@ -1076,6 +1099,7 @@ export default function ReceiveHouseRequest() {
 
       if (!response.ok) {
         setLoading(false);
+        setIsProcessing(false);
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
@@ -1088,17 +1112,21 @@ export default function ReceiveHouseRequest() {
 
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
+        setIsProcessing(false);
         const errorMessage = "Failed to revoke house allocation";
         toast.error(errorMessage);
         return;
       }
 
       setLoading(false);
+      setIsProcessing(false);
       toast.success("House allocation is revoked successfully");
       loadData();
+      handleClose();
     } catch (error) {
       console.error("Update unit error:", error);
       setLoading(false);
+      setIsProcessing(false);
       toast.error("An unexpected error occurred. Please try again");
     }
   };
@@ -1295,18 +1323,19 @@ export default function ReceiveHouseRequest() {
                 setShowDeclineModal(false);
                 setDeclineReason("");
               }}
-              className="text-slate-500 normal-case hover:bg-slate-50"
+              disabled={isProcessing}
+              className="text-slate-500 normal-case hover:bg-slate-50 disabled:opacity-50"
             >
               Cancel
             </Button>
             <Button
               onClick={declineHouseRequest}
-              disabled={!declineReason.trim()}
+              disabled={!declineReason.trim() || isProcessing}
               variant="contained"
               className="text-white normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
               style={{ backgroundColor: C.danger }}
             >
-              Confirm Reject
+              {isProcessing ? "Processing..." : "Confirm Reject"}
             </Button>
           </DialogActions>
         </Dialog>
@@ -1358,6 +1387,7 @@ export default function ReceiveHouseRequest() {
                   checked={paymentMethod === "free"}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="mr-4 w-5 h-5 text-green-600 focus:ring-green-500"
+                  disabled={isProcessing}
                 />
                 <div>
                   <p className="font-semibold text-slate-800">Free</p>
@@ -1372,6 +1402,7 @@ export default function ReceiveHouseRequest() {
                   checked={paymentMethod === "salary_deduction"}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="mr-4 w-5 h-5 text-green-600 focus:ring-green-500"
+                  disabled={isProcessing}
                 />
                 <div>
                   <p className="font-semibold text-slate-800">
@@ -1391,6 +1422,7 @@ export default function ReceiveHouseRequest() {
                     checked={paymentMethod === "cash"}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="mr-4 w-5 h-5 text-green-600 focus:ring-green-500"
+                    disabled={isProcessing}
                   />
                   <div>
                     <p className="font-semibold text-slate-800">Cash Payment</p>
@@ -1413,6 +1445,7 @@ export default function ReceiveHouseRequest() {
                         InputProps={{
                           inputProps: { min: 1 },
                         }}
+                        disabled={isProcessing}
                       />
                     </div>
                     <div className="my-3">
@@ -1442,6 +1475,7 @@ export default function ReceiveHouseRequest() {
                           InputProps={{
                             inputProps: { step: "0.01", min: "0" },
                           }}
+                          disabled={isProcessing}
                         />
                         {exchangeRate && (
                           <div
@@ -1479,18 +1513,19 @@ export default function ReceiveHouseRequest() {
                 setNumberOfMonths(1);
                 setExchangeRate("");
               }}
-              className="text-slate-500 normal-case hover:bg-slate-50"
+              disabled={isProcessing}
+              className="text-slate-500 normal-case hover:bg-slate-50 disabled:opacity-50"
             >
               Cancel
             </Button>
             <Button
               onClick={acceptHouseRequest}
-              disabled={!paymentMethod}
+              disabled={!paymentMethod || isProcessing}
               variant="contained"
               className="text-white normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
               style={{ backgroundColor: C.success }}
             >
-              Confirm Accept
+              {isProcessing ? "Processing..." : "Confirm Accept"}
             </Button>
           </DialogActions>
         </Dialog>

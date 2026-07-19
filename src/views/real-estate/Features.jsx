@@ -18,6 +18,8 @@ import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import AddFeature from "./AddFeatures";
 import EditFeature from "./EditFeatures";
+import { IconButton } from "@mui/material";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -57,7 +59,6 @@ export default function Features() {
         reportError(response, "Failed to fetch features");
         return;
       }
-      
 
       // Adjust based on your API response structure
       const featuresData = response?.data?.data;
@@ -109,15 +110,24 @@ export default function Features() {
         ),
       },
     ],
-    [loadData]
+    [loadData],
   ); // Add loadData as dependency
 
   return (
     <>
       <Breadcrumb />
-      <div className="w-full h-12">
-        <div className="w-full my-2 flex justify-between">
-          <h4>Real Estate Unit Features</h4>
+
+      <div className="w-full mb-2">
+        <div className="w-full flex justify-between">
+          <div className="flex flex-row gap-4">
+            <IconButton
+              onClick={() => navigate(-1)}
+              className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <MdArrowBack />
+            </IconButton>
+            <h4 className="mt-2">Real Estate Unit Features</h4>
+          </div>
           <AddFeature loadData={loadData} />
         </div>
       </div>

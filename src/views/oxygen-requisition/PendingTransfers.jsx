@@ -30,6 +30,7 @@ import {
   MdPending,
   MdCheckCircle,
   MdCancel,
+  MdDownload,
 } from "react-icons/md";
 import {
   Autocomplete,
@@ -39,6 +40,7 @@ import {
   Button,
 } from "@mui/material";
 import DatePick from "../../components/DatePicker";
+import * as XLSX from "xlsx";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -92,6 +94,7 @@ export default function PendingTransfers({ status }) {
     from: 0,
     to: 0,
   });
+  const [receivedExcelLoading, setReceivedExcelLoading] = React.useState(false);
 
   // Rejected transfers state
   const [rejectedPage, setRejectedPage] = React.useState(1);
@@ -111,6 +114,7 @@ export default function PendingTransfers({ status }) {
     from: 0,
     to: 0,
   });
+  const [rejectedExcelLoading, setRejectedExcelLoading] = React.useState(false);
 
   const navigate = useNavigate();
 
@@ -350,6 +354,250 @@ export default function PendingTransfers({ status }) {
     }
   };
 
+  // Excel download function for received transfers
+  const downloadReceivedExcel = async () => {
+    setReceivedExcelLoading(true);
+    try {
+      // Fetch all data without pagination for Excel export
+      let url = `/oxygen/shifted-oxygen-item?Cache_Status=approved&limit=100000`;
+
+      if (receivedStartDate) {
+        url += `&Start_Date=${formatDateForDb(receivedStartDate)}`;
+      }
+
+      if (receivedEndDate) {
+        url += `&End_Date=${formatDateForDb(receivedEndDate)}`;
+      }
+
+      if (receivedItem) {
+        url += `&Item_ID=${receivedItem?.Item_ID}`;
+      }
+
+      if (receivedEmployee) {
+        url += `&Employee_ID=${receivedEmployee?.Employee_ID}`;
+      }
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        setReceivedExcelLoading(false);
+        toast.error("Failed to fetch data for Excel download");
+        return;
+      }
+
+      const responseData = response?.data?.data;
+      const userData = responseData?.data || [];
+
+      if (!Array.isArray(userData) || userData.length === 0) {
+        setReceivedExcelLoading(false);
+        toast.error("No data available to download");
+        return;
+      }
+
+      // Prepare data for Excel - each item gets its own row
+      const excelData = [];
+      let serialNumber = 1;
+
+      userData.forEach((row) => {
+        if (row.ShiftedItem && Array.isArray(row.ShiftedItem)) {
+          row.ShiftedItem.forEach((item) => {
+            excelData.push({
+              "S/N": serialNumber++,
+              "Transfer Date": row.Transaction_Date
+                ? formatDateTimeForDb(row.Transaction_Date)
+                : "",
+              "Item Name": item?.item?.Item_Name || "N/A",
+              "Transferred Quantity": Number(item?.Shifted_Balance || 0),
+              "Received Quantity": Number(item?.Sales_Accepted_Quantity || 0),
+              "Rejected Quantity": Number(
+                (item?.Shifted_Balance || 0) -
+                  (item?.Sales_Accepted_Quantity || 0),
+              ),
+              "Transferred By": row?.employees?.employee?.name || "",
+              "Received By": row?.receivedBy?.employee?.name || "",
+              "Received Date": row.Approved_Date
+                ? formatDateTimeForDb(row.Approved_Date)
+                : "",
+              "Sales Remarks": row.Sales_Remarks || "",
+              "Production Remarks": row.Production_Remarks || "",
+              Status: capitalize(row.Cache_Status || ""),
+              "Created At": row.created_at
+                ? formatDateTimeForDb(row.created_at)
+                : "",
+            });
+          });
+        } else {
+          // If no items, still add a row with transfer info
+          excelData.push({
+            "S/N": serialNumber++,
+            "Transfer Date": row.Transaction_Date
+              ? formatDateTimeForDb(row.Transaction_Date)
+              : "",
+            "Item Name": "N/A",
+            "Transferred Quantity": 0,
+            "Received Quantity": 0,
+            "Rejected Quantity": 0,
+            "Transferred By": row?.employee?.name || "",
+            "Received By": row?.receivedBy?.name || "",
+            "Received Date": row.Approved_Date
+              ? formatDateTimeForDb(row.Approved_Date)
+              : "",
+            "Sales Remarks": row.Sales_Remarks || "",
+            "Production Remarks": row.Production_Remarks || "",
+            Status: capitalize(row.Cache_Status || ""),
+            "Created At": row.created_at
+              ? formatDateTimeForDb(row.created_at)
+              : "",
+          });
+        }
+      });
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Auto-size columns
+      const colWidths = Object.keys(excelData[0] || {}).map((key) => ({
+        wch: Math.max(key.length, 15),
+      }));
+      ws["!cols"] = colWidths;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Received Transfers");
+
+      // Generate Excel file and download
+      const fileName = `received_transfers_${formatDateForDb(new Date())}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      toast.success("Received transfers Excel downloaded successfully");
+      setReceivedExcelLoading(false);
+    } catch (error) {
+      console.error("Download received transfers Excel error:", error);
+      setReceivedExcelLoading(false);
+      toast.error("Failed to download received transfers Excel");
+    }
+  };
+
+  // Excel download function for rejected transfers
+  const downloadRejectedExcel = async () => {
+    setRejectedExcelLoading(true);
+    try {
+      // Fetch all data without pagination for Excel export
+      let url = `/oxygen/shifted-oxygen-item?Cache_Status=approved&Rejected=yes&limit=100000`;
+
+      if (rejectedStartDate) {
+        url += `&Start_Date=${formatDateForDb(rejectedStartDate)}`;
+      }
+
+      if (rejectedEndDate) {
+        url += `&End_Date=${formatDateForDb(rejectedEndDate)}`;
+      }
+
+      if (rejectedItem) {
+        url += `&Item_ID=${rejectedItem?.Item_ID}`;
+      }
+
+      if (rejectedEmployee) {
+        url += `&Employee_ID=${rejectedEmployee?.Employee_ID}`;
+      }
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        setRejectedExcelLoading(false);
+        toast.error("Failed to fetch data for Excel download");
+        return;
+      }
+
+      const responseData = response?.data?.data;
+      const userData = responseData?.data || [];
+
+      if (!Array.isArray(userData) || userData.length === 0) {
+        setRejectedExcelLoading(false);
+        toast.error("No data available to download");
+        return;
+      }
+
+      // Prepare data for Excel - each item gets its own row
+      const excelData = [];
+      let serialNumber = 1;
+
+      userData.forEach((row) => {
+        if (row.ShiftedItem && Array.isArray(row.ShiftedItem)) {
+          row.ShiftedItem.forEach((item) => {
+            excelData.push({
+              "S/N": serialNumber++,
+              "Transfer Date": row.Transaction_Date
+                ? formatDateTimeForDb(row.Transaction_Date)
+                : "",
+              "Item Name": item?.item?.Item_Name || "N/A",
+              "Transferred Quantity": Number(item?.Shifted_Balance || 0),
+              "Received Quantity": Number(item?.Sales_Accepted_Quantity || 0),
+              "Rejected Quantity": Number(
+                (item?.Shifted_Balance || 0) -
+                  (item?.Sales_Accepted_Quantity || 0),
+              ),
+              "Transferred By": row?.employee?.name || "",
+              "Rejected By": row?.rejected_employee?.name || "",
+              "Rejected Date": row.Rejected_Time
+                ? formatDateTimeForDb(row.Rejected_Time)
+                : "",
+              "Sales Remarks": row.Sales_Remarks || "",
+              "Production Remarks": row.Production_Remarks || "",
+              "Created At": row.created_at
+                ? formatDateTimeForDb(row.created_at)
+                : "",
+            });
+          });
+        } else {
+          // If no items, still add a row with transfer info
+          excelData.push({
+            "S/N": serialNumber++,
+            "Transfer Date": row.Transaction_Date
+              ? formatDateTimeForDb(row.Transaction_Date)
+              : "",
+            "Item Name": "N/A",
+            "Transferred Quantity": 0,
+            "Received Quantity": 0,
+            "Rejected Quantity": 0,
+            "Transferred By": row?.employee?.name || "",
+            "Rejected By": row?.rejected_employee?.name || "",
+            "Rejected Date": row.Rejected_Time
+              ? formatDateTimeForDb(row.Rejected_Time)
+              : "",
+            "Sales Remarks": row.Sales_Remarks || "",
+            "Production Remarks": row.Production_Remarks || "",
+            "Created At": row.created_at
+              ? formatDateTimeForDb(row.created_at)
+              : "",
+          });
+        }
+      });
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Auto-size columns
+      const colWidths = Object.keys(excelData[0] || {}).map((key) => ({
+        wch: Math.max(key.length, 15),
+      }));
+      ws["!cols"] = colWidths;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Rejected Transfers");
+
+      // Generate Excel file and download
+      const fileName = `rejected_transfers_${formatDateForDb(new Date())}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      toast.success("Rejected transfers Excel downloaded successfully");
+      setRejectedExcelLoading(false);
+    } catch (error) {
+      console.error("Download rejected transfers Excel error:", error);
+      setRejectedExcelLoading(false);
+      toast.error("Failed to download rejected transfers Excel");
+    }
+  };
+
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
@@ -457,8 +705,13 @@ export default function PendingTransfers({ status }) {
         return;
       }
 
-      const employeeData = response?.data?.data;
-      const newData = employeeData?.map((employee, index) => ({
+      const employeeData = response?.data?.data?.data;
+      // Filter employees to only include those with Can_Access_Oxygen = "yes"
+      const filteredEmployees = employeeData?.filter(
+        (employee) => employee?.permission?.Can_Access_Oxygen === "yes",
+      );
+
+      const newData = filteredEmployees?.map((employee, index) => ({
         id: employee.Employee_ID,
         label: employee.name,
         key: index + 1,
@@ -521,7 +774,7 @@ export default function PendingTransfers({ status }) {
     ];
   }, []);
 
-    const rejectedColumns = React.useMemo(() => {
+  const rejectedColumns = React.useMemo(() => {
     return [
       { id: "key", label: "S/N" },
       {
@@ -538,7 +791,10 @@ export default function PendingTransfers({ status }) {
                 {row?.ShiftedItem?.map((prodItem, idx) => (
                   <div key={idx}>
                     • {prodItem?.item?.Item_Name}:{" "}
-                    {formatter.format(Number(prodItem?.Shifted_Balance || 0)) - formatter.format(Number(prodItem?.Sales_Accepted_Quantity || 0))}
+                    {formatter.format(Number(prodItem?.Shifted_Balance || 0)) -
+                      formatter.format(
+                        Number(prodItem?.Sales_Accepted_Quantity || 0),
+                      )}
                   </div>
                 ))}
               </div>
@@ -619,7 +875,35 @@ export default function PendingTransfers({ status }) {
                 {row?.ShiftedItem?.map((prodItem, idx) => (
                   <div key={idx}>
                     • {prodItem.item?.Item_Name}:{" "}
-                    {formatter.format(Number(prodItem?.Sales_Accepted_Quantity))}
+                    {formatter.format(
+                      Number(prodItem?.Sales_Accepted_Quantity),
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        id: "RejectedItem",
+        label: "Rejected Items (Units)",
+        minWidth: 250,
+        format: (value, row) => {
+          if (!row.ShiftedItem || !Array.isArray(row.ShiftedItem)) {
+            return <span className="text-gray-400">No items</span>;
+          }
+
+          return (
+            <div className="flex flex-col">
+              <div className="text-sm">
+                {row?.ShiftedItem?.map((prodItem, idx) => (
+                  <div key={idx}>
+                    • {prodItem.item?.Item_Name}:{" "}
+                    {formatter.format(
+                      Number(prodItem.Shifted_Balance) -
+                        Number(prodItem?.Sales_Accepted_Quantity),
+                    )}
                   </div>
                 ))}
               </div>
@@ -642,6 +926,14 @@ export default function PendingTransfers({ status }) {
       {
         id: "employees",
         label: "Transferred By",
+        minWidth: 180,
+        format: (row, value) => (
+          <span>{capitalize(value?.employee?.name)}</span>
+        ),
+      },
+      {
+        id: "receivedBy",
+        label: "Received By",
         minWidth: 180,
         format: (row, value) => (
           <span>{capitalize(value?.employee?.name)}</span>
@@ -731,6 +1023,42 @@ export default function PendingTransfers({ status }) {
                 Receive Productions
               </Button>
             )}
+            {activeTab === 1 && (
+              <Button
+                variant="contained"
+                startIcon={<MdDownload />}
+                onClick={downloadReceivedExcel}
+                disabled={receivedExcelLoading}
+                sx={{
+                  backgroundColor: "#217346",
+                  "&:hover": { backgroundColor: "#1a5c38" },
+                  textTransform: "none",
+                  fontWeight: 600,
+                  borderRadius: "10px",
+                  px: 3,
+                }}
+              >
+                {receivedExcelLoading ? "Downloading..." : "Download Excel"}
+              </Button>
+            )}
+            {activeTab === 2 && (
+              <Button
+                variant="contained"
+                startIcon={<MdDownload />}
+                onClick={downloadRejectedExcel}
+                disabled={rejectedExcelLoading}
+                sx={{
+                  backgroundColor: "#217346",
+                  "&:hover": { backgroundColor: "#1a5c38" },
+                  textTransform: "none",
+                  fontWeight: 600,
+                  borderRadius: "10px",
+                  px: 3,
+                }}
+              >
+                {rejectedExcelLoading ? "Downloading..." : "Download Excel"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -804,7 +1132,7 @@ export default function PendingTransfers({ status }) {
               value={employee}
               onChange={employeeOnChange}
               renderInput={(params) => (
-                <TextField {...params} label="Select Employee" />
+                <TextField {...params} label="Select Transferred By" />
               )}
             />
           </div>
@@ -946,7 +1274,7 @@ export default function PendingTransfers({ status }) {
               value={receivedEmployee}
               onChange={receivedEmployeeOnChange}
               renderInput={(params) => (
-                <TextField {...params} label="Select Employee" />
+                <TextField {...params} label="Select Received By" />
               )}
             />
           </div>
@@ -1095,7 +1423,7 @@ export default function PendingTransfers({ status }) {
               value={rejectedEmployee}
               onChange={rejectedEmployeeOnChange}
               renderInput={(params) => (
-                <TextField {...params} label="Select Employee" />
+                <TextField {...params} label="Select Rejected By" />
               )}
             />
           </div>
@@ -1176,7 +1504,10 @@ export default function PendingTransfers({ status }) {
                   })}
                   {!rejectedLoading && rejectedTransfers.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={rejectedColumns.length + 1} align="center">
+                      <TableCell
+                        colSpan={rejectedColumns.length + 1}
+                        align="center"
+                      >
                         <div className="py-8 text-gray-500">
                           No rejected transfers found
                         </div>

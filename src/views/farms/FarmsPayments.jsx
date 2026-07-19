@@ -161,7 +161,7 @@ export default function FarmsPayments() {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Request_Type=farm&Customer_Status=paid&limit=${rowsPerPage}&page=${page}`;
+      let url = `/customer/customer-request?&Request_Type=farm&Customer_Status=paid,served&limit=${rowsPerPage}&page=${page}`;
 
       if (name) {
         url += `&Customer_Name=${name}`;

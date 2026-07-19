@@ -30,54 +30,32 @@ export default function Login() {
       try {
         const response = await apiClient.post(`/login`, data);
 
-        // Check if apisauce request was successful
         if (!response.ok) {
           setLoading(false);
 
-          // Handle apisauce problem types
           if (response.problem === "NETWORK_ERROR") {
             toast.error("Network error. Please check your connection");
           } else if (response.problem === "TIMEOUT_ERROR") {
             toast.error("Request timeout. Please try again");
-          } else if (response.problem === "CONNECTION_ERROR") {
-            toast.error("Connection error. Please check your internet");
           } else {
-            if (response?.data?.error || response?.data?.code >= 400) {
-              setLoading(false);
-              const errorMessage = response?.data?.error;
-              const errorCode = response?.data?.code;
+            const serverMessage =
+              response?.data?.error || response?.data?.message;
 
-              if (errorCode === 401) {
-                toast.error(errorMessage || "Invalid credentials");
-              } else if (errorCode === 403) {
-                toast.error(errorMessage || "Access denied");
-              } else if (errorCode === 404) {
-                toast.error(errorMessage || "User not found");
-              } else {
-                toast.error(
-                  errorMessage || "An error occurred. Please try again",
-                );
-              }
-              return;
+            let errorText;
+            if (typeof serverMessage === "string") {
+              errorText = serverMessage;
+            } else if (
+              typeof serverMessage === "object" &&
+              serverMessage !== null
+            ) {
+              errorText = Object.values(serverMessage).flat()[0];
+            } else {
+              errorText = "Invalid credentials";
             }
-          }
-          return;
-        }
 
-        // Check if response contains an error (your API pattern)
-        if (response?.data?.error || response?.data?.code >= 400) {
-          setLoading(false);
-          const errorMessage = response?.data?.error;
-          const errorCode = response?.data?.code;
+            console.log(serverMessage);
 
-          if (errorCode === 401) {
-            toast.error(errorMessage || "Invalid credentials");
-          } else if (errorCode === 403) {
-            toast.error(errorMessage || "Access denied");
-          } else if (errorCode === 404) {
-            toast.error(errorMessage || "User not found");
-          } else {
-            toast.error(errorMessage || "An error occurred. Please try again");
+            toast.error(errorText);
           }
           return;
         }

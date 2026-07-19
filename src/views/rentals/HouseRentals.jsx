@@ -106,7 +106,7 @@ const HouseRentals = () => {
       const params = {
         real_estate_type: "house",
         page: page,
-        per_page: pagination.perPage,
+        limit: pagination.perPage,
       };
 
       // Add search parameter if exists

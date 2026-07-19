@@ -21,6 +21,7 @@ import Breadcrumb from "../../components/Breadcrumb";
 import { IconButton, TextField } from "@mui/material";
 import EditCustomer from "./EditCustomer";
 import { MdArrowBack } from "react-icons/md";
+import ChangePassword from "./ChangePassword";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -226,6 +227,7 @@ export default function Customers({ status }) {
         format: (value, row) => (
           <div className="flex gap-4 justify-center">
             <EditCustomer customer={row} status={status} loadData={loadData} />
+            {status === "oxygen" ? <ChangePassword customer={row} /> : null}
           </div>
         ),
       },

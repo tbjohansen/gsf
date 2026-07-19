@@ -18,7 +18,8 @@ import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import { FcSynchronize } from "react-icons/fc";
 import AddEmployee from "./AddEmployee";
-import { TextField } from "@mui/material";
+import { IconButton, TextField } from "@mui/material";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -247,7 +248,15 @@ export default function RealEstateEmployees() {
       <Breadcrumb />
       <div className="w-full h-12 mb-3">
         <div className="w-full my-2 flex flex-row gap-2">
-          <h4 className="w-[50%]">Employees List</h4>
+          <div className="w-[50%] flex flex-row gap-4">
+            <IconButton
+              onClick={() => navigate(-1)}
+              className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <MdArrowBack />
+            </IconButton>
+            <h4 className="mt-2">Employees List</h4>
+          </div>
           <div className="w-[50%] flex flex-row justify-between">
             <button
               onClick={() => onSyncEmployees()}

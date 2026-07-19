@@ -16,10 +16,12 @@ import { useNavigate } from "react-router-dom";
 import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import UploadEstatesCustomers from "./UploadEstatesCustomers";
-import { Autocomplete, TextField } from "@mui/material";
+import { Autocomplete, IconButton, TextField } from "@mui/material";
 import Breadcrumb from "../../components/Breadcrumb";
 import AddCustomerDetails from "./AddCustomerDetails";
 import EditCustomerDetails from "./EditCustomerDetails";
+import { MdArrowBack } from "react-icons/md";
+import ChangePassword from "../customers/ChangePassword";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -228,6 +230,7 @@ export default function RealEstateCustomers() {
               customerId={row?.Customer_ID}
               loadData={loadData}
             />
+            <ChangePassword customer={row}/>
           </div>
         ),
       },
@@ -242,7 +245,15 @@ export default function RealEstateCustomers() {
         <UploadEstatesCustomers />
       </div>
       <div className="w-full mb-2">
-        <div className="flex gap-4 justify-end">
+        <div className="w-full flex justify-between">
+          <div className="flex flex-row gap-4">
+            <IconButton
+              onClick={() => navigate(-1)}
+              className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <MdArrowBack />
+            </IconButton>
+          </div>
           <AddCustomerDetails loadData={loadData} />
         </div>
       </div>

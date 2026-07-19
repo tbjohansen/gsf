@@ -79,6 +79,7 @@ import ProductionDetails from "../src/views/oxygen-requisition/ProductionDetails
 import OxygenSetupTabs from "../src/views/oxygen-requisition/setups/OxygenSetupTabs";
 import CylinderInventory from "../src/views/oxygen-requisition/CylinderInventory";
 import OxygenPayments from "../src/views/oxygen-requisition/OxygenPayments";
+import RealEstateSetups from "../src/views/real-estate/setups/RealEstateSetups";
 
 const LoginElement = () => <Login />;
 
@@ -267,6 +268,12 @@ const EstateCustomersElement = () => (
   </AppLayout>
 );
 
+const EstateSetupsElement = () => (
+  <AppLayout>
+    <RealEstateSetups />
+  </AppLayout>
+);
+
 const OxygenElement = () => (
   <AppLayout>
     <OxygenManagement />
@@ -399,13 +406,11 @@ const OxygenProductionNewElement = (props) => (
   </AppLayout>
 );
 
-
 const OxygenPaymentsElement = (props) => (
   <AppLayout>
     <OxygenPayments {...props} />
   </AppLayout>
 );
-
 
 const OxygenProductionToSalesNewElement = (props) => (
   <AppLayout>
@@ -591,10 +596,10 @@ const AppRoutes = () => {
             ) : customer?.Customer_Nature === "oxygen" ? (
               <Navigate to="/pos" />
             ) : customer?.Customer_Nature === "house_rent" &&
-              customer?.Student_ID ? (
+              customer?.customer_origin === "inside" ? (
               <Navigate to="/units" />
             ) : customer?.Customer_Nature === "house_rent" &&
-              !customer?.Student_ID ? (
+              customer?.customer_origin === "outside" ? (
               <Navigate to="/space-units" />
             ) : (
               <Navigate to="/home" />
@@ -773,6 +778,11 @@ const AppRoutes = () => {
         <Route
           path="/projects/real-estates/payments"
           element={<RentalsPaymentsElement />}
+        />
+
+        <Route
+          path="/projects/real-estates/setups"
+          element={<EstateSetupsElement />}
         />
 
         <Route

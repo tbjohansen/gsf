@@ -8,7 +8,13 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Badge from "../../components/Badge";
-import { capitalize, currencyFormatter, extractBank, formatter, removeUnderscore } from "../../../helpers";
+import {
+  capitalize,
+  currencyFormatter,
+  extractBank,
+  formatter,
+  removeUnderscore,
+} from "../../../helpers";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -30,7 +36,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 
 export default function CustomerHousePayments({ status }) {
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [payments, setPayments] = useState([]);
   const [paymentStatus, setPaymentStatus] = useState("");
   const [startDate, setStartDate] = useState(null);
@@ -56,7 +62,7 @@ export default function CustomerHousePayments({ status }) {
       label: "Expired",
     },
     {
-      id: "completed",
+      id: "paid",
       label: "Completed",
     },
   ];
@@ -88,6 +94,14 @@ export default function CustomerHousePayments({ status }) {
 
       if (sangiraNumber) {
         url += `&Sangira_Number=${sangiraNumber}`;
+      }
+
+      if (paymentStatus?.id) {
+        if (paymentStatus.id === "paid") {
+          url += `&Customer_Status=${paymentStatus.id},served`;
+        } else {
+          url += `&Customer_Status=${paymentStatus.id}`;
+        }
       }
 
       const response = await apiClient.get(url);
@@ -140,7 +154,9 @@ export default function CustomerHousePayments({ status }) {
         id: "Request_Type",
         label: "Payment Type",
         minWidth: 170,
-        format: (row, value) => <span>{capitalize(removeUnderscore(value?.Request_Type))}</span>,
+        format: (row, value) => (
+          <span>{capitalize(removeUnderscore(value?.Request_Type))}</span>
+        ),
       },
       {
         id: "sangira_number",
@@ -156,7 +172,7 @@ export default function CustomerHousePayments({ status }) {
         format: (row, value) => (
           <span>
             {currencyFormatter.format(
-              value?.Sangira?.Grand_Total_Price || value?.Price
+              value?.Sangira?.Grand_Total_Price || value?.Price,
             )}
           </span>
         ),
@@ -172,8 +188,8 @@ export default function CustomerHousePayments({ status }) {
               value?.Sangira?.Sangira_Status === "completed"
                 ? "green"
                 : value?.Sangira?.Sangira_Status === "pending"
-                ? "blue"
-                : "red"
+                  ? "blue"
+                  : "red"
             }
           />
         ),
@@ -204,7 +220,7 @@ export default function CustomerHousePayments({ status }) {
         ),
       },
     ],
-    []
+    [],
   );
 
   return (

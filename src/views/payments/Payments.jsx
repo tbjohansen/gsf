@@ -84,7 +84,7 @@ export default function Payments({ status }) {
       label: "Expired",
     },
     {
-      id: "completed",
+      id: "paid",
       label: "Completed",
     },
   ];
@@ -114,6 +114,14 @@ export default function Payments({ status }) {
 
       if (status === "student") {
         url += `&Request_Type=hostel`;
+      }
+
+      if (paymentStatus?.id) {
+        if (paymentStatus.id === "paid") {
+          url += `&Customer_Status=${paymentStatus.id},served`;
+        } else {
+          url += `&Customer_Status=${paymentStatus.id}`;
+        }
       }
 
       const response = await apiClient.get(url);

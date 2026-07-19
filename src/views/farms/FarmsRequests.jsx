@@ -47,8 +47,8 @@ export default function FarmsRequests() {
   const [paymentType, setPaymentType] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
   const [name, setName] = useState("");
-  const [startDate, setStartDate] = useState(moment().startOf("year"));
-  const [endDate, setEndDate] = useState(moment().endOf("day"));
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [farm, setFarm] = useState("");
   const [bank, setBank] = useState("");
   const [sangiraNumber, setSangiraNumber] = useState("");
@@ -148,11 +148,17 @@ export default function FarmsRequests() {
 
       if (name) url += `&Customer_Name=${name}`;
       if (sangiraNumber) url += `&Sangira_Number=${sangiraNumber}`;
-      if (paymentStatus) url += `&Customer_Status=${paymentStatus?.id}`;
+      if (paymentStatus?.id) {
+        if (paymentStatus.id === "paid") {
+          url += `&Customer_Status=${paymentStatus.id},served`;
+        } else {
+          url += `&Customer_Status=${paymentStatus.id}`;
+        }
+      }
       if (farm) url += `&Item_ID=${farm?.id}`;
       if (bank) url += `&Payment_Channel=${bank?.id}`;
-      // if (startDate) url += `&Start_Date=${formatDateTimeForDb(startDate)}`;
-      // if (endDate) url += `&End_Date=${formatDateTimeForDb(endDate)}`;
+      if (startDate) url += `&Start_Date=${formatDateTimeForDb(startDate)}`;
+      if (endDate) url += `&End_Date=${formatDateTimeForDb(endDate)}`;
 
       const response = await apiClient.get(url);
 

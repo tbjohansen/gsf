@@ -21,13 +21,14 @@ import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
-import { Button, Autocomplete, TextField } from "@mui/material";
+import { Button, Autocomplete, TextField, IconButton } from "@mui/material";
 import moment from "moment";
 import DatePick from "../../components/DatePicker";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { TbDownload } from "react-icons/tb";
 import * as XLSX from "xlsx";
+import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -51,10 +52,12 @@ export default function RentalSpaceRequests() {
   const [paymentStatus, setPaymentStatus] = React.useState("");
   const [unitName, setUnitName] = React.useState("");
   const [name, setName] = React.useState("");
-  const [startDate, setStartDate] = React.useState(
-    moment().subtract(1, "year").startOf("year"),
-  );
-  const [endDate, setEndDate] = React.useState(moment());
+  // const [startDate, setStartDate] = React.useState(
+  //   moment().subtract(1, "year").startOf("year"),
+  // );
+  // const [endDate, setEndDate] = React.useState(moment());
+  const [startDate, setStartDate] = React.useState(null);
+  const [endDate, setEndDate] = React.useState(null);
   const [hostel, setHostel] = React.useState("");
   const [bank, setBank] = React.useState("");
   const [sangiraNumber, setSangiraNumber] = React.useState("");
@@ -159,7 +162,13 @@ export default function RentalSpaceRequests() {
       if (name) url += `&Customer_Name=${name}`;
       if (unitName) url += `&Item_Name=${unitName}`;
       if (sangiraNumber) url += `&Sangira_Number=${sangiraNumber}`;
-      if (paymentStatus) url += `&Customer_Status=${paymentStatus?.id}`;
+      if (paymentStatus?.id) {
+        if (paymentStatus.id === "paid") {
+          url += `&Customer_Status=${paymentStatus.id},served`;
+        } else {
+          url += `&Customer_Status=${paymentStatus.id}`;
+        }
+      }
       if (location) url += `&Hostel_ID=${location?.id}`;
       if (bank) url += `&Payment_Channel=${bank?.id}`;
       if (startDate) url += `&Start_Date=${formatDateTimeForDb(startDate)}`;
@@ -563,7 +572,15 @@ export default function RentalSpaceRequests() {
     <>
       <Breadcrumb />
       <div className="w-full h-12 flex items-center justify-between">
-        <h4>Payments List</h4>
+        <div className="flex flex-row gap-4">
+          <IconButton
+            onClick={() => navigate(-1)}
+            className="bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+          >
+            <MdArrowBack />
+          </IconButton>
+          <h4 className="mt-2">Requests List</h4>
+        </div>
         <div className="flex items-center justify-end gap-2">
           <Button
             variant="contained"
