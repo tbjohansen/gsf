@@ -17,7 +17,12 @@ import {
   LuArrowLeft,
 } from "react-icons/lu";
 import { ROOM_TYPES, TIMEOUT } from "../../constants";
-import { capitalize, formatDateTimeForDb, formatter } from "../../../helpers";
+import {
+  capitalize,
+  formatDate,
+  formatDateTimeForDb,
+  formatter,
+} from "../../../helpers";
 import StudentAccommodationInfo from "./StudentAccommodationInfo";
 import RegisterStudent from "./RegisterStudent";
 import moment from "moment";
@@ -93,6 +98,8 @@ const Student = () => {
 
   const [windowLoading, setWindowLoading] = useState(false);
   const [appWindow, setAppWindow] = useState();
+
+  const [studentNewInfo, setStudentNewInfo] = useState(null);
 
   const onBack = () => {
     setCurrentStep(1);
@@ -389,9 +396,9 @@ const Student = () => {
       }
 
       // Success - store student data and move to next step
-      const studentInfo = response.data?.data?.customer;
+      const studentInfo = response?.data?.data?.customer;
 
-      let accomodationInfo = response.data?.data?.studentRequest;
+      let accomodationInfo = response?.data?.data?.studentRequest;
       if (!accomodationInfo.length) {
         accomodationInfo = await fetchAccomodationDetails(studentInfo);
 
@@ -452,8 +459,10 @@ const Student = () => {
   const getPriceUnit = (nationality) => {
     if (nationality === "local") {
       return "TZS";
-    } else {
+    } else if (nationality === "foreigner") {
       return "USD";
+    } else {
+      return "TZS";
     }
   };
 
@@ -798,6 +807,7 @@ const Student = () => {
     label: room.Room_Name,
   }));
 
+
   // Countdown timer effect
   useEffect(() => {
     if (currentStep === 3 && countdown > 0) {
@@ -855,8 +865,6 @@ const Student = () => {
     }
   }, [countdown, currentStep, invoiceData]);
 
-  console.log(studentData);
-  console.log(invoiceData);
 
   // Format countdown time
   const formatCountdown = (seconds) => {
@@ -1778,7 +1786,7 @@ const Student = () => {
                                         Floor
                                       </p>
                                       <p className="text-base font-semibold text-gray-900">
-                                        {getDisplayData("floor")}
+                                        {getDisplayData("flow")}
                                       </p>
                                     </div>
 
@@ -2395,7 +2403,10 @@ const Student = () => {
                                     </label>
                                     <input
                                       type="text"
-                                      value={studentData?.Customer_Name || ""}
+                                      value={
+                                        studentData?.customer?.Customer_Name ||
+                                        ""
+                                      }
                                       readOnly
                                       className="w-full p-2 border border-gray-300 rounded bg-gray-50"
                                     />
@@ -2535,17 +2546,39 @@ const Student = () => {
                                   </div>
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Expiration Time
+                                      Paid Months
                                     </label>
                                     <input
                                       type="text"
-                                      value={newFormatCountdown(countdown)}
+                                      value={invoiceData?.Quantity}
                                       readOnly
-                                      className={`w-full p-2 border rounded font-mono ${
-                                        countdown < 300
-                                          ? "border-red-300 bg-red-50 text-red-700"
-                                          : "border-gray-300 bg-gray-50"
-                                      }`}
+                                      className="w-full p-2 border border-gray-300 rounded bg-gray-50 font-bold"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Requested Date
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={formatDate(
+                                        invoiceData?.Request_Date,
+                                      )}
+                                      readOnly
+                                      className="w-full p-2 border border-gray-300 rounded bg-gray-50 font-bold"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Room Expiry Date
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={formatDate(
+                                        invoiceData?.Room_Expire_Date,
+                                      )}
+                                      readOnly
+                                      className="w-full p-2 border border-gray-300 rounded bg-gray-50 font-bold"
                                     />
                                   </div>
                                 </div>

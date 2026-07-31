@@ -30,8 +30,6 @@ import { capitalize } from "../../../../helpers";
 
 // Adjust to your actual settings endpoint
 const CONFIG_ENDPOINT = "/settings/system-configuration";
-// Get employee info from localStorage
-const employeeId = localStorage.getItem("employeeId");
 
 function formatDate(iso) {
   return new Date(iso).toLocaleString(undefined, {
@@ -207,6 +205,9 @@ export default function RealEstateSangiraSetup() {
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
+  // Get employee info from localStorage
+  const employeeId = localStorage.getItem("employeeId");
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -214,7 +215,7 @@ export default function RealEstateSangiraSetup() {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error("Failed to fetch features");
+        toast.error("Failed to fetch sangira settings");
         return;
       }
 
@@ -224,9 +225,9 @@ export default function RealEstateSangiraSetup() {
       setConfig(configData ?? null);
       setLoading(false);
     } catch (error) {
-      console.error("Fetch features error:", error);
+      console.error("Fetch sangira settings error:", error);
       setLoading(false);
-      toast.error("Failed to load features");
+      toast.error("Failed to load sangira settings");
     }
   };
 
@@ -238,7 +239,7 @@ export default function RealEstateSangiraSetup() {
     if (!config) return;
 
     if (!employeeId) {
-      toast.error("User information not found. Please login again.");
+      toast.error("User information not found. Please refresh page or login again.");
       return;
     }
     const previous = config.Real_Estate_expire_After_Days;
@@ -358,7 +359,9 @@ export default function RealEstateSangiraSetup() {
                   <span>
                     Updated By:{" "}
                     <span className="font-medium text-slate-600">
-                      {config?.employee ? capitalize(config?.employee?.name) : "N/A"}
+                      {config?.employee
+                        ? capitalize(config?.employee?.name)
+                        : "N/A"}
                     </span>
                   </span>
                 </div>

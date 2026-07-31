@@ -28,7 +28,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import { IconButton } from "@mui/material";
+import { IconButton, TextField } from "@mui/material";
 import { MdClose } from "react-icons/md";
 import { IoArrowUndoCircleOutline } from "react-icons/io5";
 import { FcMoneyTransfer } from "react-icons/fc";
@@ -66,6 +66,7 @@ export default function ReceiveSpaceRequest() {
   const [requestData, setRequestData] = useState("");
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [showRequestSangiraModal, setShowRequestSangiraModal] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [numberOfMonths, setNumberOfMonths] = useState(1);
@@ -73,6 +74,11 @@ export default function ReceiveSpaceRequest() {
   const [loading, setLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false); // For double-click prevention
   const [activeTab, setActiveTab] = useState("details");
+
+  // Sangira request states
+  const [sangiraReason, setSangiraReason] = useState("");
+  const [sangiraQuantity, setSangiraQuantity] = useState(1);
+  const [sangiraExchangeRate, setSangiraExchangeRate] = useState("");
 
   const [open, setOpen] = useState(false);
   const handleConfirmOpen = () => {
@@ -166,7 +172,7 @@ export default function ReceiveSpaceRequest() {
     requestData?.Customer_Status === "requested" ||
     requestData?.Customer_Status === "rejected";
 
-  // Calculate grand total
+  // Calculate grand total for accept
   const calculateGrandTotal = () => {
     if (paymentMethod === "monthly" && numberOfMonths && requestData?.Price) {
       return numberOfMonths * requestData?.Price;
@@ -177,6 +183,36 @@ export default function ReceiveSpaceRequest() {
       return convertedMonths * requestData?.Price;
     }
     return 0;
+  };
+
+  // Calculate grand total for sangira
+  const calculateSangiraGrandTotal = () => {
+    if (sangiraQuantity && requestData?.Price) {
+      return sangiraQuantity * requestData.Price;
+    }
+    return 0;
+  };
+
+  const getStartDate = () => {
+    // Check if all required data is available
+    if (
+      !requestData?.sangira?.Grand_Total_Price ||
+      !requestData?.Price ||
+      !requestData?.Request_Date
+    ) {
+      return null;
+    }
+
+    // Calculate the number of months
+    const numberOfMonths =
+      requestData.sangira.Grand_Total_Price / requestData.Price;
+
+    // Get the request date and add the number of months
+    const requestDate = new Date(requestData.Request_Date);
+    const startDate = new Date(requestDate);
+    startDate.setMonth(startDate.getMonth() + Math.floor(numberOfMonths));
+
+    return startDate;
   };
 
   const handleContractUpload = async (e) => {
@@ -246,10 +282,10 @@ export default function ReceiveSpaceRequest() {
 
   const receiveRequest = async (e) => {
     e.preventDefault();
-    
+
     // Prevent double click
     if (isProcessing) return;
-    
+
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -301,10 +337,10 @@ export default function ReceiveSpaceRequest() {
 
   const acceptHouseRequest = async (e) => {
     e.preventDefault();
-    
+
     // Prevent double click
     if (isProcessing) return;
-    
+
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -382,10 +418,10 @@ export default function ReceiveSpaceRequest() {
 
   const declineHouseRequest = async (e) => {
     e.preventDefault();
-    
+
     // Prevent double click
     if (isProcessing) return;
-    
+
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -437,6 +473,98 @@ export default function ReceiveSpaceRequest() {
       setShowDeclineModal(false);
     } catch (error) {
       console.error("Update unit error:", error);
+      setLoading(false);
+      setIsProcessing(false);
+      toast.error("An unexpected error occurred. Please try again");
+    }
+  };
+
+  const handleRequestSangira = async (e) => {
+    e.preventDefault();
+
+    // Prevent double click
+    if (isProcessing) return;
+
+    const employeeId = localStorage.getItem("employeeId");
+
+    if (!employeeId) {
+      toast.error("User information not found. Please login again.");
+      return;
+    }
+
+    if (!requestData) {
+      toast.error(
+        "Request information not found. Please refresh and try again.",
+      );
+      return;
+    }
+
+    if (!sangiraQuantity || sangiraQuantity < 1) {
+      toast.error("Please enter a valid quantity");
+      return;
+    }
+
+    // Validate exchange rate for foreign customers
+    // const isForeigner = requestData?.customer?.Customer_Type === "foreigner";
+    // if (isForeigner && !sangiraExchangeRate) {
+    //   toast.error("Please enter exchange rate for foreign customer");
+    //   return;
+    // }
+
+    // if (isForeigner && sangiraExchangeRate < 1) {
+    //   toast.error("Please enter valid exchange rate for foreign customer");
+    //   return;
+    // }
+
+    setIsProcessing(true);
+    setLoading(true);
+
+    try {
+      const data = {
+        real_estate_id: requestData?.real_estate_id,
+        Request_Batch_ID: requestData?.Request_Batch_ID,
+        Customer_ID: requestData?.Customer_ID,
+        Price: requestData?.Price,
+        Phone_Number: requestData?.customer?.Phone_Number || "",
+        Description: sangiraReason || "Request for new sangira allocation",
+        Request_Type: "business_land",
+        Quantity: sangiraQuantity,
+        months: sangiraQuantity,
+        Request_ID: requestID,
+        Employee_ID: employeeId,
+        Grand_Total_Price: calculateSangiraGrandTotal(),
+        Starting_Date: getStartDate(),
+      };
+
+      // Add exchange rate for foreign customers
+      // if (isForeigner) {
+      //   data.Grand_Total_Price =
+      //     calculateSangiraGrandTotal() * parseFloat(sangiraExchangeRate);
+      //   data.Exchange_Rate = sangiraExchangeRate;
+      // }
+
+      const response = await apiClient.post(
+        `/estate/estate-request-sangira-existing-customer`,
+        data,
+      );
+
+      if (!response.ok) {
+        setLoading(false);
+        setIsProcessing(false);
+        reportError(response, "Failed to request another sangira");
+        return;
+      }
+
+      setLoading(false);
+      setIsProcessing(false);
+      toast.success("New sangira request created successfully");
+      loadData();
+      setShowRequestSangiraModal(false);
+      setSangiraReason("");
+      setSangiraQuantity(1);
+      setSangiraExchangeRate("");
+    } catch (error) {
+      console.error("Request sangira error:", error);
       setLoading(false);
       setIsProcessing(false);
       toast.error("An unexpected error occurred. Please try again");
@@ -512,7 +640,9 @@ export default function ReceiveSpaceRequest() {
       paid: "bg-emerald-100 text-emerald-800 border-emerald-200",
       rejected: "bg-red-100 text-red-800 border-red-200",
     };
-    return statusColors[status] || "bg-slate-100 text-slate-800 border-slate-200";
+    return (
+      statusColors[status] || "bg-slate-100 text-slate-800 border-slate-200"
+    );
   };
 
   const getStatusLabel = (status) => {
@@ -535,7 +665,11 @@ export default function ReceiveSpaceRequest() {
       {/* Customer Information */}
       <div className="px-8 py-6 border-b border-slate-200">
         <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <LuCircleUserRound className="mr-2" style={{ color: colors.primary }} size={24} />
+          <LuCircleUserRound
+            className="mr-2"
+            style={{ color: colors.primary }}
+            size={24}
+          />
           Customer Information
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -581,7 +715,11 @@ export default function ReceiveSpaceRequest() {
       {/* Property Information */}
       <div className="px-8 py-6 border-b border-slate-200">
         <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <BsHouse className="mr-2" style={{ color: colors.primary }} size={24} />
+          <BsHouse
+            className="mr-2"
+            style={{ color: colors.primary }}
+            size={24}
+          />
           Property Information
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -617,7 +755,11 @@ export default function ReceiveSpaceRequest() {
       {/* Request Details */}
       <div className="px-8 py-6 border-b border-slate-200">
         <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <LuFileText className="mr-2" style={{ color: colors.primary }} size={24} />
+          <LuFileText
+            className="mr-2"
+            style={{ color: colors.primary }}
+            size={24}
+          />
           Request Details
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -705,6 +847,7 @@ export default function ReceiveSpaceRequest() {
         )}
 
         {(requestData?.Customer_Status === "served" ||
+          requestData?.Customer_Status === "paid" ||
           requestData?.Customer_Status === "requested") && (
           <div>
             <button
@@ -714,7 +857,7 @@ export default function ReceiveSpaceRequest() {
               style={{ backgroundColor: colors.primary }}
             >
               <IoArrowUndoCircleOutline className="mr-2" size={20} />
-              Revoke House Allocation
+              Revoke Space Allocation
             </button>
             <Dialog
               open={open}
@@ -722,11 +865,12 @@ export default function ReceiveSpaceRequest() {
               onClose={handleClose}
               aria-describedby="alert-dialog-slide-description"
               PaperProps={{
-                className: "bg-white border border-slate-200 rounded-2xl shadow-xl",
+                className:
+                  "bg-white border border-slate-200 rounded-2xl shadow-xl",
               }}
             >
               <DialogTitle className="font-bold text-slate-800 flex justify-between items-center">
-                {"REVOKE HOUSE ALLOCATION"}
+                {"REVOKE SPACE ALLOCATION"}
                 <IconButton
                   aria-label="close"
                   onClick={handleClose}
@@ -742,7 +886,11 @@ export default function ReceiveSpaceRequest() {
                 </DialogContentText>
               </DialogContent>
               <DialogActions className="p-4 gap-2">
-                <Button variant="outlined" onClick={handleClose} className="text-slate-600 border-slate-300">
+                <Button
+                  variant="outlined"
+                  onClick={handleClose}
+                  className="text-slate-600 border-slate-300"
+                >
                   Cancel
                 </Button>
                 <Button
@@ -775,7 +923,11 @@ export default function ReceiveSpaceRequest() {
     <div className="px-8 py-6">
       <div className="flex flex-row justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-slate-800 flex items-center">
-          <LuFileText className="mr-2" style={{ color: colors.primary }} size={24} />
+          <LuFileText
+            className="mr-2"
+            style={{ color: colors.primary }}
+            size={24}
+          />
           Contract Management
         </h2>
       </div>
@@ -791,7 +943,9 @@ export default function ReceiveSpaceRequest() {
                 size={32}
               />
               <div>
-                <p className="font-semibold text-slate-900">Contract Uploaded</p>
+                <p className="font-semibold text-slate-900">
+                  Contract Uploaded
+                </p>
                 <p className="text-sm text-slate-600 break-all">
                   Uploaded on: {requestData?.Contract_Attached_Time}
                 </p>
@@ -935,14 +1089,14 @@ export default function ReceiveSpaceRequest() {
       </h2>
 
       {requestData?.sangira && (
-        <form className="space-y-6">
+        <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-500 mb-2">
                 Sangira Number
               </label>
               <p className="text-slate-900 font-semibold">
-                {requestData?.sangira?.Sangira_Number}
+                {requestData?.sangira?.Sangira_Number ?? "—"}
               </p>
             </div>
 
@@ -971,7 +1125,7 @@ export default function ReceiveSpaceRequest() {
                 Receipt Number
               </label>
               <p className="text-slate-900 font-semibold">
-                {requestData?.sangira?.Receipt_Number}
+                {requestData?.sangira?.Receipt_Number ?? "—"}
               </p>
             </div>
 
@@ -980,7 +1134,11 @@ export default function ReceiveSpaceRequest() {
                 Payment Date
               </label>
               <p className="text-slate-900 font-semibold">
-                {requestData?.sangira?.Payment_Date}
+                {requestData?.sangira?.Payment_Date
+                  ? new Date(
+                      requestData.sangira.Payment_Date,
+                    ).toLocaleDateString()
+                  : "—"}
               </p>
             </div>
 
@@ -989,15 +1147,27 @@ export default function ReceiveSpaceRequest() {
                 Remarks
               </label>
               <p className="text-slate-900 font-semibold">
-                {requestData?.sangira?.Remarks}
+                {requestData?.sangira?.Remarks || "—"}
               </p>
             </div>
           </div>
-        </form>
+          {requestData?.Customer_Status === "paid" &&
+          requestData?.sangira?.Sangira_Status === "completed" ? (
+            <button
+              onClick={() => setShowRequestSangiraModal(true)}
+              disabled={isProcessing}
+              className="w-full cursor-pointer text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 mt-3"
+              style={{ backgroundColor: colors.primary }}
+            >
+              <IoArrowUndoCircleOutline className="mr-2" size={20} />
+              Request Another Sangira
+            </button>
+          ) : null}
+        </div>
       )}
 
       {requestData?.payment && (
-        <form className="space-y-6">
+        <div className="space-y-6 mt-2">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-500 mb-2">
@@ -1021,7 +1191,7 @@ export default function ReceiveSpaceRequest() {
               </p>
             </div>
           </div>
-        </form>
+        </div>
       )}
     </div>
   );
@@ -1066,10 +1236,10 @@ export default function ReceiveSpaceRequest() {
 
   const revokeAllocation = async (e) => {
     e.preventDefault();
-    
+
     // Prevent double click
     if (isProcessing) return;
-    
+
     const employeeId = localStorage.getItem("employeeId");
 
     if (!employeeId) {
@@ -1127,7 +1297,12 @@ export default function ReceiveSpaceRequest() {
         <div className="max-w-5xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-slate-200">
             {/* Header */}
-            <div className="px-8 py-6" style={{ background: `linear-gradient(to right, ${colors.primary}, ${colors.primaryLight})` }}>
+            <div
+              className="px-8 py-6"
+              style={{
+                background: `linear-gradient(to right, ${colors.primary}, ${colors.primaryLight})`,
+              }}
+            >
               <div className="flex justify-between items-start">
                 <div>
                   <h1 className="text-3xl font-bold text-white mb-2">
@@ -1394,6 +1569,200 @@ export default function ReceiveSpaceRequest() {
             </div>
           </div>
         )}
+
+        {/* Request Another Sangira Modal - Using MUI Dialog */}
+        <Dialog
+          open={showRequestSangiraModal}
+          onClose={() => {
+            setShowRequestSangiraModal(false);
+            setSangiraReason("");
+            setSangiraQuantity(1);
+            setSangiraExchangeRate("");
+          }}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            className: "bg-white border border-slate-200 rounded-2xl shadow-xl",
+          }}
+        >
+          <DialogTitle className="font-bold border-b border-slate-200 flex justify-between items-center text-slate-800">
+            <div className="flex items-center gap-2">
+              <IoArrowUndoCircleOutline
+                style={{ color: colors.primary }}
+                size={20}
+              />
+              <span>Request Another Sangira</span>
+            </div>
+            <IconButton
+              onClick={() => {
+                setShowRequestSangiraModal(false);
+                setSangiraReason("");
+                setSangiraQuantity(1);
+                setSangiraExchangeRate("");
+              }}
+              size="small"
+              className="text-slate-400 hover:text-slate-600"
+            >
+              <MdClose />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent className="pt-6">
+            <div className="mb-4">
+              <p className="text-slate-600 text-sm mb-2">
+                You are about to request a new sangira for this customer.
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold">Customer:</span>{" "}
+                  {requestData?.customer?.Customer_Name}
+                </p>
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold">Property:</span>{" "}
+                  {requestData?.estate?.name}
+                </p>
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold">Price per Month:</span>{" "}
+                  {currencyFormatter.format(requestData?.Price)}
+                </p>
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold">Current Status:</span>{" "}
+                  {capitalize(requestData?.Customer_Status)}
+                </p>
+              </div>
+
+              {/* Single Quantity Input */}
+              <div className="space-y-4 mb-4">
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="number"
+                  label="Quantity / Number of Months"
+                  value={sangiraQuantity}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 0;
+                    setSangiraQuantity(value > 0 ? value : 1);
+                  }}
+                  InputProps={{
+                    inputProps: { min: 1 },
+                  }}
+                  disabled={isProcessing}
+                  helperText="This value will be used for both quantity and months"
+                />
+
+                {/* Grand Total Display */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">
+                      Grand Total Amount:
+                    </span>
+                    <span className="text-lg font-bold text-emerald-600">
+                      {currencyFormatter.format(calculateSangiraGrandTotal())}
+                    </span>
+                  </div>
+                  {sangiraQuantity > 1 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {sangiraQuantity} month{sangiraQuantity > 1 ? "s" : ""} ×{" "}
+                      {currencyFormatter.format(requestData?.Price || 0)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Exchange Rate Field for Foreign Customers */}
+                {/* {requestData?.customer?.Customer_Type === "foreigner" && (
+                  <div className="space-y-2">
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type="number"
+                      label="Exchange Rate (to local currency)"
+                      value={sangiraExchangeRate}
+                      onChange={(e) => setSangiraExchangeRate(e.target.value)}
+                      InputProps={{
+                        inputProps: { step: "0.01", min: "0" },
+                      }}
+                      disabled={isProcessing}
+                      helperText="Enter exchange rate for foreign currency conversion"
+                    />
+                    {sangiraExchangeRate && (
+                      <div
+                        className="p-4 rounded-xl border"
+                        style={{
+                          backgroundColor: colors.infoBg,
+                          borderColor: colors.info,
+                        }}
+                      >
+                        <p
+                          className="text-sm font-medium"
+                          style={{ color: colors.info }}
+                        >
+                          Local currency amount:{" "}
+                          {currencyFormatter.format(
+                            calculateSangiraGrandTotal() *
+                              parseFloat(sangiraExchangeRate || 0),
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )} */}
+
+                {/* Reason/Description Field */}
+                <div className="mt-4">
+                  <p className="text-slate-500 text-sm mb-2">
+                    Reason or description for this new request (optional):
+                  </p>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    value={sangiraReason}
+                    onChange={(e) => setSangiraReason(e.target.value)}
+                    placeholder="Enter reason for requesting another sangira..."
+                    className="bg-white"
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": {
+                          borderColor: colors.border,
+                        },
+                        "&:hover fieldset": {
+                          borderColor: colors.primary,
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: colors.primary,
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+
+          <DialogActions className="p-4 border-t border-slate-200 gap-2">
+            <Button
+              onClick={() => {
+                setShowRequestSangiraModal(false);
+                setSangiraReason("");
+                setSangiraQuantity(1);
+                setSangiraExchangeRate("");
+              }}
+              disabled={isProcessing}
+              className="text-slate-500 normal-case hover:bg-slate-50 disabled:opacity-50"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRequestSangira}
+              disabled={!sangiraQuantity || sangiraQuantity < 1 || isProcessing}
+              variant="contained"
+              className="text-white normal-case font-semibold rounded-lg px-6 shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
+              style={{ backgroundColor: colors.primary }}
+            >
+              {isProcessing ? "Processing..." : "Confirm Request"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     </>
   );
