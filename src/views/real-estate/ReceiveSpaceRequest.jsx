@@ -29,7 +29,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { IconButton, TextField } from "@mui/material";
-import { MdClose } from "react-icons/md";
+import { MdClose, MdOutlineDownloadForOffline } from "react-icons/md";
 import { IoArrowUndoCircleOutline } from "react-icons/io5";
 import { FcMoneyTransfer } from "react-icons/fc";
 
@@ -170,6 +170,7 @@ export default function ReceiveSpaceRequest() {
     requestData?.Customer_Status === "served" ||
     requestData?.Customer_Status === "paid" ||
     requestData?.Customer_Status === "requested" ||
+    requestData?.sangira?.Sangira_Status === "completed" ||
     requestData?.Customer_Status === "rejected";
 
   // Calculate grand total for accept
@@ -1151,18 +1152,6 @@ export default function ReceiveSpaceRequest() {
               </p>
             </div>
           </div>
-          {requestData?.Customer_Status === "paid" &&
-          requestData?.sangira?.Sangira_Status === "completed" ? (
-            <button
-              onClick={() => setShowRequestSangiraModal(true)}
-              disabled={isProcessing}
-              className="w-full cursor-pointer text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 mt-3"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <IoArrowUndoCircleOutline className="mr-2" size={20} />
-              Request Another Sangira
-            </button>
-          ) : null}
         </div>
       )}
 
@@ -1193,6 +1182,19 @@ export default function ReceiveSpaceRequest() {
           </div>
         </div>
       )}
+
+      {requestData?.Customer_Status === "paid" ||
+      requestData?.sangira?.Sangira_Status === "completed" ? (
+        <button
+          onClick={() => setShowRequestSangiraModal(true)}
+          disabled={isProcessing}
+          className="w-full cursor-pointer text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 mt-3"
+          style={{ backgroundColor: colors.primary }}
+        >
+          <MdOutlineDownloadForOffline className="mr-2" size={20} />
+          Request Another Sangira
+        </button>
+      ) : null}
     </div>
   );
 
@@ -1313,9 +1315,41 @@ export default function ReceiveSpaceRequest() {
                   </p>
                 </div>
                 <div
-                  className={`px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(requestData?.Customer_Status)}`}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                    requestData?.Customer_Status === "pending" ||
+                    requestData?.Customer_Status === "active"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : requestData?.Customer_Status === "received" ||
+                          requestData?.Customer_Status === "expired"
+                        ? "bg-blue-100 text-blue-800"
+                        : requestData?.Customer_Status === "assign" ||
+                            requestData?.Customer_Status === "requested"
+                          ? "bg-blue-100 text-blue-600"
+                          : requestData?.Customer_Status === "served" ||
+                              requestData?.Customer_Status === "paid"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                  }`}
                 >
-                  {getStatusLabel(requestData?.Customer_Status)}
+                  {requestData?.Customer_Status === "pending" ||
+                  requestData?.Customer_Status === "active"
+                    ? "PENDING"
+                    : requestData?.Customer_Status === "received"
+                      ? "RECEIVED"
+                      : requestData?.Customer_Status === "rejected"
+                        ? "REJECTED"
+                        : requestData?.Customer_Status === "served" ||
+                            requestData?.Customer_Status === "paid" ||
+                            requestData?.Customer_Status === "assign" ||
+                            requestData?.Customer_Status === "requested"
+                          ? "ALLOCATED"
+                          : requestData?.Customer_Status === "expired" &&
+                              requestData?.sangira?.Sangira_Status ===
+                                "completed"
+                            ? "PAID"
+                            : requestData?.Customer_Status === "expired"
+                              ? "REVOKED"
+                              : "LOADING"}
                 </div>
               </div>
             </div>
@@ -1334,9 +1368,10 @@ export default function ReceiveSpaceRequest() {
                   >
                     Request Details
                   </button>
-                  {["requested", "served", "assign", "paid"].includes(
+                  {(["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
-                  ) && (
+                  ) ||
+                    requestData?.sangira?.Sangira_Status === "completed") && (
                     <button
                       onClick={() => setActiveTab("contract")}
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
@@ -1348,9 +1383,10 @@ export default function ReceiveSpaceRequest() {
                       Contract Management
                     </button>
                   )}
-                  {["requested", "served", "assign", "paid"].includes(
+                  {(["requested", "served", "assign", "paid"].includes(
                     requestData?.Customer_Status,
-                  ) && (
+                  ) ||
+                    requestData?.sangira?.Sangira_Status === "completed") && (
                     <button
                       onClick={() => setActiveTab("payment")}
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${

@@ -181,6 +181,7 @@ export default function ReceiveHouseRequest() {
     requestData?.Customer_Status === "paid" ||
     requestData?.Customer_Status === "requested" ||
     requestData?.Customer_Status === "expired" ||
+    requestData?.sangira?.Sangira_Status === "completed" ||
     requestData?.Customer_Status === "rejected";
 
   // Calculate grand total for accept
@@ -1127,17 +1128,6 @@ export default function ReceiveHouseRequest() {
               </p>
             </div>
           </div>
-          {requestData?.Customer_Status === "paid" &&
-          requestData?.sangira?.Sangira_Status === "completed" ? (
-            <button
-              onClick={() => setShowRequestSangiraModal(true)}
-              disabled={isProcessing}
-              className="w-full cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed mt-3"
-            >
-              <IoArrowUndoCircleOutline className="mr-2" size={20} />
-              Request Another Sangira
-            </button>
-          ) : null}
         </div>
       )}
 
@@ -1168,6 +1158,19 @@ export default function ReceiveHouseRequest() {
           </div>
         </div>
       )}
+
+      {requestData?.Customer_Status === "paid" ||
+      (requestData?.Customer_Status === "expired" &&
+        requestData?.sangira?.Sangira_Status === "completed") ? (
+        <button
+          onClick={() => setShowRequestSangiraModal(true)}
+          disabled={isProcessing}
+          className="w-full cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed mt-3"
+        >
+          <MdOutlineDownloadForOffline className="mr-2" size={20} />
+          Request Another Sangira
+        </button>
+      ) : null}
     </div>
   );
 
@@ -1328,9 +1331,13 @@ export default function ReceiveHouseRequest() {
                             requestData?.Customer_Status === "assign" ||
                             requestData?.Customer_Status === "requested"
                           ? "ALLOCATED"
-                          : requestData?.Customer_Status === "expired"
-                            ? "REVOKED"
-                            : "LOADING"}
+                          : requestData?.Customer_Status === "expired" &&
+                              requestData?.sangira?.Sangira_Status ===
+                                "completed"
+                            ? "PAID"
+                            : requestData?.Customer_Status === "expired"
+                              ? "REVOKED"
+                              : "LOADING"}
                 </div>
               </div>
             </div>
@@ -1349,13 +1356,14 @@ export default function ReceiveHouseRequest() {
                   >
                     Request Details
                   </button>
-                  {[
+                  {([
                     "requested",
                     "served",
                     "assign",
                     "paid",
                     "expired",
-                  ].includes(requestData?.Customer_Status) && (
+                  ].includes(requestData?.Customer_Status) ||
+                    requestData?.sangira?.Sangira_Status === "completed") && (
                     <button
                       onClick={() => setActiveTab("contract")}
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
@@ -1367,13 +1375,14 @@ export default function ReceiveHouseRequest() {
                       Contract Management
                     </button>
                   )}
-                  {[
+                  {([
                     "requested",
                     "served",
                     "assign",
                     "paid",
                     "expired",
-                  ].includes(requestData?.Customer_Status) && (
+                  ].includes(requestData?.Customer_Status) ||
+                    requestData?.sangira?.Sangira_Status === "completed") && (
                     <button
                       onClick={() => setActiveTab("payment")}
                       className={`py-4 px-8 text-sm font-medium border-b-2 transition-colors ${
