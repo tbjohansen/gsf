@@ -15,6 +15,7 @@ import {
   LuUserPlus,
   LuInfo,
   LuArrowLeft,
+  LuClock,
 } from "react-icons/lu";
 import { ROOM_TYPES, TIMEOUT } from "../../constants";
 import {
@@ -62,6 +63,10 @@ const Student = () => {
   const [validatingStudent, setValidatingStudent] = useState(false);
   const [studentData, setStudentData] = useState(null);
 
+  // ✅ Booking mode + approval tracking from validate-student
+  const [bookingMode, setBookingMode] = useState(false);
+  const [bookingApproved, setBookingApproved] = useState(null); // null = unknown
+
   // Step 2: Hostel selection form
   const [hostels, setHostels] = useState([]);
   const [blocks, setBlocks] = useState([]);
@@ -103,6 +108,9 @@ const Student = () => {
 
   const onBack = () => {
     setCurrentStep(1);
+    // ✅ Clear booking flags so a fresh validate re-reads them
+    setBookingMode(false);
+    setBookingApproved(null);
   };
 
   const verifySangira = useCallback(async () => {
@@ -396,9 +404,17 @@ const Student = () => {
       }
 
       // Success - store student data and move to next step
-      const studentInfo = response?.data?.data?.customer;
+      const payload = response?.data?.data;
+      const studentInfo = payload?.customer;
 
-      let accomodationInfo = response?.data?.data?.studentRequest;
+      // ✅ Capture booking mode + approval flag from validate-student
+      const mode = !!payload?.bookingMode;
+      const approved = payload?.customer?.booking_approved === true;
+
+      setBookingMode(mode);
+      setBookingApproved(approved);
+
+      let accomodationInfo = payload?.studentRequest;
       if (!accomodationInfo.length) {
         accomodationInfo = await fetchAccomodationDetails(studentInfo);
 
@@ -408,12 +424,20 @@ const Student = () => {
           return;
         }
       }
+
       setRequestedInfo(accomodationInfo);
       setStudentData(studentInfo);
-      setValidatedData(response?.data?.data);
+      setValidatedData(payload);
 
       setValidatingStudent(false);
       toast.success("Student Number validated successfully");
+
+      // ✅ Booking mode ON but NOT approved → step 2 shows approval gate
+      if (mode && !approved) {
+        setCurrentStep(2);
+        return;
+      }
+
       if (
         accomodationInfo.filter((e) => e.Request_Type === "hostel").length >
           0 &&
@@ -431,6 +455,13 @@ const Student = () => {
       setValidatingStudent(false);
       toast.error("An unexpected error occurred. Please try again");
     }
+  };
+
+  // ✅ Request approval — just notifies the user. No new endpoint.
+  const handleRequestApproval = () => {
+    toast.success(
+      "Booking approval request submitted. Please wait for confirmation from the warden's office.",
+    );
   };
 
   // const sangiraTimer = useRef();
@@ -744,7 +775,6 @@ const Student = () => {
       const response = await apiClient.post("/sangira-number", data);
 
       // Check if request was successful
-      // Check if request was successful
       if (!response.ok) {
         setSubmitting(false);
 
@@ -807,7 +837,6 @@ const Student = () => {
     label: room.Room_Name,
   }));
 
-
   // Countdown timer effect
   useEffect(() => {
     if (currentStep === 3 && countdown > 0) {
@@ -861,10 +890,12 @@ const Student = () => {
         setRoomPrices([]);
         setCountdown(0);
         setTabValue(0); // Reset tab to first tab
+        // ✅ reset booking flags too
+        setBookingMode(false);
+        setBookingApproved(null);
       }, 3000); // Wait 3 seconds before redirecting
     }
   }, [countdown, currentStep, invoiceData]);
-
 
   // Format countdown time
   const formatCountdown = (seconds) => {
@@ -1067,566 +1098,642 @@ const Student = () => {
                   {/* Step 2: Student Details & Accommodation Selection */}
                   {currentStep === 2 && studentData && (
                     <>
-                      {/* {requestedInfo && requestedInfo.length > 0 ? (
-                <StudentAccommodationInfo
-                  studentId={studentId}
-                  studentData={studentData}
-                  requestedInfo={requestedInfo.find(
-                    (e) => e.Request_Type === "hostel"
-                  )}
-                />
-              ) : ( */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Left Side: Student Details Card */}
-                        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl p-6 border border-blue-200 shadow-sm h-fit">
-                          <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-full bg-oceanic flex items-center justify-center">
-                              <LuUser className="w-6 h-6 text-white" />
+                      {/* ✅ BOOKING MODE + NOT APPROVED → approval gate */}
+                      {bookingMode && !bookingApproved ? (
+                        <div className="space-y-6">
+                          {/* Header */}
+                          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-6 border border-amber-200">
+                            <div className="flex items-center gap-3 mb-2">
+                              <LuClock className="w-8 h-8 text-amber-600" />
+                              <h3 className="text-2xl font-bold text-gray-800">
+                                Booking Approval Required
+                              </h3>
                             </div>
-                            <h3 className="text-xl font-semibold text-gray-800">
-                              Student Information
-                            </h3>
+                            <p className="text-gray-600">
+                              Your accommodation booking is pending approval.
+                              Please submit a request to proceed with your
+                              booking.
+                            </p>
                           </div>
 
-                          <div className="space-y-5">
-                            <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                                Student Number
-                              </p>
-                              <p className="text-lg font-bold text-gray-900">
-                                {studentData.Student_ID || studentId}
-                              </p>
+                          {/* Student Summary */}
+                          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl p-6 border border-blue-200 shadow-sm">
+                            <div className="flex items-center gap-3 mb-6">
+                              <div className="w-10 h-10 rounded-full bg-oceanic flex items-center justify-center">
+                                <LuUser className="w-6 h-6 text-white" />
+                              </div>
+                              <h3 className="text-xl font-semibold text-gray-800">
+                                Student Information
+                              </h3>
                             </div>
 
-                            <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                                Full Name
-                              </p>
-                              <p className="text-lg font-semibold text-gray-900">
-                                {studentData.Customer_Name || "N/A"}
-                              </p>
-                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                  Student Number
+                                </p>
+                                <p className="text-lg font-bold text-gray-900">
+                                  {studentData?.Student_ID ||
+                                    studentId ||
+                                    "N/A"}
+                                </p>
+                              </div>
 
-                            <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                                Email Address
-                              </p>
-                              <p className="text-base font-medium text-gray-800 break-words">
-                                {studentData.Email || "N/A"}
-                              </p>
-                            </div>
+                              <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                  Full Name
+                                </p>
+                                <p className="text-lg font-semibold text-gray-900">
+                                  {studentData?.Customer_Name || "N/A"}
+                                </p>
+                              </div>
 
-                            <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
-                              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                                Program of Study
-                              </p>
-                              <p className="text-base font-semibold text-gray-900">
-                                {studentData.Program_Study || "N/A"}
-                              </p>
-                            </div>
+                              <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                  Program of Study
+                                </p>
+                                <p className="text-base font-semibold text-gray-900">
+                                  {studentData?.Program_Study || "N/A"}
+                                </p>
+                              </div>
 
-                            <div className="grid grid-cols-2 gap-3">
                               <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
                                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                                   Year of Study
                                 </p>
                                 <p className="text-base font-semibold text-gray-900">
-                                  {studentData.Year_Study || "N/A"}
+                                  {studentData?.Year_Study || "N/A"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Request Approval Button */}
+                          <div className="flex justify-end">
+                            <button
+                              onClick={handleRequestApproval}
+                              className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-white bg-green-600 hover:bg-green-700 active:scale-95 transition-all shadow-md"
+                            >
+                              <LuCircleCheck className="w-5 h-5" />
+                              Request Approval
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* Left Side: Student Details Card */}
+                          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl p-6 border border-blue-200 shadow-sm h-fit">
+                            <div className="flex items-center gap-3 mb-6">
+                              <div className="w-10 h-10 rounded-full bg-oceanic flex items-center justify-center">
+                                <LuUser className="w-6 h-6 text-white" />
+                              </div>
+                              <h3 className="text-xl font-semibold text-gray-800">
+                                Student Information
+                              </h3>
+                            </div>
+
+                            <div className="space-y-5">
+                              <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                  Student Number
+                                </p>
+                                <p className="text-lg font-bold text-gray-900">
+                                  {studentData.Student_ID || studentId}
                                 </p>
                               </div>
 
                               <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
                                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                                  Nationality
+                                  Full Name
+                                </p>
+                                <p className="text-lg font-semibold text-gray-900">
+                                  {studentData.Customer_Name || "N/A"}
+                                </p>
+                              </div>
+
+                              <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                  Email Address
+                                </p>
+                                <p className="text-base font-medium text-gray-800 break-words">
+                                  {studentData.Email || "N/A"}
+                                </p>
+                              </div>
+
+                              <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                  Program of Study
                                 </p>
                                 <p className="text-base font-semibold text-gray-900">
-                                  {studentData.Nationality || "N/A"}
+                                  {studentData.Program_Study || "N/A"}
                                 </p>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                    Year of Study
+                                  </p>
+                                  <p className="text-base font-semibold text-gray-900">
+                                    {studentData.Year_Study || "N/A"}
+                                  </p>
+                                </div>
+
+                                <div className="bg-white/70 rounded-lg p-4 border border-blue-100">
+                                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                    Nationality
+                                  </p>
+                                  <p className="text-base font-semibold text-gray-900">
+                                    {studentData.Nationality || "N/A"}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Right Side: Accommodation Selection Form */}
-                        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm ">
-                          <div className="mb-6">
-                            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                              Select Accommodation
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                              Choose your preferred hostel, block, floor, and
-                              room
-                            </p>
-                          </div>
+                          {/* Right Side: Accommodation Selection Form */}
+                          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm ">
+                            <div className="mb-6">
+                              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                                Select Accommodation
+                              </h3>
+                              <p className="text-sm text-gray-600">
+                                Choose your preferred hostel, block, floor, and
+                                room
+                              </p>
+                            </div>
 
-                          <div className="space-y-5 ">
-                            {/* Form Fields Grid - 2 columns */}
-                            <div className="grid grid-cols-2 gap-5">
-                              {/* Hostel Selection */}
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                  Hostel <span className="text-red-500">*</span>
-                                </label>
-                                {loadingHostels ? (
-                                  <div>
-                                    <LinearProgress />
-                                    <p className="text-xs text-gray-500 mt-2">
-                                      Loading hostels...
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <Autocomplete
-                                    options={hostelOptions}
-                                    value={selectedHostel}
-                                    onChange={(e, value) =>
-                                      setSelectedHostel(value)
-                                    }
-                                    renderInput={(params) => (
-                                      <TextField
-                                        {...params}
-                                        placeholder="Select a hostel"
-                                        variant="outlined"
-                                        size="small"
-                                        className="bg-gray-50"
-                                      />
-                                    )}
-                                    disabled={loadingHostels || submitting}
-                                    sx={{
-                                      "& .MuiOutlinedInput-root": {
-                                        backgroundColor: "#f9fafb",
-                                      },
-                                    }}
-                                  />
-                                )}
-                              </div>
-
-                              {/* Block Selection */}
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                  Block <span className="text-red-500">*</span>
-                                </label>
-                                {loadingBlocks ? (
-                                  <div>
-                                    <LinearProgress />
-                                    <p className="text-xs text-gray-500 mt-2">
-                                      Loading blocks...
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <Autocomplete
-                                    options={blockOptions}
-                                    value={selectedBlock}
-                                    onChange={(e, value) =>
-                                      setSelectedBlock(value)
-                                    }
-                                    renderInput={(params) => (
-                                      <TextField
-                                        {...params}
-                                        placeholder={
-                                          selectedHostel
-                                            ? "Select a block"
-                                            : "Please select a hostel first"
-                                        }
-                                        variant="outlined"
-                                        size="small"
-                                        className="bg-gray-50"
-                                      />
-                                    )}
-                                    disabled={
-                                      !selectedHostel ||
-                                      loadingBlocks ||
-                                      submitting
-                                    }
-                                    sx={{
-                                      "& .MuiOutlinedInput-root": {
-                                        backgroundColor: "#f9fafb",
-                                      },
-                                    }}
-                                  />
-                                )}
-                              </div>
-
-                              {/* Floor Selection */}
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                  Floor <span className="text-red-500">*</span>
-                                </label>
-                                {loadingFloors ? (
-                                  <div>
-                                    <LinearProgress />
-                                    <p className="text-xs text-gray-500 mt-2">
-                                      Loading floors...
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <Autocomplete
-                                    options={floorOptions}
-                                    value={selectedFloor}
-                                    onChange={(e, value) =>
-                                      setSelectedFloor(value)
-                                    }
-                                    renderInput={(params) => (
-                                      <TextField
-                                        {...params}
-                                        placeholder={
-                                          selectedBlock
-                                            ? "Select a floor"
-                                            : "Please select a block first"
-                                        }
-                                        variant="outlined"
-                                        size="small"
-                                        className="bg-gray-50"
-                                      />
-                                    )}
-                                    disabled={
-                                      !selectedBlock ||
-                                      loadingFloors ||
-                                      submitting
-                                    }
-                                    sx={{
-                                      "& .MuiOutlinedInput-root": {
-                                        backgroundColor: "#f9fafb",
-                                      },
-                                    }}
-                                  />
-                                )}
-                              </div>
-
-                              {/* Room Type Selection */}
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                  Room Type{" "}
-                                  <span className="text-red-500">*</span>
-                                </label>
-
-                                <Autocomplete
-                                  options={ROOM_TYPES}
-                                  value={selectedRoomType}
-                                  onChange={(e, value) =>
-                                    setSelectedRoomType(value)
-                                  }
-                                  renderInput={(params) => (
-                                    <TextField
-                                      {...params}
-                                      placeholder="Select a room type"
-                                      variant="outlined"
-                                      size="small"
-                                      className="bg-gray-50"
-                                    />
-                                  )}
-                                  disabled={!selectedFloor || submitting}
-                                  sx={{
-                                    "& .MuiOutlinedInput-root": {
-                                      backgroundColor: "#f9fafb",
-                                    },
-                                  }}
-                                />
-                              </div>
-
-                              {/* Room Selection */}
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                  Room <span className="text-red-500">*</span>
-                                </label>
-                                {loadingRooms ? (
-                                  <div>
-                                    <LinearProgress />
-                                    <p className="text-xs text-gray-500 mt-2">
-                                      Loading rooms...
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <Autocomplete
-                                    options={roomOptions}
-                                    value={selectedRoom}
-                                    onChange={(e, value) =>
-                                      setSelectedRoom(value)
-                                    }
-                                    renderInput={(params) => (
-                                      <TextField
-                                        {...params}
-                                        placeholder={
-                                          selectedRoomType
-                                            ? "Select a room"
-                                            : "Please select a floor first"
-                                        }
-                                        variant="outlined"
-                                        size="small"
-                                        className="bg-gray-50"
-                                      />
-                                    )}
-                                    disabled={
-                                      !selectedRoomType ||
-                                      loadingRooms ||
-                                      submitting
-                                    }
-                                    sx={{
-                                      "& .MuiOutlinedInput-root": {
-                                        backgroundColor: "#f9fafb",
-                                      },
-                                    }}
-                                  />
-                                )}
-                              </div>
-
-                              {/* Room Prices Selection */}
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                  Room Price{" "}
-                                  <span className="text-red-500">*</span>
-                                </label>
-                                {loadingRoomPrices ? (
-                                  <div>
-                                    <LinearProgress />
-                                    <p className="text-xs text-gray-500 mt-2">
-                                      Loading room prices...
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <Autocomplete
-                                    options={roomPrices}
-                                    value={selectedRoomPrice}
-                                    disabled={true}
-                                    onChange={(e, value) =>
-                                      setSelectedRoomPrice(value)
-                                    }
-                                    renderInput={(params) => (
-                                      <TextField
-                                        {...params}
-                                        placeholder="Select a room price"
-                                        variant="outlined"
-                                        size="small"
-                                        className="bg-gray-50"
-                                      />
-                                    )}
-                                    // disabled={
-                                    //   !selectedRoom || loadingRoomPrices || submitting
-                                    // }
-                                    sx={{
-                                      "& .MuiOutlinedInput-root": {
-                                        backgroundColor: "#f9fafb",
-                                      },
-                                    }}
-                                  />
-                                )}
-                              </div>
-
-                              {/* Payment Period Selection */}
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                  Payment Period{" "}
-                                  <span className="text-red-500">*</span>
-                                </label>
-                                {loadingCategory ? (
-                                  <div>
-                                    <LinearProgress />
-                                    <p className="text-xs text-gray-500 mt-2">
-                                      Loading categories...
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <>
+                            <div className="space-y-5 ">
+                              {/* Form Fields Grid - 2 columns */}
+                              <div className="grid grid-cols-2 gap-5">
+                                {/* Hostel Selection */}
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Hostel{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  {loadingHostels ? (
+                                    <div>
+                                      <LinearProgress />
+                                      <p className="text-xs text-gray-500 mt-2">
+                                        Loading hostels...
+                                      </p>
+                                    </div>
+                                  ) : (
                                     <Autocomplete
-                                      options={paymentPeriodOptions}
-                                      value={paymentPeriod}
-                                      onChange={(e, value) => {
-                                        setPaymentPeriod(value);
-                                        setQuantity(1);
-                                        if (
-                                          ["Semister", "Year"].includes(
-                                            value?.label,
-                                          )
-                                        ) {
-                                          setQuantity(
-                                            Number(value?.quantity) || 1,
-                                          );
-                                        }
-                                      }}
+                                      options={hostelOptions}
+                                      value={selectedHostel}
+                                      onChange={(e, value) =>
+                                        setSelectedHostel(value)
+                                      }
                                       renderInput={(params) => (
                                         <TextField
                                           {...params}
-                                          placeholder="Select a Payment Period"
+                                          placeholder="Select a hostel"
                                           variant="outlined"
                                           size="small"
                                           className="bg-gray-50"
                                         />
                                       )}
-                                      disabled={loadingCategory || submitting}
+                                      disabled={loadingHostels || submitting}
                                       sx={{
                                         "& .MuiOutlinedInput-root": {
                                           backgroundColor: "#f9fafb",
                                         },
                                       }}
                                     />
-                                  </>
-                                )}
-                              </div>
-                            </div>
-
-                            {paymentPeriod?.label === "Month" && (
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="mt-4 w-full">
-                                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Months to pay for{" "}
-                                    <span className="text-red-500">*</span>
-                                  </label>
-                                  <TextField
-                                    type="number"
-                                    value={quantity}
-                                    onChange={(event) => {
-                                      const parsed = parseInt(
-                                        event.target.value,
-                                        10,
-                                      );
-                                      setQuantity(
-                                        Number.isNaN(parsed)
-                                          ? 1
-                                          : Math.max(1, parsed),
-                                      );
-                                    }}
-                                    inputProps={{ min: 1 }}
-                                    variant="outlined"
-                                    size="small"
-                                    className="bg-gray-50 w-[100%]"
-                                    disabled={submitting}
-                                  />
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Enter how many months you want to pay for.
-                                  </p>
-                                </div>
-
-                                <div className="w-full mt-4">
-                                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Reason{" "}
-                                    <span className="text-red-500">*</span>
-                                  </label>
-                                  <TextField
-                                    type="text"
-                                    value={paymentReason}
-                                    onChange={(e) =>
-                                      setPaymentReason(e.target.value)
-                                    }
-                                    variant="outlined"
-                                    size="small"
-                                    className="bg-gray-50 w-[100%]"
-                                    disabled={submitting}
-                                  />
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Enter a reason why you want to pay for{" "}
-                                    {quantity} month(s).
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-
-                            {selectedRoom ? (
-                              <div className="bg-white/70 rounded-lg p-4 border border-blue-100 align-center flex flex-col">
-                                <div className="flex w-full  justify-between">
-                                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                    Room
-                                  </p>
-                                  <p className="text-base font-semibold text-gray-900">
-                                    {selectedHostel?.label} {">"}{" "}
-                                    {selectedBlock?.label} {" > "}
-                                    <span className="text-blue-500">
-                                      {selectedRoom?.label}
-                                    </span>
-                                  </p>
-                                </div>
-
-                                <hr class="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
-                                <div className="flex w-full  justify-between">
-                                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                    Total Price
-                                  </p>
-                                  <p className="text-base font-semibold text-gray-900">
-                                    {getPriceUnit(studentData?.Customer_Type)}{" "}
-                                    {selectedRoomPrice?.Price
-                                      ? formatter?.format(
-                                          selectedRoomPrice?.Price * quantity,
-                                        )
-                                      : 0}
-                                  </p>
-                                </div>
-                                {validatedData?.cautionStatus ===
-                                  "make_payment" && (
-                                  <>
-                                    <hr class="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
-                                    <div className="flex w-full  justify-between">
-                                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                        Caution Money
-                                      </p>
-                                      <p className="text-base font-semibold text-gray-900">
-                                        TZS{" "}
-                                        {
-                                          validatedData?.cautionMoney
-                                            ?.Item_Price
-                                        }
-                                      </p>
-                                    </div>
-                                    <hr class="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
-                                    <div className="flex w-full  justify-between">
-                                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                        Total Amount
-                                      </p>
-                                      <p className="text-base font-semibold text-gray-900">
-                                        TZS{" "}
-                                        {selectedRoomPrice?.Price
-                                          ? formatter?.format(
-                                              selectedRoomPrice?.Price *
-                                                quantity +
-                                                parseInt(
-                                                  validatedData?.cautionMoney
-                                                    ?.Item_Price,
-                                                ),
-                                            )
-                                          : 0}
-                                      </p>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            ) : null}
-                            {validatedData?.cautionStatus ===
-                              "make_payment" && (
-                              <div className="mt-4 bg-blue-50 rounded-xl px-4 py-3 flex items-start gap-2.5 text-[13px] text-blue-800 leading-relaxed">
-                                <LuInfo className="w-4 h-4 shrink-0 mt-0.5 text-blue-600" />
-                                <span>
-                                  You are required to pay caution money of{" "}
-                                  <strong>
-                                    TZS{" "}
-                                    {validatedData?.cautionMoney?.Item_Price}
-                                  </strong>{" "}
-                                  for the academic year{" "}
-                                  {appWindow?.semester?.Academic_Year?.replace(
-                                    "_",
-                                    "-",
                                   )}
-                                  . This amount is non-refundable upon
-                                  completion of your academic year.
-                                </span>
+                                </div>
+
+                                {/* Block Selection */}
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Block{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  {loadingBlocks ? (
+                                    <div>
+                                      <LinearProgress />
+                                      <p className="text-xs text-gray-500 mt-2">
+                                        Loading blocks...
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <Autocomplete
+                                      options={blockOptions}
+                                      value={selectedBlock}
+                                      onChange={(e, value) =>
+                                        setSelectedBlock(value)
+                                      }
+                                      renderInput={(params) => (
+                                        <TextField
+                                          {...params}
+                                          placeholder={
+                                            selectedHostel
+                                              ? "Select a block"
+                                              : "Please select a hostel first"
+                                          }
+                                          variant="outlined"
+                                          size="small"
+                                          className="bg-gray-50"
+                                        />
+                                      )}
+                                      disabled={
+                                        !selectedHostel ||
+                                        loadingBlocks ||
+                                        submitting
+                                      }
+                                      sx={{
+                                        "& .MuiOutlinedInput-root": {
+                                          backgroundColor: "#f9fafb",
+                                        },
+                                      }}
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Floor Selection */}
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Floor{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  {loadingFloors ? (
+                                    <div>
+                                      <LinearProgress />
+                                      <p className="text-xs text-gray-500 mt-2">
+                                        Loading floors...
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <Autocomplete
+                                      options={floorOptions}
+                                      value={selectedFloor}
+                                      onChange={(e, value) =>
+                                        setSelectedFloor(value)
+                                      }
+                                      renderInput={(params) => (
+                                        <TextField
+                                          {...params}
+                                          placeholder={
+                                            selectedBlock
+                                              ? "Select a floor"
+                                              : "Please select a block first"
+                                          }
+                                          variant="outlined"
+                                          size="small"
+                                          className="bg-gray-50"
+                                        />
+                                      )}
+                                      disabled={
+                                        !selectedBlock ||
+                                        loadingFloors ||
+                                        submitting
+                                      }
+                                      sx={{
+                                        "& .MuiOutlinedInput-root": {
+                                          backgroundColor: "#f9fafb",
+                                        },
+                                      }}
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Room Type Selection */}
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Room Type{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+
+                                  <Autocomplete
+                                    options={ROOM_TYPES}
+                                    value={selectedRoomType}
+                                    onChange={(e, value) =>
+                                      setSelectedRoomType(value)
+                                    }
+                                    renderInput={(params) => (
+                                      <TextField
+                                        {...params}
+                                        placeholder="Select a room type"
+                                        variant="outlined"
+                                        size="small"
+                                        className="bg-gray-50"
+                                      />
+                                    )}
+                                    disabled={!selectedFloor || submitting}
+                                    sx={{
+                                      "& .MuiOutlinedInput-root": {
+                                        backgroundColor: "#f9fafb",
+                                      },
+                                    }}
+                                  />
+                                </div>
+
+                                {/* Room Selection */}
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Room{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  {loadingRooms ? (
+                                    <div>
+                                      <LinearProgress />
+                                      <p className="text-xs text-gray-500 mt-2">
+                                        Loading rooms...
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <Autocomplete
+                                      options={roomOptions}
+                                      value={selectedRoom}
+                                      onChange={(e, value) =>
+                                        setSelectedRoom(value)
+                                      }
+                                      renderInput={(params) => (
+                                        <TextField
+                                          {...params}
+                                          placeholder={
+                                            selectedRoomType
+                                              ? "Select a room"
+                                              : "Please select a floor first"
+                                          }
+                                          variant="outlined"
+                                          size="small"
+                                          className="bg-gray-50"
+                                        />
+                                      )}
+                                      disabled={
+                                        !selectedRoomType ||
+                                        loadingRooms ||
+                                        submitting
+                                      }
+                                      sx={{
+                                        "& .MuiOutlinedInput-root": {
+                                          backgroundColor: "#f9fafb",
+                                        },
+                                      }}
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Room Prices Selection */}
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Room Price{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  {loadingRoomPrices ? (
+                                    <div>
+                                      <LinearProgress />
+                                      <p className="text-xs text-gray-500 mt-2">
+                                        Loading room prices...
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <Autocomplete
+                                      options={roomPrices}
+                                      value={selectedRoomPrice}
+                                      disabled={true}
+                                      onChange={(e, value) =>
+                                        setSelectedRoomPrice(value)
+                                      }
+                                      renderInput={(params) => (
+                                        <TextField
+                                          {...params}
+                                          placeholder="Select a room price"
+                                          variant="outlined"
+                                          size="small"
+                                          className="bg-gray-50"
+                                        />
+                                      )}
+                                      sx={{
+                                        "& .MuiOutlinedInput-root": {
+                                          backgroundColor: "#f9fafb",
+                                        },
+                                      }}
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Payment Period Selection */}
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Payment Period{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  {loadingCategory ? (
+                                    <div>
+                                      <LinearProgress />
+                                      <p className="text-xs text-gray-500 mt-2">
+                                        Loading categories...
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <Autocomplete
+                                        options={paymentPeriodOptions}
+                                        value={paymentPeriod}
+                                        onChange={(e, value) => {
+                                          setPaymentPeriod(value);
+                                          setQuantity(1);
+                                          if (
+                                            ["Semister", "Year"].includes(
+                                              value?.label,
+                                            )
+                                          ) {
+                                            setQuantity(
+                                              Number(value?.quantity) || 1,
+                                            );
+                                          }
+                                        }}
+                                        renderInput={(params) => (
+                                          <TextField
+                                            {...params}
+                                            placeholder="Select a Payment Period"
+                                            variant="outlined"
+                                            size="small"
+                                            className="bg-gray-50"
+                                          />
+                                        )}
+                                        disabled={
+                                          loadingCategory || submitting
+                                        }
+                                        sx={{
+                                          "& .MuiOutlinedInput-root": {
+                                            backgroundColor: "#f9fafb",
+                                          },
+                                        }}
+                                      />
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                            {/* Submit Button - Full Width */}
-                            <div className="pt-2">
-                              <button
-                                onClick={submitForm}
-                                disabled={
-                                  submitting ||
-                                  !selectedHostel ||
-                                  !selectedBlock ||
-                                  !selectedFloor ||
-                                  !selectedRoom
-                                }
-                                className="w-full cursor-pointer h-12 bg-lime-700 text-white rounded-lg font-semibold hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
-                              >
-                                {submitting ? "Proccessing..." : "Pay Now"}
-                              </button>
+
+                              {paymentPeriod?.label === "Month" && (
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="mt-4 w-full">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Months to pay for{" "}
+                                      <span className="text-red-500">*</span>
+                                    </label>
+                                    <TextField
+                                      type="number"
+                                      value={quantity}
+                                      onChange={(event) => {
+                                        const parsed = parseInt(
+                                          event.target.value,
+                                          10,
+                                        );
+                                        setQuantity(
+                                          Number.isNaN(parsed)
+                                            ? 1
+                                            : Math.max(1, parsed),
+                                        );
+                                      }}
+                                      inputProps={{ min: 1 }}
+                                      variant="outlined"
+                                      size="small"
+                                      className="bg-gray-50 w-[100%]"
+                                      disabled={submitting}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Enter how many months you want to pay for.
+                                    </p>
+                                  </div>
+
+                                  <div className="w-full mt-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Reason{" "}
+                                      <span className="text-red-500">*</span>
+                                    </label>
+                                    <TextField
+                                      type="text"
+                                      value={paymentReason}
+                                      onChange={(e) =>
+                                        setPaymentReason(e.target.value)
+                                      }
+                                      variant="outlined"
+                                      size="small"
+                                      className="bg-gray-50 w-[100%]"
+                                      disabled={submitting}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Enter a reason why you want to pay for{" "}
+                                      {quantity} month(s).
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+
+                              {selectedRoom ? (
+                                <div className="bg-white/70 rounded-lg p-4 border border-blue-100 align-center flex flex-col">
+                                  <div className="flex w-full  justify-between">
+                                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                      Room
+                                    </p>
+                                    <p className="text-base font-semibold text-gray-900">
+                                      {selectedHostel?.label} {">"}{" "}
+                                      {selectedBlock?.label} {" > "}
+                                      <span className="text-blue-500">
+                                        {selectedRoom?.label}
+                                      </span>
+                                    </p>
+                                  </div>
+
+                                  <hr class="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
+                                  <div className="flex w-full  justify-between">
+                                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                      Total Price
+                                    </p>
+                                    <p className="text-base font-semibold text-gray-900">
+                                      {getPriceUnit(studentData?.Customer_Type)}{" "}
+                                      {selectedRoomPrice?.Price
+                                        ? formatter?.format(
+                                            selectedRoomPrice?.Price * quantity,
+                                          )
+                                        : 0}
+                                    </p>
+                                  </div>
+                                  {validatedData?.cautionStatus ===
+                                    "make_payment" && (
+                                    <>
+                                      <hr class="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
+                                      <div className="flex w-full  justify-between">
+                                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                          Caution Money
+                                        </p>
+                                        <p className="text-base font-semibold text-gray-900">
+                                          TZS{" "}
+                                          {
+                                            validatedData?.cautionMoney
+                                              ?.Item_Price
+                                          }
+                                        </p>
+                                      </div>
+                                      <hr class="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
+                                      <div className="flex w-full  justify-between">
+                                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                          Total Amount
+                                        </p>
+                                        <p className="text-base font-semibold text-gray-900">
+                                          TZS{" "}
+                                          {selectedRoomPrice?.Price
+                                            ? formatter?.format(
+                                                selectedRoomPrice?.Price *
+                                                  quantity +
+                                                  parseInt(
+                                                    validatedData?.cautionMoney
+                                                      ?.Item_Price,
+                                                  ),
+                                              )
+                                            : 0}
+                                        </p>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              ) : null}
+                              {validatedData?.cautionStatus ===
+                                "make_payment" && (
+                                <div className="mt-4 bg-blue-50 rounded-xl px-4 py-3 flex items-start gap-2.5 text-[13px] text-blue-800 leading-relaxed">
+                                  <LuInfo className="w-4 h-4 shrink-0 mt-0.5 text-blue-600" />
+                                  <span>
+                                    You are required to pay caution money of{" "}
+                                    <strong>
+                                      TZS{" "}
+                                      {validatedData?.cautionMoney?.Item_Price}
+                                    </strong>{" "}
+                                    for the academic year{" "}
+                                    {appWindow?.semester?.Academic_Year?.replace(
+                                      "_",
+                                      "-",
+                                    )}
+                                    . This amount is non-refundable upon
+                                    completion of your academic year.
+                                  </span>
+                                </div>
+                              )}
+                              {/* Submit Button - Full Width */}
+                              <div className="pt-2">
+                                <button
+                                  onClick={submitForm}
+                                  disabled={
+                                    submitting ||
+                                    !selectedHostel ||
+                                    !selectedBlock ||
+                                    !selectedFloor ||
+                                    !selectedRoom
+                                  }
+                                  className="w-full cursor-pointer h-12 bg-lime-700 text-white rounded-lg font-semibold hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+                                >
+                                  {submitting ? "Proccessing..." : "Pay Now"}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                      {/* // )} */}
+                      )}
                     </>
                   )}
 

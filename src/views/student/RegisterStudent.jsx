@@ -423,11 +423,14 @@ const RegisterStudent = ({ onBack }) => {
       if (!response.ok) {
         setLoading(false);
 
+         console.log("API Response 1:", response);
+
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
           toast.error("Request timeout. Please try again");
         } else {
+           console.log("API Response 2:", response?.data);
           // ✅ Use the server's error message if available
           const serverMessage = response.data?.error || response.data?.message;
           toast.error(

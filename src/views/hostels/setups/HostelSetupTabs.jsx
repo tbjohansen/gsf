@@ -11,6 +11,7 @@ import { IconButton } from "@mui/material";
 import { MdArrowBack } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import Reasons from "../../reasons/Reasons";
+import Configurations from "./Configurations";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -76,6 +77,7 @@ export default function HostelSetupTabs() {
           <Tab label="ACADEMIC YEAR SETUPS" {...a11yProps(0)} />
           <Tab label="PAYMENT CATEGORY TYPES" {...a11yProps(1)} />
           <Tab label="REVOKE ROOM ALLOCATION REASONS" {...a11yProps(2)} />
+          <Tab label="CONFIGURATIONS" {...a11yProps(3)} />
         </Tabs>
 
         <TabPanel value={value} index={0}>
@@ -86,6 +88,17 @@ export default function HostelSetupTabs() {
         </TabPanel>
         <TabPanel value={value} index={2}>
           <Reasons status={"hostel"} />
+        </TabPanel>
+        <TabPanel value={value} index={3}>
+          <Configurations
+            initialBookingMode={false}
+            onSubmit={async (data) => {
+              await fetch("/api/config", {
+                method: "POST",
+                body: JSON.stringify(data),
+              });
+            }}
+          />
         </TabPanel>
       </Box>
     </>

@@ -686,6 +686,14 @@ const Home = () => {
               headerValue={"Customer_Status"}
             />
             <ManagementCard
+              title="Pending Access Requests"
+              icon={MdAssignmentAdd}
+              items={assigned}
+              route="/projects/hostels/pending-access-requests"
+              header={"Status"}
+              headerValue={"Room_Status"}
+            />
+            <ManagementCard
               title="Pending Room Assignment"
               icon={MdAssignmentAdd}
               items={assigned}

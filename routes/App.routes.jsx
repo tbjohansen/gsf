@@ -80,6 +80,7 @@ import OxygenSetupTabs from "../src/views/oxygen-requisition/setups/OxygenSetupT
 import CylinderInventory from "../src/views/oxygen-requisition/CylinderInventory";
 import OxygenPayments from "../src/views/oxygen-requisition/OxygenPayments";
 import RealEstateSetups from "../src/views/real-estate/setups/RealEstateSetups";
+import PendingApprovals from "../src/views/hostels/PendingApprovals";
 
 const LoginElement = () => <Login />;
 
@@ -502,6 +503,12 @@ const PendingRoomAssignmentElement = () => (
   </AppLayout>
 );
 
+const PendingAccessElement = () => (
+  <AppLayout>
+    <PendingApprovals />
+  </AppLayout>
+);
+
 const RoomAssignedElement = () => (
   <AppLayout>
     <AssignedStudents />
@@ -916,6 +923,11 @@ const AppRoutes = () => {
         <Route
           path="/projects/hostels/students-rooms/:requestID"
           element={<StudentRoomDetailsElement />}
+        />
+
+        <Route
+          path="/projects/hostels/pending-access-requests"
+          element={<PendingAccessElement />}
         />
 
         {/* farms */}
