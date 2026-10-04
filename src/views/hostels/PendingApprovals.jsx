@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { capitalize } from "lodash";
 import Badge from "../../components/Badge";
 import Breadcrumb from "../../components/Breadcrumb";
-import { IconButton, TextField } from "@mui/material";
+import { Button, IconButton, TextField } from "@mui/material";
 import { MdArrowBack } from "react-icons/md";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -30,7 +30,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 export default function PendingApprovals({ status }) {
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [users, setUsers] = useState([]);
   const [name, setName] = useState("");
@@ -38,6 +38,7 @@ export default function PendingApprovals({ status }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [approvingId, setApprovingId] = useState(null);
 
   const [pagination, setPagination] = useState({
     total: 0,
@@ -86,26 +87,13 @@ export default function PendingApprovals({ status }) {
         return;
       }
 
-      const responseData = response?.data?.data;
-      const unitsData = responseData?.data || [];
-
-      const newData = unitsData?.map((user, index) => ({
+      const userData = response?.data;
+      const newData = userData?.map((user, index) => ({
         ...user,
-        key:
-          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
+        key: index + 1,
       }));
 
       setUsers(Array.isArray(newData) ? newData : []);
-
-      // Update pagination state
-      setPagination({
-        total: responseData?.total || 0,
-        perPage: responseData?.per_page || 25,
-        currentPage: responseData?.current_page || 1,
-        lastPage: responseData?.last_page || 1,
-        from: responseData?.from || 0,
-        to: responseData?.to || 0,
-      });
 
       setLoading(false);
     } catch (error) {
@@ -115,21 +103,47 @@ export default function PendingApprovals({ status }) {
     }
   };
 
+  const handleApprove = async (row) => {
+    const accessId = row.access_ID || row.access_id || row.id;
+    if (!accessId) {
+      toast.error("Access ID not found for this request");
+      return;
+    }
+
+    setApprovingId(accessId);
+    try {
+      const response = await apiClient.put(`/request-access/${accessId}`);
+
+      if (!response.ok || response.data?.error || response.data?.code >= 400) {
+        toast.error(response.data?.error || "Failed to approve access request");
+        return;
+      }
+
+      // Update the row's status locally and remove the button
+      setUsers((prev) =>
+        prev.map((user) =>
+          (user.access_ID || user.access_id || user.id) === accessId
+            ? { ...user, status: "approved", _approved: true }
+            : user,
+        ),
+      );
+
+      toast.success("Access request approved successfully");
+    } catch (error) {
+      console.error("Approve access request error:", error);
+      toast.error("Failed to approve access request");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
   const handleChangePage = (event, newPage) => {
-    setPage(newPage + 1);
+    setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    const newRowsPerPage = parseInt(event.target.value, 25);
-    setRowsPerPage(newRowsPerPage);
-    setPage(1);
-  };
-
-  const handleRowClick = (row) => {
-    setSelectedRow(row);
-    navigate(
-      `/projects/hostels/pending-room-assignments/${row?.Request_ID}/assign-room`,
-    );
+    setRowsPerPage(+event.target.value);
+    setPage(0);
   };
 
   // Inside the users component, replace the columns definition with:
@@ -137,73 +151,49 @@ export default function PendingApprovals({ status }) {
     () => [
       { id: "key", label: "S/N" },
       {
-        id: "name",
+        id: "student_name",
         label: "Student Name",
         minWidth: 170,
-        format: (row, value) => (
-          <div>{value?.customer?.Customer_Name}</div>
-        ),
+        format: (row, value) => <div>{value}</div>,
       },
       {
-        id: "Gender",
+        id: "gender",
         label: "Gender",
-        format: (row, value) => (
-          <span>{capitalize(value?.customer?.Gender)}</span>
-        ),
+        format: (row, value) => <span>{capitalize(value)}</span>,
       },
-      // {
-      //   id: "Nationality",
-      //   label: "Nationality",
-      //   format: (row, value) => (
-      //     <span>{capitalize(value?.customer?.Nationality)}</span>
-      //   ),
-      // },
       {
-        id: "Phone_Number",
+        id: "phone_number",
         label: "Phone",
-        format: (row, value) => (
-          <span>{capitalize(value?.customer?.Phone_Number)}</span>
-        ),
+        format: (row, value) => <span>{capitalize(value)}</span>,
       },
       {
-        id: "Email",
+        id: "email",
         label: "Email",
-        format: (row, value) => (
-          <span>{value?.customer?.Email}</span>
-        ),
+        format: (row, value) => <span>{value}</span>,
       },
       {
-        id: "Student_ID",
+        id: "student_id",
         label: "Student ID",
         minWidth: 170,
-        format: (row, value) => (
-          <span>
-            {value?.customer?.Student_ID || value?.customer?.Admission_ID}
-          </span>
-        ),
+        format: (row, value) => <span>{value}</span>,
       },
       {
         id: "Program_Study",
         label: "Program",
-        format: (row, value) => <span>{value?.customer?.Program_Study}</span>,
+        format: (row, value) => <span>{value}</span>,
       },
       {
         id: "Year_Study",
         label: "Year",
-        format: (row, value) => <span>{value?.customer?.Year_Study}</span>,
+        format: (row, value) => <span>{value}</span>,
       },
       {
-        id: "Semester",
-        label: "Semester",
-        format: (row, value) => <span>{value?.customer?.Semester}</span>,
-      },
-      {
-        id: "Customer_Status",
+        id: "status",
         label: "Status",
-        format: (value) => (
+        format: (row, value) => (
           <Badge
             name={capitalize(value)}
-            color={value === "paid" ? "green" : "error"}
+            color={value === "pending" ? "error" : "green"}
           />
         ),
       },
@@ -211,10 +201,36 @@ export default function PendingApprovals({ status }) {
         id: "created_at",
         label: "Created At",
         minWidth: 170,
-        format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+        format: (row, value) => <span>{formatDateTimeForDb(value)}</span>,
+      },
+      {
+        id: "action",
+        label: "Action",
+        minWidth: 170,
+        format: (row, value) => {
+          const isApproved =
+            row._approved || row.status?.toLowerCase() === "approved";
+
+          if (isApproved) {
+            return null;
+          }
+
+          const accessId = row.access_ID || row.access_id || row.id;
+
+          return (
+            <button
+              className="flex w-[80%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={approvingId === accessId}
+              onClick={() => handleApprove(row)}
+              sx={{ textTransform: "none" }}
+            >
+              {approvingId === accessId ? "Approving..." : "Approve"}
+            </button>
+          );
+        },
       },
     ],
-    [loadData, status],
+    [approvingId],
   );
 
   return (
@@ -269,20 +285,15 @@ export default function PendingApprovals({ status }) {
           <Table stickyHeader aria-label="sticky table">
             <TableHead>
               <TableRow>
-                {columns
-                  .filter(
-                    (column) =>
-                      typeof column.show === "undefined" || !!column.show,
-                  )
-                  .map((column) => (
-                    <StyledTableCell
-                      key={column.id}
-                      align={column.align}
-                      style={{ minWidth: column.minWidth }}
-                    >
-                      {column.label}
-                    </StyledTableCell>
-                  ))}
+                {columns.map((column) => (
+                  <StyledTableCell
+                    key={column.id}
+                    align={column.align}
+                    style={{ minWidth: column.minWidth }}
+                  >
+                    {column.label}
+                  </StyledTableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -293,69 +304,56 @@ export default function PendingApprovals({ status }) {
                   </TableCell>
                 </TableRow>
               )}
-              {users?.map((row) => {
-                return (
-                  <TableRow
-                    hover
-                    role="checkbox"
-                    tabIndex={-1}
-                    key={row.key || row.id}
-                    onClick={() => handleRowClick(row)}
-                    sx={{
-                      cursor: "pointer",
-                      backgroundColor:
-                        selectedRow?.key === row.key
-                          ? "rgba(0, 0, 0, 0.04)"
-                          : "inherit",
-                      "&:hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.08)",
-                      },
-                    }}
-                  >
-                    {columns
-                      .filter(
-                        (column) =>
-                          typeof column.show === "undefined" || !!column.show,
-                      )
-                      .map((column) => {
+              {users
+                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((row) => {
+                  return (
+                    <TableRow
+                      hover
+                      role="checkbox"
+                      tabIndex={-1}
+                      key={row.key || row.id}
+                      sx={{
+                        cursor: "pointer",
+                        backgroundColor:
+                          selectedRow?.key === row.key
+                            ? "rgba(0, 0, 0, 0.04)"
+                            : "inherit",
+                        "&:hover": {
+                          backgroundColor: "rgba(0, 0, 0, 0.08)",
+                        },
+                      }}
+                    >
+                      {columns.map((column) => {
                         const value = row[column.id];
                         return (
                           <TableCell
                             key={column.id}
                             align={column.align}
                             onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
+                              if (column.id === "action") {
                                 e.stopPropagation();
                               }
                             }}
                           >
-                            {column.format
-                              ? column.format(value, row, handleRowClick)
-                              : value}
+                            {column.format ? column.format(row, value) : value}
                           </TableCell>
                         );
                       })}
-                  </TableRow>
-                );
-              })}
+                    </TableRow>
+                  );
+                })}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[25, 50, 100, 1000]}
+          rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={pagination.total}
+          count={users?.length}
           rowsPerPage={rowsPerPage}
-          page={page - 1}
+          page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          labelDisplayedRows={({ from, to, count }) =>
-            `${from}-${to} of ${count}`
-          }
-          showFirstButton
-          showLastButton
         />
       </Paper>
     </>

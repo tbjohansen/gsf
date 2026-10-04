@@ -66,6 +66,8 @@ const Student = () => {
   // ✅ Booking mode + approval tracking from validate-student
   const [bookingMode, setBookingMode] = useState(false);
   const [bookingApproved, setBookingApproved] = useState(null); // null = unknown
+  const [approvalStatus, setApprovalStatus] = useState(null); // null | "pending" | "approved" | ...
+  const [requestingApproval, setRequestingApproval] = useState(false);
 
   // Step 2: Hostel selection form
   const [hostels, setHostels] = useState([]);
@@ -111,6 +113,7 @@ const Student = () => {
     // ✅ Clear booking flags so a fresh validate re-reads them
     setBookingMode(false);
     setBookingApproved(null);
+    setApprovalStatus(null);
   };
 
   const verifySangira = useCallback(async () => {
@@ -172,7 +175,7 @@ const Student = () => {
     return target.diff(now, "seconds");
   }
 
-  // Load hostels when step 2 is reached
+  // Load room prices when a room is selected in step 2
   useEffect(() => {
     if (currentStep === 2 && selectedRoom) {
       loadRoomPrices(selectedRoom.id);
@@ -224,7 +227,7 @@ const Student = () => {
     }
   }, [selectedBlock, selectedHostel]);
 
-  // Load rooms when floor is selected
+  // Reset room selections when floor is selected
   useEffect(() => {
     if (selectedFloor?.id && selectedBlock?.id && selectedHostel?.id) {
       // loadRooms(selectedFloor.id);
@@ -237,7 +240,7 @@ const Student = () => {
     }
   }, [selectedFloor, selectedBlock, selectedHostel]);
 
-  // Load rooms when floor is selected
+  // Load rooms when room type is selected
   useEffect(() => {
     if (
       selectedFloor?.id &&
@@ -407,12 +410,14 @@ const Student = () => {
       const payload = response?.data?.data;
       const studentInfo = payload?.customer;
 
-      // ✅ Capture booking mode + approval flag from validate-student
+      // ✅ Capture booking mode + approval status from validate-student
       const mode = !!payload?.booking_status;
-      const approved = payload?.customer?.booking_approved === true;
+      const status = payload?.request_approval ?? null; // missing → null
+      const approved = status === "approved";
 
       setBookingMode(mode);
       setBookingApproved(approved);
+      setApprovalStatus(status);
 
       let accomodationInfo = payload?.studentRequest;
       if (!accomodationInfo.length) {
@@ -457,26 +462,21 @@ const Student = () => {
     }
   };
 
-  // ✅ Request approval — just notifies the user. No new endpoint.
+  // ✅ Request booking approval
   const handleRequestApproval = async (e) => {
     e.preventDefault();
+    if (requestingApproval) return;
 
-    // setLoading(true);
+    setRequestingApproval(true);
 
     try {
-      // Prepare the data to send (match your API field names)
       const data = {
         Student_ID: studentId.trim(),
       };
 
-      console.log("Submitting hostel data:", data);
-
-      // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.post("/request-access", data);
 
       if (!response.ok) {
-        // setLoading(false);
-
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
         } else if (response.problem === "TIMEOUT_ERROR") {
@@ -487,25 +487,24 @@ const Student = () => {
           toast.error(
             typeof serverMessage === "string"
               ? serverMessage
-              : "Failed to create hostel",
+              : "Failed to submit approval request",
           );
         }
         return;
       }
 
-      // Success
-      // setLoading(false);
+      // Success → mark as pending so the button is replaced right away
+      setApprovalStatus("pending");
       toast.success(
         "Booking approval request submitted. Please wait for confirmation from the warden's office.",
       );
     } catch (error) {
-      console.error("Create hostel error:", error);
-      // setLoading(false);
+      console.error("Request approval error:", error);
       toast.error("An unexpected error occurred. Please try again");
+    } finally {
+      setRequestingApproval(false);
     }
   };
-
-  // const sangiraTimer = useRef();
 
   useEffect(() => {
     let sangiraTimer = null;
@@ -843,7 +842,7 @@ const Student = () => {
       setSubmitting(false);
       toast.success("Invoice generated successfully!");
 
-      // Reset countdown to 45 minutes
+      // Reset countdown
       setCountdown(
         secondsUntilExpiration(invoiceInfo?.sangiraData?.Expire_Date),
       );
@@ -934,6 +933,7 @@ const Student = () => {
         // ✅ reset booking flags too
         setBookingMode(false);
         setBookingApproved(null);
+        setApprovalStatus(null);
       }, 3000); // Wait 3 seconds before redirecting
     }
   }, [countdown, currentStep, invoiceData]);
@@ -1151,9 +1151,9 @@ const Student = () => {
                               </h3>
                             </div>
                             <p className="text-gray-600">
-                              Your accommodation booking is pending approval.
-                              Please submit a request to proceed with your
-                              booking.
+                              {approvalStatus === "pending"
+                                ? "Your booking approval request has been submitted and is awaiting review."
+                                : "Booking requires approval. Please submit a request to proceed with your booking."}
                             </p>
                           </div>
 
@@ -1209,16 +1209,35 @@ const Student = () => {
                             </div>
                           </div>
 
-                          {/* Request Approval Button */}
-                          <div className="flex justify-end">
-                            <button
-                              onClick={handleRequestApproval}
-                              className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-white bg-green-600 hover:bg-green-700 active:scale-95 transition-all shadow-md"
-                            >
-                              <LuCircleCheck className="w-5 h-5" />
-                              Request Approval
-                            </button>
-                          </div>
+                          {/* ✅ Already requested → follow-up notice, otherwise → request button */}
+                          {approvalStatus === "pending" ? (
+                            <div className="bg-blue-50 rounded-xl px-5 py-4 border border-blue-200 flex items-start gap-3">
+                              <LuInfo className="w-5 h-5 shrink-0 mt-0.5 text-blue-600" />
+                              <div>
+                                <p className="font-semibold text-gray-800">
+                                  Approval already requested
+                                </p>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  You have already submitted a booking approval
+                                  request. Please follow up with the warden's
+                                  office for confirmation.
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end">
+                              <button
+                                onClick={handleRequestApproval}
+                                disabled={requestingApproval}
+                                className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-white bg-green-600 hover:bg-green-700 active:scale-95 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <LuCircleCheck className="w-5 h-5" />
+                                {requestingApproval
+                                  ? "Submitting..."
+                                  : "Request Approval"}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1679,7 +1698,7 @@ const Student = () => {
                                     </p>
                                   </div>
 
-                                  <hr class="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
+                                  <hr className="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
                                   <div className="flex w-full  justify-between">
                                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                                       Total Price
@@ -1696,7 +1715,7 @@ const Student = () => {
                                   {validatedData?.cautionStatus ===
                                     "make_payment" && (
                                     <>
-                                      <hr class="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
+                                      <hr className="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
                                       <div className="flex w-full  justify-between">
                                         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                                           Caution Money
@@ -1709,7 +1728,7 @@ const Student = () => {
                                           }
                                         </p>
                                       </div>
-                                      <hr class="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
+                                      <hr className="my-4 border-t-0.5 opacity-25 stroke-grey-50 bg-neutral-100 dark:bg-white/10" />
                                       <div className="flex w-full  justify-between">
                                         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                                           Total Amount
@@ -1931,7 +1950,7 @@ const Student = () => {
                                         Floor
                                       </p>
                                       <p className="text-base font-semibold text-gray-900">
-                                        {getDisplayData("flow")}
+                                        {getDisplayData("floor")}
                                       </p>
                                     </div>
 
@@ -2416,7 +2435,7 @@ const Student = () => {
                                             </span>
                                           </p>
                                           <p className="text-xs text-gray-500 mt-1">
-                                            (Weha namba ya ankara)
+                                            (Weka namba ya ankara)
                                           </p>
                                         </div>
                                       </div>
@@ -2549,6 +2568,7 @@ const Student = () => {
                                     <input
                                       type="text"
                                       value={
+                                        studentData?.Customer_Name ||
                                         studentData?.customer?.Customer_Name ||
                                         ""
                                       }
@@ -2695,7 +2715,7 @@ const Student = () => {
                                     </label>
                                     <input
                                       type="text"
-                                      value={invoiceData?.Quantity}
+                                      value={invoiceData?.Quantity ?? ""}
                                       readOnly
                                       className="w-full p-2 border border-gray-300 rounded bg-gray-50 font-bold"
                                     />
