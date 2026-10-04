@@ -458,10 +458,51 @@ const Student = () => {
   };
 
   // ✅ Request approval — just notifies the user. No new endpoint.
-  const handleRequestApproval = () => {
-    toast.success(
-      "Booking approval request submitted. Please wait for confirmation from the warden's office.",
-    );
+  const handleRequestApproval = async (e) => {
+    e.preventDefault();
+
+    // setLoading(true);
+
+    try {
+      // Prepare the data to send (match your API field names)
+      const data = {
+        Student_ID: studentId.trim(),
+      };
+
+      console.log("Submitting hostel data:", data);
+
+      // Make API request - Bearer token is automatically included by apiClient
+      const response = await apiClient.post("/request-access", data);
+
+      if (!response.ok) {
+        // setLoading(false);
+
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to create hostel",
+          );
+        }
+        return;
+      }
+
+      // Success
+      // setLoading(false);
+      toast.success(
+        "Booking approval request submitted. Please wait for confirmation from the warden's office.",
+      );
+    } catch (error) {
+      console.error("Create hostel error:", error);
+      // setLoading(false);
+      toast.error("An unexpected error occurred. Please try again");
+    }
   };
 
   // const sangiraTimer = useRef();
@@ -1433,8 +1474,7 @@ const Student = () => {
                                 {/* Room Selection */}
                                 <div>
                                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Room{" "}
-                                    <span className="text-red-500">*</span>
+                                    Room <span className="text-red-500">*</span>
                                   </label>
                                   {loadingRooms ? (
                                     <div>
@@ -1556,9 +1596,7 @@ const Student = () => {
                                             className="bg-gray-50"
                                           />
                                         )}
-                                        disabled={
-                                          loadingCategory || submitting
-                                        }
+                                        disabled={loadingCategory || submitting}
                                         sx={{
                                           "& .MuiOutlinedInput-root": {
                                             backgroundColor: "#f9fafb",

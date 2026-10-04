@@ -58,7 +58,7 @@ export default function PendingApprovals({ status }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Customer_Status=paid&Room_Status=paid&Request_Type=hostel&limit=${rowsPerPage}&page=${page}`;
+      let url = `/request-access?&limit=${rowsPerPage}&page=${page}`;
 
       if (name) {
         url += `&Customer_Name=${name}`;
