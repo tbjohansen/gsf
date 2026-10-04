@@ -408,7 +408,7 @@ const Student = () => {
       const studentInfo = payload?.customer;
 
       // ✅ Capture booking mode + approval flag from validate-student
-      const mode = !!payload?.bookingMode;
+      const mode = !!payload?.booking_status;
       const approved = payload?.customer?.booking_approved === true;
 
       setBookingMode(mode);
