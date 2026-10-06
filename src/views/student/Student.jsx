@@ -610,7 +610,7 @@ const Student = () => {
   const loadPaymentPeriod = async () => {
     setLoadingCategory(true);
     try {
-      const response = await apiClient.get(`/payment-category`);
+      const response = await apiClient.get(`/payment-category/?status=active`);
 
       if (!response.ok) {
         setLoadingCategory(false);

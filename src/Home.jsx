@@ -37,6 +37,7 @@ const Home = () => {
   const [bedStats, setBedStatistics] = useState([]);
   const [studentRooms, setRooms] = useState([]);
   const [monthlyPayments, setMonthlyPayments] = useState([]);
+  const [access, setAccess] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const hasFetchedData = useRef(false);
@@ -258,6 +259,38 @@ const Home = () => {
     }
   };
 
+    const loadStudentsAccess = async () => {
+    setLoading(true);
+    try {
+      let url = `/request-access?&limit=25&page=1`;
+
+      const response = await apiClient.get(url);
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      if (response.data?.error || response.data?.code >= 400) {
+        setLoading(false);
+        return;
+      }
+
+      // Adjust based on your API response structure
+      const userData = response?.data;
+      const newData = userData?.map((user, index) => ({
+        ...user,
+        key: index + 1,
+      }));
+      // console.log(newData);
+      setAccess(Array.isArray(newData) ? newData : []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Fetch access error:", error);
+      setLoading(false);
+    }
+  };
+
   const loadMessages = async () => {
     setLoading(true);
     try {
@@ -432,6 +465,7 @@ const Home = () => {
       loadMonthlyPayments();
       loadReasons();
       loadStudentRooms();
+      loadStudentsAccess();
     }
   }, []);
 
@@ -688,7 +722,7 @@ const Home = () => {
             <ManagementCard
               title="Pending Access Requests"
               icon={MdAssignmentAdd}
-              items={assigned}
+              items={access}
               route="/projects/hostels/pending-access-requests"
               header={"Status"}
               headerValue={"Room_Status"}

@@ -6,6 +6,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { MdEdit } from "react-icons/md";
 import apiClient from "../../../api/Client";
+import { Autocomplete } from "@mui/material";
+import { capitalize } from "../../../../helpers";
 
 const style = {
   position: "absolute",
@@ -26,7 +28,26 @@ const EditPaymentCategory = ({ category, loadData }) => {
   };
 
   const [quantity, setQuantity] = useState(category?.Category_Quantity);
+  const [status, setStatus] = useState({
+    id: category?.status,
+    label: capitalize(category?.status),
+  });
   const [loading, setLoading] = useState(false);
+
+  const sortedStatus = [
+    {
+      id: "active",
+      label: "Active",
+    },
+    {
+      id: "inactive",
+      label: "Inactive",
+    },
+  ];
+
+  const statusOnChange = (e, value) => {
+    setStatus(value);
+  };
 
   const dispatch = useDispatch();
 
@@ -35,6 +56,11 @@ const EditPaymentCategory = ({ category, loadData }) => {
 
     if (!quantity || quantity < 1) {
       toast.error("Please enter valid category quantity");
+      return;
+    }
+
+    if (!status) {
+      toast.error("Please select status");
       return;
     }
 
@@ -53,6 +79,7 @@ const EditPaymentCategory = ({ category, loadData }) => {
       const data = {
         Category_Quantity: quantity,
         Category_ID: category?.Category_ID,
+        status: status?.id,
         Employee_ID: employeeId,
       };
 
@@ -74,7 +101,7 @@ const EditPaymentCategory = ({ category, loadData }) => {
           toast.error("Request timeout. Please try again");
         } else {
           toast.error(
-            response.data?.error || "Failed to update payment category"
+            response.data?.error || "Failed to update payment category",
           );
         }
         return;
@@ -139,6 +166,20 @@ const EditPaymentCategory = ({ category, loadData }) => {
                   onChange={(e) => setQuantity(e.target.value)}
                   disabled={loading}
                   autoFocus
+                />
+              </div>
+              <div className="w-full py-2 flex justify-center">
+                <Autocomplete
+                  id="combo-box-demo"
+                  options={sortedStatus}
+                  size="small"
+                  freeSolo
+                  className="w-[92%]"
+                  value={status}
+                  onChange={statusOnChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Status" />
+                  )}
                 />
               </div>
               <div className="w-full py-2 mt-5 flex justify-center">

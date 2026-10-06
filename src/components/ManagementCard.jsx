@@ -64,6 +64,7 @@ const ManagementCard = ({
       item?.Transaction_Date ||
       item?.Unit_Location ||
       item?.Reason_Description ||
+      item?.student_name ||
       formatDateTimeForDb(item?.created_at) ||
       ""
     );

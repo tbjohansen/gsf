@@ -7,7 +7,7 @@ import apiClient from "../../api/Client";
 import { Autocomplete } from "@mui/material";
 import DatePick from "../../components/DatePicker";
 import moment from "moment";
-import { formatDateForDb } from "../../../helpers";
+import { formatDateForDb, reportError } from "../../../helpers";
 
 const RegisterStudent = ({ onBack }) => {
   const [formData, setFormData] = useState({
@@ -417,59 +417,36 @@ const RegisterStudent = ({ onBack }) => {
       // Make API request
       const response = await apiClient.post("/register-customer", data);
 
-      console.log("API Response:", response);
+      if (response.ok && !response.data?.error) {
+        console.log("Success! Response data:", response.data);
+        setSubmitting(false);
+        toast.success("Student is registered successfully");
 
-      // Check if request was successful
-      if (!response.ok) {
-        setLoading(false);
-
-         console.log("API Response 1:", response);
-
-        if (response.problem === "NETWORK_ERROR") {
-          toast.error("Network error. Please check your connection");
-        } else if (response.problem === "TIMEOUT_ERROR") {
-          toast.error("Request timeout. Please try again");
-        } else {
-           console.log("API Response 2:", response?.data);
-          // ✅ Use the server's error message if available
-          const serverMessage = response.data?.error || response.data?.message;
-          toast.error(
-            typeof serverMessage === "string"
-              ? serverMessage
-              : "Failed to register student",
-          );
-        }
-        return;
+        // Reset form
+        setFormData({
+          Customer_Name: "",
+          Gender: null,
+          Nationality: null,
+          Phone_Number: "",
+          Email: "",
+          Student_ID: "",
+          Program_Study: null,
+          Year_Study: null,
+          Customer_Status: "active",
+          Customer_Nature: "student",
+          Customer_Type: "",
+          customer_origin: "",
+          Admission_ID: "",
+          Semester: "",
+          Date_Birth: null,
+          Emergency_Contact_Name: "",
+          Next_Kin_Relationship: "",
+          Emergency_Contact_Phone: "",
+        });
+      } else {
+        setSubmitting(false);
+        reportError(response, "Failed to register student");
       }
-
-      // Success
-      console.log("Success! Response data:", response.data);
-      setSubmitting(false);
-      toast.success("Student is registered successfully");
-
-      // Reset form
-      setFormData({
-        Customer_Name: "",
-        Gender: null,
-        Nationality: null,
-        Phone_Number: "",
-        Email: "",
-        Student_ID: "",
-        Program_Study: null,
-        Year_Study: null,
-        Customer_Status: "active",
-        Customer_Nature: "student",
-        Customer_Type: "",
-        customer_origin: "",
-        Admission_ID: "",
-        Semester: "",
-        Date_Birth: null,
-        Emergency_Contact_Name: "",
-        Next_Kin_Relationship: "",
-        Emergency_Contact_Phone: "",
-      });
-
-      console.log("Form reset complete");
     } catch (error) {
       console.error("Register student error:", error);
       setSubmitting(false);
