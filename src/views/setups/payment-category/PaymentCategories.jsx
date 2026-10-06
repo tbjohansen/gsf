@@ -8,13 +8,14 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import { formatDateTimeForDb } from "../../../../helpers";
+import { capitalize, formatDateTimeForDb } from "../../../../helpers";
 import apiClient from "../../../api/Client";
 import toast from "react-hot-toast";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import EditPaymentCategory from "./EditPaymentCategory";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Badge from "../../../components/Badge";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -48,7 +49,7 @@ export default function PaymentCategories() {
       if (!response.ok) {
         setLoading(false);
         toast.error(
-          response.data?.error || "Failed to fetch payment categories"
+          response.data?.error || "Failed to fetch payment categories",
         );
         return;
       }
@@ -56,7 +57,7 @@ export default function PaymentCategories() {
       if (response.data?.error || response.data?.code >= 400) {
         setLoading(false);
         toast.error(
-          response.data.error || "Failed to fetch payment categories"
+          response.data.error || "Failed to fetch payment categories",
         );
         return;
       }
@@ -93,6 +94,16 @@ export default function PaymentCategories() {
       { id: "Category_Name", label: "Category Name" },
       { id: "Category_Quantity", label: "Quantity" },
       {
+        id: "status",
+        label: "Status",
+        format: (value) => (
+          <Badge
+            name={capitalize(value)}
+            color={value === "active" ? "green" : "red"}
+          />
+        ),
+      },
+      {
         id: "created_at",
         label: "Created At",
         format: (value) => <span>{formatDateTimeForDb(value)}</span>,
@@ -108,7 +119,7 @@ export default function PaymentCategories() {
         ),
       },
     ],
-    [loadData]
+    [loadData],
   ); // Add loadData as dependency
 
   return (
@@ -144,46 +155,47 @@ export default function PaymentCategories() {
                   </TableCell>
                 </TableRow>
               )}
-              {PaymentCategories
-                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.key || row.id}
-                      sx={{
-                        backgroundColor:
-                          selectedRow?.key === row.key
-                            ? "rgba(0, 0, 0, 0.04)"
-                            : "inherit",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.08)",
-                        },
-                      }}
-                    >
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format ? column.format(value, row) : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
+              {PaymentCategories?.slice(
+                page * rowsPerPage,
+                page * rowsPerPage + rowsPerPage,
+              ).map((row) => {
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.key || row.id}
+                    sx={{
+                      backgroundColor:
+                        selectedRow?.key === row.key
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "inherit",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell
+                          key={column.id}
+                          align={column.align}
+                          onClick={(e) => {
+                            // Prevent click event from bubbling up to the row
+                            // when clicking on action buttons
+                            if (column.id === "actions") {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
+                          {column.format ? column.format(value, row) : value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
