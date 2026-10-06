@@ -389,6 +389,7 @@ const Student = () => {
       // Check if request was successful
       if (!response.ok) {
         setWindowLoading(false);
+        setValidatingStudent(false);
 
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
