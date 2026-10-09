@@ -62,7 +62,7 @@ export default function PendingApprovals({ status }) {
       let url = `/request-access?&limit=${rowsPerPage}&page=${page}`;
 
       if (name) {
-        url += `&Customer_Name=${name}`;
+        url += `&student_name=${name}`;
       }
 
       if (customerID) {
@@ -70,7 +70,7 @@ export default function PendingApprovals({ status }) {
       }
 
       if (phoneNumber) {
-        url += `&Phone_Number=${phoneNumber}`;
+        url += `&phone_number=${phoneNumber}`;
       }
 
       const response = await apiClient.get(url);

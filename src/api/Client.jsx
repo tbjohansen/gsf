@@ -3,8 +3,8 @@ import { create } from "apisauce";
 let isRedirecting = false;
 
 const apiClient = create({
-  // baseURL: "/v2/api",
-  baseURL: "http://41.188.172.117/api",
+  baseURL: "/v2/api",
+  // baseURL: "http://41.188.172.117/api",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
@@ -329,7 +329,7 @@ export const resetLoginFlag = () => {
   isLoginRequest = false;
 };
 
-// export const baseURL = "/v2";
-export const baseURL = "http://41.188.172.117";
+export const baseURL = "/v2";
+// export const baseURL = "http://41.188.172.117";
 
 export default apiClient;
