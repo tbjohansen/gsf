@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
-import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
-import { MdAdd, MdEdit } from "react-icons/md";
+import { MdEdit } from "react-icons/md";
 import apiClient from "../../api/Client";
 import Autocomplete from "@mui/material/Autocomplete";
 import { capitalize } from "lodash";
@@ -21,132 +20,213 @@ const style = {
   p: 4,
 };
 
+const sortedStatus = [
+  { id: "active", label: "Active" },
+  { id: "inactive", label: "Inactive" },
+];
+
 const EditFlow = ({ floor, loadData }) => {
   const [open, setOpen] = useState(false);
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => {
-    setOpen(false);
-  };
+
+  // ── Separate loading flags: wings dropdown fetch vs submit PUT ──
+  const [wingsLoading, setWingsLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   const { hostelID, blockID } = useParams();
-  const dispatch = useDispatch();
 
-  const [name, setName] = useState(floor?.Flow_Name);
-  const [status, setStatus] = useState({
-    id: floor?.Flow_Status,
-    label: capitalize(floor?.Flow_Status),
-  });
-  const [wing, setWing] = useState(floor?.Wing_ID);
+  // Synchronous double-click guard
+  const submitLockRef = useRef(false);
+
+  // ─────────────────────────────────────────────────────────────
+  // Form state
+  // ─────────────────────────────────────────────────────────────
+  const [name, setName] = useState(floor?.Flow_Name ?? "");
+  const [status, setStatus] = useState(
+    floor?.Flow_Status
+      ? { id: floor.Flow_Status, label: capitalize(floor.Flow_Status) }
+      : null,
+  );
+  const [wing, setWing] = useState(floor?.Wing_ID ?? null);
   const [wings, setWings] = useState([]);
-  const [loading, setLoading] = useState(false);
 
-  const sortedStatus = [
-    {
-      id: "active",
-      label: "Active",
+  // Sync form state from `floor` whenever the modal opens.
+  // Fixes the "stale form" bug when the parent refreshes the row data.
+  useEffect(() => {
+    if (open && floor) {
+      setName(floor.Flow_Name ?? "");
+      setStatus(
+        floor.Flow_Status
+          ? { id: floor.Flow_Status, label: capitalize(floor.Flow_Status) }
+          : null,
+      );
+      setWing(floor.Wing_ID ?? null);
+    }
+  }, [open, floor]);
+
+  // ─────────────────────────────────────────────────────────────
+  // Load wings for the current block
+  // ─────────────────────────────────────────────────────────────
+  const loadWings = useCallback(
+    async (signal) => {
+      if (!blockID) return;
+
+      setWingsLoading(true);
+      try {
+        const response = await apiClient.get(
+          `/settings/wing`,
+          { Block_ID: blockID },
+          { signal },
+        );
+
+        if (response.problem === "CANCEL_ERROR") return;
+
+        if (!response.ok) {
+          setWingsLoading(false);
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to fetch wings",
+          );
+          return;
+        }
+
+        if (response.data?.error || response.data?.code >= 400) {
+          setWingsLoading(false);
+          const serverMessage =
+            typeof response.data?.error === "string"
+              ? response.data.error
+              : response.data?.message || "Failed to fetch wings";
+          toast.error(serverMessage);
+          return;
+        }
+
+        const blockData = response?.data?.data;
+        const newData = blockData?.map((b, index) => ({
+          ...b,
+          key: index + 1,
+        }));
+        setWings(Array.isArray(newData) ? newData : []);
+        setWingsLoading(false);
+      } catch (error) {
+        if (
+          error.isAborted ||
+          error.code === "ERR_CANCELED" ||
+          error.name === "CanceledError"
+        ) {
+          return;
+        }
+        if (error.is429) {
+          setWingsLoading(false);
+          toast.error(
+            error.userMessage || "Too many requests. Please slow down.",
+          );
+          return;
+        }
+        console.error("Fetch wings error:", error);
+        setWingsLoading(false);
+        toast.error("Failed to load wings");
+      }
     },
-    {
-      id: "inactive",
-      label: "Inactive",
-    },
-  ];
+    [blockID],
+  );
+
+  // ─────────────────────────────────────────────────────────────
+  // Fetch wings ONLY when the modal is open.
+  //
+  // This component is mounted once per table row (via the `columns`
+  // array in Floors.jsx). Without the `if (!open) return;` guard,
+  // every mounted row fires its own GET /settings/wing on page load,
+  // producing N duplicate requests for a table with N rows — a
+  // classic 429 trigger.
+  //
+  // With the guard, only the row whose Edit button was clicked
+  // fetches wings.
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!open) return;
+
+    const controller = new AbortController();
+    loadWings(controller.signal);
+    return () => controller.abort();
+  }, [open, loadWings]);
+
+  const sortedWings = wings?.map((w) => ({
+    id: w?.Wing_ID,
+    label: `${w?.Wing_Name} - ${w?.Wing_Gender}`,
+  }));
+
+  const wingOnChange = (e, value) => {
+    setWing(value?.id ?? null);
+  };
 
   const statusOnChange = (e, value) => {
     setStatus(value);
   };
 
-  const sortedWings = wings?.map((wing) => ({
-    id: wing?.Wing_ID,
-    label: `${wing?.Wing_Name} - ${wing?.Wing_Gender}`,
-  }));
+  const handleOpen = () => setOpen(true);
 
-  const wingOnChange = (e, value) => {
-    setWing(value?.id);
+  const handleClose = () => {
+    if (submitLoading) return; // don't close mid-request
+    setOpen(false);
   };
 
-  useEffect(() => {
-    loadWings();
-  }, [blockID]);
-
-  const loadWings = async () => {
-    // setLoading(true);
-    try {
-      const response = await apiClient.get(`/settings/wing`, {
-        Block_ID: blockID,
-      });
-
-      if (!response.ok) {
-        // setLoading(false);
-        toast.error("Failed to fetch wings");
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        // setLoading(false);
-        toast.error("Failed to fetch wings");
-        return;
-      }
-
-      // Adjust based on your API response structure
-      const blockData = response?.data?.data;
-      const newData = blockData?.map((block, index) => ({
-        ...block,
-        key: index + 1,
-      }));
-      // console.log(newData);
-      setWings(Array.isArray(newData) ? newData : []);
-      // setLoading(false);
-    } catch (error) {
-      console.error("Fetch wings error:", error);
-      // setLoading(false);
-      toast.error("Failed to load wings");
-    }
-  };
-
+  // ─────────────────────────────────────────────────────────────
+  // Submit
+  // ─────────────────────────────────────────────────────────────
   const submit = async (e) => {
     e.preventDefault();
 
+    // Synchronous double-click guard
+    if (submitLockRef.current) return;
+
+    // Validation
     if (!name || name.trim() === "") {
       toast.error("Please enter floor name");
       return;
     }
 
-    if (!status) {
+    if (!status?.id) {
       toast.error("Please select status");
       return;
     }
 
-    // Get employee info from localStorage
-    const employeeId = localStorage.getItem("employeeId");
+    if (!wing) {
+      toast.error("Please select a wing");
+      return;
+    }
 
+    const employeeId = localStorage.getItem("employeeId");
     if (!employeeId) {
       toast.error("User information not found. Please login again.");
       return;
     }
 
-    setLoading(true);
+    submitLockRef.current = true;
+    setSubmitLoading(true);
 
     try {
-      // Prepare the data to send
       const data = {
         Flow_Name: name.trim(),
         Flow_ID: floor?.Flow_ID,
-        Flow_Status: status?.id,
+        Flow_Status: status.id,
         Wing_ID: wing,
         Block_ID: blockID,
         Hostel_ID: hostelID,
         Employee_ID: employeeId,
       };
 
-      console.log("Submitting block floor data:", data);
-
-      // Make API request - Bearer token is automatically included by apiClient
       const response = await apiClient.put(`/settings/flow`, data);
 
-      console.log("Response:", response);
-
       if (!response.ok) {
-        setLoading(false);
+        // 429 after global retries exhausted
+        if (response.status === 429) {
+          toast.error(
+            "Too many requests. Please wait a moment and try again.",
+          );
+          return;
+        }
 
         if (response.problem === "NETWORK_ERROR") {
           toast.error("Network error. Please check your connection");
@@ -164,21 +244,28 @@ const EditFlow = ({ floor, loadData }) => {
         return;
       }
 
-      // Success
-      setLoading(false);
       toast.success("Block floor updated successfully");
 
-      // Close modal and reset form
-      handleClose();
+      setOpen(false);
 
-      // Trigger parent component refresh
+      // Refresh parent
       if (loadData && typeof loadData === "function") {
         loadData();
       }
     } catch (error) {
-      console.error("Update hostel block floor error:", error);
-      setLoading(false);
+      console.error("Update floor error:", error);
+
+      if (error.is429) {
+        toast.error(
+          error.userMessage || "Too many requests. Please try again.",
+        );
+        return;
+      }
+
       toast.error("An unexpected error occurred. Please try again");
+    } finally {
+      submitLockRef.current = false;
+      setSubmitLoading(false);
     }
   };
 
@@ -193,65 +280,95 @@ const EditFlow = ({ floor, loadData }) => {
 
       <Modal
         open={open}
-        onClose={handleClose}
+        onClose={submitLoading ? undefined : handleClose}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
       >
         <Box sx={style} className="rounded-md">
           <div>
             <h3 className="text-center text-xl py-4">Edit Block Floor</h3>
-            <div>
+
+            <form onSubmit={submit}>
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   size="small"
-                  id="outlined-basic"
                   label="Floor Name"
                   variant="outlined"
                   className="w-[92%]"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  disabled={loading}
+                  disabled={submitLoading}
                   autoFocus
                 />
               </div>
+
               <div className="w-full py-2 flex justify-center">
                 <Autocomplete
-                  id="combo-box-demo"
+                  id="wing-autocomplete"
                   options={sortedWings}
                   size="small"
-                  freeSolo
                   className="w-[92%]"
-                  value={sortedWings?.find((option) => option.id === wing)}
+                  value={
+                    sortedWings?.find((option) => option.id === wing) ?? null
+                  }
                   onChange={wingOnChange}
+                  getOptionLabel={(option) =>
+                    typeof option === "string" ? option : option.label
+                  }
+                  isOptionEqualToValue={(option, value) =>
+                    option?.id === value?.id
+                  }
                   renderInput={(params) => (
-                    <TextField {...params} label="Select Wing" />
+                    <TextField
+                      {...params}
+                      label="Select Wing"
+                      helperText={
+                        wingsLoading
+                          ? "Loading wings..."
+                          : !wingsLoading &&
+                              wings.length === 0 &&
+                              open
+                            ? "No wings available for this block"
+                            : ""
+                      }
+                    />
                   )}
+                  disabled={submitLoading || wingsLoading}
+                  loading={wingsLoading}
                 />
               </div>
+
               <div className="w-full py-2 flex justify-center">
                 <Autocomplete
-                  id="combo-box-demo"
+                  id="status-autocomplete"
                   options={sortedStatus}
                   size="small"
-                  freeSolo
                   className="w-[92%]"
                   value={status}
                   onChange={statusOnChange}
+                  getOptionLabel={(option) =>
+                    typeof option === "string" ? option : option.label
+                  }
+                  isOptionEqualToValue={(option, value) =>
+                    option?.id === value?.id
+                  }
                   renderInput={(params) => (
                     <TextField {...params} label="Select Status" />
                   )}
+                  disabled={submitLoading}
                 />
               </div>
+
               <div className="w-full py-2 mt-5 flex justify-center">
                 <button
-                  onClick={(e) => submit(e)}
-                  disabled={loading}
+                  type="submit"
+                  disabled={submitLoading || wingsLoading}
                   className="flex w-[92%] h-10 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-2 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Updating..." : "Edit Floor"}
+                  {submitLoading ? "Updating..." : "Edit Floor"}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </Box>
       </Modal>

@@ -1,5 +1,7 @@
 import moment from "moment/moment";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import apiClient from "./src/api/Client";
 
 /**
  * Formats a date object or string to the format of year-month-date.
@@ -195,3 +197,50 @@ export function reportError(response, defaultMessage) {
     toast.error(errorText);
   }
 }
+
+const MAX_RETRIES = 3;
+
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// GET with retry + exponential backoff on 429 (honours Retry-After header)
+export const getWithRetry = async (url) => {
+  for (let attempt = 0; ; attempt++) {
+    const response = await apiClient.get(url);
+    if (response?.status === 429 && attempt < MAX_RETRIES) {
+      const retryAfter = Number(response.headers?.["retry-after"]);
+      await sleep(
+        retryAfter
+          ? retryAfter * 1000
+          : 800 * 2 ** attempt + Math.random() * 300,
+      );
+      continue;
+    }
+    return response;
+  }
+};
+
+// Returns `value` only after it has stopped changing for `delay` ms
+export const useDebouncedValue = (value, delay = 500) => {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+};
+
+// Turns an apisauce error response into a readable message
+export const getErrorMessage = (response, fallback) => {
+  if (response?.problem === "NETWORK_ERROR")
+    return "Network error. Please check your connection";
+  if (response?.problem === "TIMEOUT_ERROR")
+    return "Request timeout. Please try again";
+  if (response?.status === 429)
+    return "Too many requests. Please wait a moment and try again";
+
+  const serverMessage = response?.data?.error || response?.data?.message;
+  if (typeof serverMessage === "string") return serverMessage;
+  if (serverMessage && typeof serverMessage === "object")
+    return Object.values(serverMessage).flat()[0] || fallback;
+  return fallback;
+};

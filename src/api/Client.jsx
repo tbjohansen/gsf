@@ -3,8 +3,8 @@ import { create } from "apisauce";
 let isRedirecting = false;
 
 const apiClient = create({
-  baseURL: "/v2/api",
-  // baseURL: "http://41.188.172.117/api",
+  // baseURL: "/v2/api",
+  baseURL: "http://41.188.172.117/api",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
@@ -12,16 +12,27 @@ const apiClient = create({
   },
 });
 
-// Flag to track if we're in a login request
+// ─────────────────────────────────────────────────────────────
+// 429 RETRY CONFIGURATION
+// ─────────────────────────────────────────────────────────────
+const MAX_429_RETRIES = 2;
+const BASE_BACKOFF_MS = 1000; // 1s, then 2s
+const MAX_BACKOFF_MS = 30000;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Track retry attempt count per request config
+const retryCounts = new WeakMap();
+
+// ─────────────────────────────────────────────────────────────
+// AUTH HELPERS
+// ─────────────────────────────────────────────────────────────
 let isLoginRequest = false;
 
-// Function to handle logout
 const handleLogout = () => {
-  // Prevent multiple redirects
   if (isRedirecting) return;
   isRedirecting = true;
 
-  // Clear all auth-related data from localStorage
   localStorage.removeItem("authToken");
   localStorage.removeItem("tokenType");
   localStorage.removeItem("expiresIn");
@@ -32,42 +43,35 @@ const handleLogout = () => {
   localStorage.removeItem("userEmail");
   localStorage.removeItem("permission");
 
-  // Clear the authorization header
   clearAuthToken();
 
-  // Redirect to login page
-  window.location.href = "/login"; // Adjust the path to your login route
+  window.location.href = "/login";
 
-  // Reset flag after redirect (though this may not execute due to page unload)
   setTimeout(() => {
     isRedirecting = false;
   }, 1000);
 };
 
-// Helper function to check if token is expired
 const isTokenExpired = () => {
   const expirationTime = localStorage.getItem("tokenExpiration");
-  if (!expirationTime) return false; // No expiration set, assume valid
-
-  // Check if token is expired (with 5 minutes buffer)
+  if (!expirationTime) return false;
   return Date.now() >= parseInt(expirationTime) - 300000;
 };
 
-// Add request interceptor to attach token to every request
+// ─────────────────────────────────────────────────────────────
+// REQUEST INTERCEPTOR — attach token
+// ─────────────────────────────────────────────────────────────
 apiClient.axiosInstance.interceptors.request.use(
   (config) => {
-    // Check if this is a login request
     if (config.url?.includes("/login")) {
       isLoginRequest = true;
       return config;
     }
 
-    // Skip token check for refresh endpoints
     if (config.url?.includes("/refresh-token")) {
       return config;
     }
 
-    // Check if token is expired before making request
     if (isTokenExpired()) {
       handleLogout();
       return Promise.reject({
@@ -86,27 +90,24 @@ apiClient.axiosInstance.interceptors.request.use(
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
 
-// Add response interceptor to handle common errors
+// ─────────────────────────────────────────────────────────────
+// RESPONSE INTERCEPTOR — handle 429, success-with-error, auth failures
+// ─────────────────────────────────────────────────────────────
 apiClient.axiosInstance.interceptors.response.use(
   (response) => {
-    // Reset login flag
     isLoginRequest = false;
 
-    // Check if response contains error even in 200 status
+    // Handle 200-status responses that contain an error payload
     if (
       response.data?.error ||
       (response.data?.code && response.data.code >= 400)
     ) {
-      // Check for token expiration in success response
       const message = response?.data?.message || response?.data?.error;
       const lowerMessage = message?.toLowerCase() || "";
 
-      // Only trigger logout if this is NOT a login request
       if (
         !isLoginRequest &&
         (response.data?.code === 401 ||
@@ -119,7 +120,6 @@ apiClient.axiosInstance.interceptors.response.use(
         handleLogout();
       }
 
-      // Transform successful response with error data to error response
       return Promise.reject({
         response: {
           status: response.data.code || 400,
@@ -128,21 +128,103 @@ apiClient.axiosInstance.interceptors.response.use(
         config: response.config,
       });
     }
+
     return response;
   },
-  (error) => {
-    // Handle network errors
-    if (!error.response) {
-      console.error("Network Error:", error.message);
-      // Don't logout for network errors during login
-      if (!isLoginRequest) {
-        // You might want to handle network errors differently
-      }
+
+  async (error) => {
+    // ───────────────────────────────────────────────────────
+    // 1) ABORTED REQUEST — bail out silently
+    // ───────────────────────────────────────────────────────
+    if (
+      error.code === "ERR_CANCELED" ||
+      error.name === "CanceledError" ||
+      error.name === "AbortError"
+    ) {
+      // Rejection propagates so the caller's catch can also ignore it,
+      // but we tag it so components can distinguish from real errors.
+      error.isAborted = true;
       return Promise.reject(error);
     }
 
-    // Handle specific HTTP status codes
+    // ───────────────────────────────────────────────────────
+    // 2) 429 HANDLING — retry with Retry-After / exponential backoff
+    // ───────────────────────────────────────────────────────
     const status = error.response?.status;
+
+    if (status === 429) {
+      const config = error.config || {};
+
+      // If the request was already aborted, don't retry
+      if (config.signal?.aborted) {
+        error.isAborted = true;
+        return Promise.reject(error);
+      }
+
+      // Respect the server's Retry-After header if present
+      const retryAfterHeader =
+        error.response?.headers?.["retry-after"] ||
+        error.response?.headers?.["Retry-After"];
+
+      let waitMs;
+      if (retryAfterHeader) {
+        const parsedSeconds = Number(retryAfterHeader);
+        if (!Number.isNaN(parsedSeconds)) {
+          waitMs = parsedSeconds * 1000;
+        } else {
+          const parsedDate = Date.parse(retryAfterHeader);
+          waitMs = Number.isNaN(parsedDate)
+            ? BASE_BACKOFF_MS
+            : Math.max(0, parsedDate - Date.now());
+        }
+      } else {
+        const attempt = retryCounts.get(config) || 0;
+        waitMs = Math.min(
+          BASE_BACKOFF_MS * Math.pow(2, attempt),
+          MAX_BACKOFF_MS,
+        );
+      }
+
+      const attempt = retryCounts.get(config) || 0;
+
+      if (attempt < MAX_429_RETRIES) {
+        retryCounts.set(config, attempt + 1);
+        console.warn(
+          `429 received for ${config.url}. Retrying in ${waitMs}ms (attempt ${attempt + 1}/${MAX_429_RETRIES})`,
+        );
+
+        await sleep(waitMs);
+
+        // Re-check abort status after sleeping
+        if (config.signal?.aborted) {
+          error.isAborted = true;
+          return Promise.reject(error);
+        }
+
+        // Retry the request
+        return apiClient.axiosInstance.request(config);
+      }
+
+      // Out of retries — tag and reject so the caller can toast
+      retryCounts.delete(config);
+      console.warn("429 retries exhausted:", config.url);
+      error.is429 = true;
+      error.userMessage =
+        "Too many requests. Please wait a moment and try again.";
+      return Promise.reject(error);
+    }
+
+    // ───────────────────────────────────────────────────────
+    // 3) NETWORK ERRORS (no response)
+    // ───────────────────────────────────────────────────────
+    if (!error.response) {
+      console.error("Network Error:", error.message);
+      return Promise.reject(error);
+    }
+
+    // ───────────────────────────────────────────────────────
+    // 4) AUTH FAILURES — 401 / 403 / 440
+    // ───────────────────────────────────────────────────────
     const errorData = error.response?.data || {};
     const errorMessage =
       (typeof errorData?.message === "string"
@@ -156,8 +238,6 @@ apiClient.axiosInstance.interceptors.response.use(
         : "") ||
       "";
 
-    // Check for token expiration across multiple status codes
-    // But skip logout for login requests
     if (status === 401 || status === 403 || status === 440) {
       if (
         errorMessage.includes("token") ||
@@ -168,11 +248,10 @@ apiClient.axiosInstance.interceptors.response.use(
         errorMessage.includes("login") ||
         errorMessage.includes("authenticate")
       ) {
-        // Only trigger logout if this is NOT a login request
         if (!isLoginRequest) {
           handleLogout();
         }
-        return Promise.reject(error); // Return after checking logout
+        return Promise.reject(error);
       }
     }
 
@@ -181,7 +260,9 @@ apiClient.axiosInstance.interceptors.response.use(
       isLoginRequest = false;
     }
 
-    // Log other errors for debugging (can be removed in production)
+    // ───────────────────────────────────────────────────────
+    // 5) LOG OTHER STATUS CODES
+    // ───────────────────────────────────────────────────────
     switch (status) {
       case 404:
         console.log(
@@ -204,31 +285,28 @@ apiClient.axiosInstance.interceptors.response.use(
   },
 );
 
-// Helper function to set auth token with expiration
+// ─────────────────────────────────────────────────────────────
+// PUBLIC HELPERS
+// ─────────────────────────────────────────────────────────────
 export const setAuthToken = (token, tokenType = "Bearer", expiresIn = null) => {
   if (token) {
     apiClient.setHeader("Authorization", `${tokenType} ${token}`);
     localStorage.setItem("authToken", token);
     localStorage.setItem("tokenType", tokenType);
 
-    // Set expiration if provided
     if (expiresIn) {
-      // expiresIn could be in seconds or a timestamp
       let expirationTime;
       if (typeof expiresIn === "number" && expiresIn > 10000000000) {
-        // Likely a timestamp already (milliseconds)
         expirationTime = expiresIn;
       } else if (typeof expiresIn === "number") {
-        // Assume seconds from now
         expirationTime = Date.now() + expiresIn * 1000;
       } else if (
         typeof expiresIn === "string" &&
         !isNaN(Date.parse(expiresIn))
       ) {
-        // ISO date string
         expirationTime = Date.parse(expiresIn);
       } else {
-        expirationTime = Date.now() + 3600 * 1000; // Default 1 hour
+        expirationTime = Date.now() + 3600 * 1000;
       }
 
       localStorage.setItem("tokenExpiration", expirationTime.toString());
@@ -241,7 +319,6 @@ export const setAuthToken = (token, tokenType = "Bearer", expiresIn = null) => {
   }
 };
 
-// Helper function to clear auth token
 export const clearAuthToken = () => {
   apiClient.deleteHeader("Authorization");
   localStorage.removeItem("authToken");
@@ -249,16 +326,13 @@ export const clearAuthToken = () => {
   localStorage.removeItem("tokenExpiration");
 };
 
-// Helper function to check if user is authenticated with expiration
 export const isAuthenticated = () => {
   const token = localStorage.getItem("authToken");
   const expiration = localStorage.getItem("tokenExpiration");
 
   if (!token) return false;
 
-  // Check if token is expired
   if (expiration && Date.now() >= parseInt(expiration)) {
-    // Auto logout if expired
     handleLogout();
     return false;
   }
@@ -266,27 +340,22 @@ export const isAuthenticated = () => {
   return true;
 };
 
-// Helper function to get auth token
-export const getAuthToken = () => {
-  return localStorage.getItem("authToken");
-};
+export const getAuthToken = () => localStorage.getItem("authToken");
 
-// Helper function to get token expiration
 export const getTokenExpiration = () => {
   const expiration = localStorage.getItem("tokenExpiration");
   return expiration ? parseInt(expiration) : null;
 };
 
-// Helper function to refresh token (implement based on your API)
 export const refreshToken = async () => {
   try {
-    const refreshToken = localStorage.getItem("refreshToken"); // You'll need to store this
-    if (!refreshToken) {
+    const storedRefreshToken = localStorage.getItem("refreshToken");
+    if (!storedRefreshToken) {
       throw new Error("No refresh token available");
     }
 
     const response = await apiClient.post("/refresh-token", {
-      refresh_token: refreshToken,
+      refresh_token: storedRefreshToken,
     });
 
     if (response.ok && response.data) {
@@ -305,7 +374,6 @@ export const refreshToken = async () => {
   }
 };
 
-// Helper function to setup automatic token refresh
 export const setupTokenRefresh = () => {
   const expiration = getTokenExpiration();
   if (!expiration) return;
@@ -317,19 +385,17 @@ export const setupTokenRefresh = () => {
     setTimeout(async () => {
       const refreshed = await refreshToken();
       if (refreshed) {
-        // Setup next refresh
         setupTokenRefresh();
       }
     }, refreshTime);
   }
 };
 
-// Helper function to reset login flag (call this after login attempt completes)
 export const resetLoginFlag = () => {
   isLoginRequest = false;
 };
 
-export const baseURL = "/v2";
-// export const baseURL = "http://41.188.172.117";
+// export const baseURL = "/v2";
+export const baseURL = "http://41.188.172.117";
 
 export default apiClient;

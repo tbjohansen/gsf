@@ -40,50 +40,101 @@ export default function Wings() {
 
   const navigate = useNavigate();
   const { blockID } = useParams();
-  const hasFetchedData = React.useRef(false);
 
+  // ─────────────────────────────────────────────────────────────
+  // loadData — memoized on blockID so refetches use the current block
+  // ─────────────────────────────────────────────────────────────
+  const loadData = React.useCallback(
+    async (signal) => {
+      if (!blockID) return; // don't fire without a block ID
+
+      setLoading(true);
+      try {
+        const response = await apiClient.get(
+          `/settings/wing`,
+          { Block_ID: blockID },
+          { signal },
+        );
+
+        // Ignore cancellations (component unmounted or block changed)
+        if (response.problem === "CANCEL_ERROR") return;
+
+        if (!response.ok) {
+          setLoading(false);
+
+          if (response.problem === "NETWORK_ERROR") {
+            toast.error("Network error. Please check your connection");
+          } else if (response.problem === "TIMEOUT_ERROR") {
+            toast.error("Request timeout. Please try again");
+          } else {
+            const serverMessage =
+              response?.data?.error || response?.data?.message;
+            toast.error(
+              typeof serverMessage === "string"
+                ? serverMessage
+                : "Failed to fetch wings",
+            );
+          }
+          return;
+        }
+
+        if (response.data?.error || response.data?.code >= 400) {
+          setLoading(false);
+          const serverMessage =
+            typeof response.data?.error === "string"
+              ? response.data.error
+              : response.data?.message || "Failed to fetch wings";
+          toast.error(serverMessage);
+          return;
+        }
+
+        const blockData = response?.data?.data;
+        const newData = blockData?.map((block, index) => ({
+          ...block,
+          key: index + 1,
+        }));
+        setWings(Array.isArray(newData) ? newData : []);
+        setLoading(false);
+      } catch (error) {
+        // Silent cancellation
+        if (
+          error.isAborted ||
+          error.code === "ERR_CANCELED" ||
+          error.name === "CanceledError"
+        ) {
+          return;
+        }
+
+        // Global 429 after retries exhausted
+        if (error.is429) {
+          setLoading(false);
+          toast.error(
+            error.userMessage || "Too many requests. Please slow down.",
+          );
+          return;
+        }
+
+        console.error("Fetch wings error:", error);
+        setLoading(false);
+        toast.error("Failed to load wings");
+      }
+    },
+    [blockID],
+  );
+
+  // ─────────────────────────────────────────────────────────────
+  // Fetch on mount and whenever blockID changes.
+  // Aborts the previous request when the block changes.
+  // ─────────────────────────────────────────────────────────────
   React.useEffect(() => {
-    if (!hasFetchedData.current) {
-      hasFetchedData.current = true;
-      loadData();
-    }
-  }, [blockID]);
+    setPage(0);
+    setWings([]);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const response = await apiClient.get(`/settings/wing`, {
-        Block_ID: blockID
-      });
+    const controller = new AbortController();
+    loadData(controller.signal);
 
-      if (!response.ok) {
-        setLoading(false);
-        toast.error( "Failed to fetch wings");
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error( "Failed to fetch wings");
-        return;
-      }
-
-      // Adjust based on your API response structure
-      const blockData = response?.data?.data;
-      const newData = blockData?.map((block, index) => ({
-        ...block,
-        key: index + 1,
-      }));
-      // console.log(newData);
-      setWings(Array.isArray(newData) ? newData : []);
-      setLoading(false);
-    } catch (error) {
-      console.error("Fetch blocks error:", error);
-      setLoading(false);
-      toast.error("Failed to load wings");
-    }
-  };
-  
+    return () => controller.abort();
+  }, [loadData]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -94,8 +145,10 @@ export default function Wings() {
     setPage(0);
   };
 
-
-  // Inside the Hostels component, replace the columns definition with:
+  // ─────────────────────────────────────────────────────────────
+  // Columns — memoized with loadData dep so EditWing always
+  // receives the freshest loadData bound to the current blockID
+  // ─────────────────────────────────────────────────────────────
   const columns = React.useMemo(
     () => [
       { id: "key", label: "S/N" },
@@ -128,7 +181,7 @@ export default function Wings() {
         ),
       },
     ],
-    []
+    [loadData],
   );
 
   return (
@@ -173,7 +226,6 @@ export default function Wings() {
                       role="checkbox"
                       tabIndex={-1}
                       key={row.key || row.id}
-                    //   onClick={() => handleRowClick(row)}
                       sx={{
                         cursor: "pointer",
                         backgroundColor:
@@ -199,9 +251,7 @@ export default function Wings() {
                               }
                             }}
                           >
-                            {column.format
-                              ? column.format(value, row, )
-                              : value}
+                            {column.format ? column.format(value, row) : value}
                           </TableCell>
                         );
                       })}
@@ -214,7 +264,7 @@ export default function Wings() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={wings?.length}
+          count={wings.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

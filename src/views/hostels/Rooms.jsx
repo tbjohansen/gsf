@@ -39,48 +39,102 @@ export default function Rooms() {
 
   const navigate = useNavigate();
   const { hostelID, blockID, floorID } = useParams();
-  const hasFetchedData = React.useRef(false);
 
+  // ─────────────────────────────────────────────────────────────
+  // loadData — memoized on floorID so refetches use the current floor
+  // ─────────────────────────────────────────────────────────────
+  const loadData = React.useCallback(
+    async (signal) => {
+      if (!floorID) return; // don't fire without a floor ID
+
+      setLoading(true);
+      try {
+        const response = await apiClient.get(
+          `/settings/room`,
+          { Flow_ID: floorID },
+          { signal },
+        );
+
+        // Ignore cancellations (component unmounted or floor changed)
+        if (response.problem === "CANCEL_ERROR") return;
+
+        if (!response.ok) {
+          setLoading(false);
+
+          if (response.problem === "NETWORK_ERROR") {
+            toast.error("Network error. Please check your connection");
+          } else if (response.problem === "TIMEOUT_ERROR") {
+            toast.error("Request timeout. Please try again");
+          } else {
+            const serverMessage =
+              response?.data?.error || response?.data?.message;
+            toast.error(
+              typeof serverMessage === "string"
+                ? serverMessage
+                : "Failed to fetch rooms",
+            );
+          }
+          return;
+        }
+
+        if (response.data?.error || response.data?.code >= 400) {
+          setLoading(false);
+          const serverMessage =
+            typeof response.data?.error === "string"
+              ? response.data.error
+              : response.data?.message || "Failed to fetch rooms";
+          toast.error(serverMessage);
+          return;
+        }
+
+        const roomsData = response?.data?.data;
+        const newData = roomsData?.map((room, index) => ({
+          ...room,
+          key: index + 1,
+        }));
+        setRooms(Array.isArray(newData) ? newData : []);
+        setLoading(false);
+      } catch (error) {
+        // Silent cancellation
+        if (
+          error.isAborted ||
+          error.code === "ERR_CANCELED" ||
+          error.name === "CanceledError"
+        ) {
+          return;
+        }
+
+        // Global 429 after retries exhausted
+        if (error.is429) {
+          setLoading(false);
+          toast.error(
+            error.userMessage || "Too many requests. Please slow down.",
+          );
+          return;
+        }
+
+        console.error("Fetch rooms error:", error);
+        setLoading(false);
+        toast.error("Failed to load rooms");
+      }
+    },
+    [floorID],
+  );
+
+  // ─────────────────────────────────────────────────────────────
+  // Fetch on mount and whenever floorID changes.
+  // Aborts the previous request when the floor changes.
+  // ─────────────────────────────────────────────────────────────
   React.useEffect(() => {
-    if (!hasFetchedData.current) {
-      hasFetchedData.current = true;
-      loadData();
-    }
-  }, [floorID]);
+    setPage(0);
+    setRooms([]);
+    setSelectedRow(null);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const response = await apiClient.get(`/settings/room`, {
-        Flow_ID: floorID,
-      });
+    const controller = new AbortController();
+    loadData(controller.signal);
 
-      if (!response.ok) {
-        setLoading(false);
-        toast.error("Failed to fetch rooms");
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error("Failed to fetch rooms");
-        return;
-      }
-
-      // Adjust based on your API response structure
-      const roomsData = response?.data?.data;
-      const newData = roomsData?.map((room, index) => ({
-        ...room,
-        key: index + 1,
-      }));
-      // console.log(newData);
-      setRooms(Array.isArray(newData) ? newData : []);
-      setLoading(false);
-    } catch (error) {
-      console.error("Fetch rooms error:", error);
-      setLoading(false);
-    }
-  };
+    return () => controller.abort();
+  }, [loadData]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -91,6 +145,10 @@ export default function Rooms() {
     setPage(0);
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // Columns — memoized with loadData dep so EditRoom always
+  // receives the freshest loadData bound to the current floorID
+  // ─────────────────────────────────────────────────────────────
   const columns = React.useMemo(
     () => [
       { id: "key", label: "S/N" },
@@ -126,7 +184,7 @@ export default function Rooms() {
       },
     ],
     [loadData],
-  ); // Add loadData as dependency
+  );
 
   return (
     <>
@@ -216,7 +274,7 @@ export default function Rooms() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={rooms?.length}
+          count={rooms.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

@@ -1,10 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Tabs,
   Tab,
   Box,
-  TextField,
-  Button,
   Card,
   Alert,
   CircularProgress,
@@ -15,13 +13,11 @@ import Wings from "./Wings";
 import Breadcrumb from "../../components/Breadcrumb";
 import apiClient from "../../api/Client";
 import toast from "react-hot-toast";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { MdArrowBack } from "react-icons/md";
 
 const Block = () => {
-  const hasFetchedData = useRef(false);
-
-  const { blockID } = useSearchParams();
+  const { blockID } = useParams();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState(0);
@@ -29,60 +25,109 @@ const Block = () => {
   const [loading, setLoading] = useState(false);
   const [blockTabError, setBlockTabError] = useState(false);
 
-  // Handle tab change
+  // ─────────────────────────────────────────────────────────────
+  // Load wings — shared with the Wings child to avoid duplicate fetches
+  // ─────────────────────────────────────────────────────────────
+  const loadData = useCallback(
+    async (signal) => {
+      if (!blockID) return;
+
+      setLoading(true);
+      try {
+        const response = await apiClient.get(
+          `/settings/wing`,
+          { Block_ID: blockID },
+          { signal },
+        );
+
+        if (response.problem === "CANCEL_ERROR") return;
+
+        if (!response.ok) {
+          setLoading(false);
+
+          if (response.problem === "NETWORK_ERROR") {
+            toast.error("Network error. Please check your connection");
+          } else if (response.problem === "TIMEOUT_ERROR") {
+            toast.error("Request timeout. Please try again");
+          } else {
+            const serverMessage =
+              response?.data?.error || response?.data?.message;
+            toast.error(
+              typeof serverMessage === "string"
+                ? serverMessage
+                : "Failed to fetch wings",
+            );
+          }
+          return;
+        }
+
+        if (response.data?.error || response.data?.code >= 400) {
+          setLoading(false);
+          const serverMessage =
+            typeof response.data?.error === "string"
+              ? response.data.error
+              : response.data?.message || "Failed to fetch wings";
+          toast.error(serverMessage);
+          return;
+        }
+
+        const blockData = response?.data?.data;
+        const newData = blockData?.map((b, index) => ({
+          ...b,
+          key: index + 1,
+        }));
+        setWings(Array.isArray(newData) ? newData : []);
+        setLoading(false);
+      } catch (error) {
+        if (
+          error.isAborted ||
+          error.code === "ERR_CANCELED" ||
+          error.name === "CanceledError"
+        ) {
+          return;
+        }
+        if (error.is429) {
+          setLoading(false);
+          toast.error(
+            error.userMessage || "Too many requests. Please slow down.",
+          );
+          return;
+        }
+        console.error("Fetch wings error:", error);
+        setLoading(false);
+        toast.error("Failed to load wings");
+      }
+    },
+    [blockID],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadData(controller.signal);
+    return () => controller.abort();
+  }, [loadData]);
+
+  // ─────────────────────────────────────────────────────────────
+  // Tab change — Floors tab is disabled in the UI, but keep the
+  // guard here too in case it's ever re-enabled
+  // ─────────────────────────────────────────────────────────────
   const handleTabChange = (event, newValue) => {
-    //If trying to access Blocks tab (index 1) and no wings exist, prevent access
-    if (newValue === 1 && wings?.length === 0) {
+    if (newValue === 1 && wings.length === 0) {
       setBlockTabError(true);
-      // Auto-revert after 2 seconds
-      setTimeout(() => setBlockTabError(false), 2000);
       return;
     }
-    // setBlockTabError(false);
+    setBlockTabError(false);
     setActiveTab(newValue);
   };
 
+  // Auto-dismiss the error alert after 3s
   useEffect(() => {
-    loadData();
-  }, [blockID]);
+    if (!blockTabError) return;
+    const t = setTimeout(() => setBlockTabError(false), 3000);
+    return () => clearTimeout(t);
+  }, [blockTabError]);
 
-  const loadData = async () => {
-    console.log("Data");
-    setLoading(true);
-    try {
-      const response = await apiClient.get(`/settings/wing`, {
-        Block_ID: blockID,
-      });
-
-      if (!response.ok) {
-        setLoading(false);
-        toast.error("Failed to fetch wings");
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error("Failed to fetch wings");
-        return;
-      }
-
-      // Adjust based on your API response structure
-      const blockData = response?.data?.data;
-      const newData = blockData?.map((block, index) => ({
-        ...block,
-        key: index + 1,
-      }));
-      // console.log(newData);
-      setWings(Array.isArray(newData) ? newData : []);
-      setLoading(false);
-    } catch (error) {
-      console.error("Fetch blocks error:", error);
-      setLoading(false);
-      toast.error("Failed to load wings");
-    }
-  };
-
-  // console.log(wings);
+  const floorsTabDisabled = loading || wings.length === 0;
 
   return (
     <>
@@ -96,6 +141,7 @@ const Block = () => {
         </IconButton>
         <h4 className="my-2">Hostel Wings & Floors List</h4>
       </div>
+
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="mx-auto">
           <Card className="shadow-xl rounded-2xl overflow-hidden">
@@ -136,6 +182,7 @@ const Block = () => {
                 />
                 <Tab
                   label="Floors"
+                  disabled={floorsTabDisabled}
                   className="text-lg font-semibold"
                   sx={{
                     "&.Mui-selected": {
@@ -158,7 +205,7 @@ const Block = () => {
               </Alert>
             )}
 
-            {/* Error Alert for Blocks Tab */}
+            {/* Error Alert for Floors Tab */}
             {blockTabError && (
               <Alert severity="error" className="m-4">
                 You cannot access Floors tab without saving at least one Wing
@@ -166,13 +213,19 @@ const Block = () => {
               </Alert>
             )}
 
-            {/* Conditional rendering - This ensures components mount/unmount properly */}
+            {/* Wings tab — pass wings + refresh handler down to avoid a
+                second fetch inside Wings.jsx */}
             {activeTab === 0 && (
               <div className="p-6">
-                <Wings />
+                <Wings
+                  wings={wings}
+                  wingsLoading={loading}
+                  onRefresh={loadData}
+                />
               </div>
             )}
 
+            {/* Floors tab */}
             {activeTab === 1 && (
               <div className="p-6">
                 {loading ? (

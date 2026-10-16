@@ -81,6 +81,7 @@ import CylinderInventory from "../src/views/oxygen-requisition/CylinderInventory
 import OxygenPayments from "../src/views/oxygen-requisition/OxygenPayments";
 import RealEstateSetups from "../src/views/real-estate/setups/RealEstateSetups";
 import PendingApprovals from "../src/views/hostels/PendingApprovals";
+import RoomsOccupants from "../src/views/hostels/RoomsOccupants";
 
 const LoginElement = () => <Login />;
 
@@ -488,6 +489,12 @@ const AssignRoomElement = () => (
 const HostelPaymentsElement = () => (
   <AppLayout>
     <HostelPayments />
+  </AppLayout>
+);
+
+const HostelOccupantsElement = () => (
+  <AppLayout>
+    <RoomsOccupants />
   </AppLayout>
 );
 
@@ -904,6 +911,11 @@ const AppRoutes = () => {
         <Route
           path="/projects/hostels/monthly-payments"
           element={<HostelMonthlyPaymentsElement />}
+        />
+
+        <Route
+          path="/projects/hostels/rooms-statistics"
+          element={<HostelOccupantsElement />}
         />
 
         <Route

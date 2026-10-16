@@ -22,14 +22,13 @@ import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/Breadcrumb";
 import { Autocomplete, Button, TextField } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { TbDownload } from "react-icons/tb";
 import * as XLSX from "xlsx";
 import moment from "moment";
 import DatePick from "../../components/DatePicker";
-import { useRef } from "react";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -46,17 +45,25 @@ export default function HostelPayments() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [payments, setPayments] = useState([]);
   const [hostels, setHostels] = useState([]);
+
+  // ── Raw input values (updated on every keystroke) ──
+  const [name, setName] = useState("");
+  const [customerID, setCustomerID] = useState("");
+  const [sangiraNumber, setSangiraNumber] = useState("");
+
+  // ── Debounced values (used for actual API calls) ──
+  const [debouncedName, setDebouncedName] = useState("");
+  const [debouncedCustomerID, setDebouncedCustomerID] = useState("");
+  const [debouncedSangiraNumber, setDebouncedSangiraNumber] = useState("");
+
   const [paymentType, setPaymentType] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
-  const [customerID, setCustomerID] = useState("");
-  const [name, setName] = useState("");
   const [startDate, setStartDate] = useState(
     moment().subtract(1, "year").startOf("year"),
   );
   const [endDate, setEndDate] = useState(moment());
   const [hostel, setHostel] = useState("");
   const [bank, setBank] = useState("");
-  const [sangiraNumber, setSangiraNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [sangiraLoadingId, setSangiraLoadingId] = useState(null);
@@ -86,23 +93,76 @@ export default function HostelPayments() {
     { id: "to_nbc", label: "NBC" },
   ];
 
+  // ─────────────────────────────────────────────────────────────
+  // DEBOUNCE: text inputs → debounced state (500ms after typing stops)
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedName(name);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [name]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedCustomerID(customerID);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [customerID]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSangiraNumber(sangiraNumber);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [sangiraNumber]);
+
+  // ─────────────────────────────────────────────────────────────
+  // Filter change handlers (reset page to 1 on every filter change)
+  // ─────────────────────────────────────────────────────────────
   const paymentStatuOnChange = (e, value) => {
     setPaymentStatus(value);
+    setPage(1);
   };
 
   const bankOnChange = (e, value) => {
     setBank(value);
+    setPage(1);
   };
-
-  const sortedHostels = hostels?.map((hostel) => ({
-    id: hostel?.Hostel_ID,
-    label: hostel?.Hostel_Name,
-  }));
 
   const hostelOnChange = (e, value) => {
     setHostel(value);
+    setPage(1);
   };
 
+  const handleStartDateChange = (newDate) => {
+    setStartDate(newDate);
+    setPage(1);
+  };
+
+  const handleEndDateChange = (newDate) => {
+    setEndDate(newDate);
+    setPage(1);
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // Derived data
+  // ─────────────────────────────────────────────────────────────
+  const sortedHostels = useMemo(
+    () =>
+      hostels?.map((hostel) => ({
+        id: hostel?.Hostel_ID,
+        label: hostel?.Hostel_Name,
+      })) ?? [],
+    [hostels],
+  );
+
+  // ─────────────────────────────────────────────────────────────
+  // One-time loads (hostels + bed stats)
+  // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!hasFetchedData.current) {
       hasFetchedData.current = true;
@@ -112,132 +172,27 @@ export default function HostelPayments() {
   }, []);
 
   const loadBedStats = async () => {
-    // setStatsLoading(true);
     try {
       const response = await apiClient.get("/customer/hostel-bed-statistics");
 
       if (!response.ok) {
-        // setStatsLoading(false);
-        // toast.error(response.data?.error || "Failed to fetch employees");
+        console.warn(
+          "loadBedStats failed:",
+          response.status,
+          response.data,
+        );
         return;
       }
 
       if (response.data?.error || response.data?.code >= 400) {
-        // setStatsLoading(false);
-        // toast.error(response.data.error || "Failed to fetch employees");
+        console.warn("loadBedStats server error:", response.data.error);
         return;
       }
 
-      // Adjust based on your API response structure
       const userData = response?.data?.data;
-      // console.log(userData);
       setBedStatistics(userData);
-      // setStatsLoading(false);
     } catch (error) {
-      console.error("Fetch employees error:", error);
-      // setStatsLoading(false);
-      // toast.error("Failed to load employees");
-    }
-  };
-
-  const getBedTotals = (data, hostelId = null) => {
-    // Apply hostel ID filter if provided
-    let filteredData = data;
-    if (hostelId !== null) {
-      filteredData = data.filter((item) => item.Hostel_ID === hostelId);
-    }
-
-    return {
-      totalBeds: filteredData.reduce(
-        (sum, item) => sum + parseInt(item.total_beds),
-        0,
-      ),
-      totalOccupiedBeds: filteredData.reduce(
-        (sum, item) => sum + parseInt(item.occupied_beds),
-        0,
-      ),
-      totalRemainingBeds: filteredData.reduce(
-        (sum, item) => sum + parseInt(item.remaining_beds),
-        0,
-      ),
-      totalRevenue: filteredData.reduce(
-        (sum, item) => sum + item.occupied_total_price,
-        0,
-      ),
-      totalMale: filteredData.reduce(
-        (sum, item) => sum + parseInt(item.total_male),
-        0,
-      ),
-      totalFemale: filteredData.reduce(
-        (sum, item) => sum + parseInt(item.total_female),
-        0,
-      ),
-      totalOccupiedGender: filteredData.reduce(
-        (sum, item) => sum + parseInt(item.total_occupied_gender),
-        0,
-      ),
-    };
-  };
-
-  function getOverallOccupancyRate(data) {
-    const totalBeds = data?.reduce(
-      (sum, item) => sum + parseInt(item.total_beds),
-      0,
-    );
-    const totalOccupied = data?.reduce(
-      (sum, item) => sum + parseInt(item.occupied_beds),
-      0,
-    );
-
-    const occupancyRate = (totalOccupied / totalBeds) * 100;
-    return parseFloat(occupancyRate.toFixed(2));
-  }
-
-  const occupancyRate = getOverallOccupancyRate(bedStats);
-
-  const bedTotals = getBedTotals(bedStats);
-
-  const sangiraReconciliation = async (recoData) => {
-    setSangiraLoadingId(recoData?.Sangira?.Sangira_Number);
-
-    const employeeId = localStorage.getItem("employeeId");
-    if (!employeeId) {
-      toast.error("User information not found. Please login again.");
-      setSangiraLoadingId(null);
-      return;
-    }
-
-    try {
-      const response = await apiClient.post("/customer/sychronize-sangira", {
-        Sangira_Number: recoData?.Sangira?.Sangira_Number,
-        Employee_ID: employeeId,
-      });
-
-      if (!response.ok) {
-        if (response.problem === "NETWORK_ERROR") {
-          toast.error("Network error. Please check your connection");
-        } else if (response.problem === "TIMEOUT_ERROR") {
-          toast.error("Request timeout. Please try again");
-        } else {
-          const serverMessage =
-            response?.data?.error || response?.data?.message;
-          toast.error(
-            typeof serverMessage === "string"
-              ? serverMessage
-              : "Failed to reconcile sangira payment",
-          );
-        }
-        setSangiraLoadingId(null);
-        return;
-      }
-
-      toast.success("Sangira payment reconciled successfully");
-      setSangiraLoadingId(null);
-      loadData();
-    } catch (error) {
-      console.error("Sangira reconcile error:", error);
-      setSangiraLoadingId(null);
-      toast.error("Failed to reconcile sangira payment");
+      console.error("Fetch bed stats error:", error);
     }
   };
 
@@ -274,12 +229,17 @@ export default function HostelPayments() {
     }
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // Main data loader with abort support
+  // ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    loadData();
+    const controller = new AbortController();
+    loadData(controller.signal);
+    return () => controller.abort();
   }, [
-    name,
-    customerID,
-    sangiraNumber,
+    debouncedName,
+    debouncedCustomerID,
+    debouncedSangiraNumber,
     paymentType,
     paymentStatus,
     bank,
@@ -290,14 +250,15 @@ export default function HostelPayments() {
     rowsPerPage,
   ]);
 
-  const loadData = async () => {
+  const loadData = async (signal) => {
     setLoading(true);
     try {
       let url = `/customer/customer-request?&Request_Type=hostel&limit=${rowsPerPage}&page=${page}`;
 
-      if (name) url += `&Customer_Name=${name}`;
-      if (customerID) url += `&Student_ID=${customerID}`;
-      if (sangiraNumber) url += `&Sangira_Number=${sangiraNumber}`;
+      if (debouncedName) url += `&Customer_Name=${debouncedName}`;
+      if (debouncedCustomerID) url += `&Student_ID=${debouncedCustomerID}`;
+      if (debouncedSangiraNumber)
+        url += `&Sangira_Number=${debouncedSangiraNumber}`;
       if (paymentStatus?.id) {
         if (paymentStatus.id === "paid") {
           url += `&Customer_Status=${paymentStatus.id},served`;
@@ -310,7 +271,10 @@ export default function HostelPayments() {
       if (startDate) url += `&Start_Date=${formatDateTimeForDb(startDate)}`;
       if (endDate) url += `&End_Date=${formatDateTimeForDb(endDate)}`;
 
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(url, { signal });
+
+      // Bail out if this request was aborted (a newer one is in flight)
+      if (signal?.aborted) return;
 
       if (!response.ok) {
         setLoading(false);
@@ -362,6 +326,10 @@ export default function HostelPayments() {
 
       setLoading(false);
     } catch (error) {
+      // Ignore abort errors — they're expected when a newer request supersedes
+      if (error.name === "AbortError" || error.name === "CanceledError") {
+        return;
+      }
       console.error("Fetch payments error:", error);
       setLoading(false);
       toast.error("Failed to load payments");
@@ -378,6 +346,115 @@ export default function HostelPayments() {
     setPage(1);
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // Reconciliation
+  // ─────────────────────────────────────────────────────────────
+  const sangiraReconciliation = async (recoData) => {
+    setSangiraLoadingId(recoData?.Sangira?.Sangira_Number);
+
+    const employeeId = localStorage.getItem("employeeId");
+    if (!employeeId) {
+      toast.error("User information not found. Please login again.");
+      setSangiraLoadingId(null);
+      return;
+    }
+
+    try {
+      const response = await apiClient.post("/customer/sychronize-sangira", {
+        Sangira_Number: recoData?.Sangira?.Sangira_Number,
+        Employee_ID: employeeId,
+      });
+
+      if (!response.ok) {
+        if (response.problem === "NETWORK_ERROR") {
+          toast.error("Network error. Please check your connection");
+        } else if (response.problem === "TIMEOUT_ERROR") {
+          toast.error("Request timeout. Please try again");
+        } else {
+          const serverMessage =
+            response?.data?.error || response?.data?.message;
+          toast.error(
+            typeof serverMessage === "string"
+              ? serverMessage
+              : "Failed to reconcile sangira payment",
+          );
+        }
+        setSangiraLoadingId(null);
+        return;
+      }
+
+      toast.success("Sangira payment reconciled successfully");
+      setSangiraLoadingId(null);
+      loadData();
+    } catch (error) {
+      console.error("Sangira reconcile error:", error);
+      setSangiraLoadingId(null);
+      toast.error("Failed to reconcile sangira payment");
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // Bed stats helpers
+  // ─────────────────────────────────────────────────────────────
+  const getBedTotals = (data, hostelId = null) => {
+    let filteredData = data;
+    if (hostelId !== null) {
+      filteredData = data.filter((item) => item.Hostel_ID === hostelId);
+    }
+
+    return {
+      totalBeds: filteredData.reduce(
+        (sum, item) => sum + parseInt(item.total_beds),
+        0,
+      ),
+      totalOccupiedBeds: filteredData.reduce(
+        (sum, item) => sum + parseInt(item.occupied_beds),
+        0,
+      ),
+      totalRemainingBeds: filteredData.reduce(
+        (sum, item) => sum + parseInt(item.remaining_beds),
+        0,
+      ),
+      totalRevenue: filteredData.reduce(
+        (sum, item) => sum + item.occupied_total_price,
+        0,
+      ),
+      totalMale: filteredData.reduce(
+        (sum, item) => sum + parseInt(item.total_male),
+        0,
+      ),
+      totalFemale: filteredData.reduce(
+        (sum, item) => sum + parseInt(item.total_female),
+        0,
+      ),
+      totalOccupiedGender: filteredData.reduce(
+        (sum, item) => sum + parseInt(item.total_occupied_gender),
+        0,
+      ),
+    };
+  };
+
+  function getOverallOccupancyRate(data) {
+    const totalBeds = data?.reduce(
+      (sum, item) => sum + parseInt(item.total_beds),
+      0,
+    );
+    const totalOccupied = data?.reduce(
+      (sum, item) => sum + parseInt(item.occupied_beds),
+      0,
+    );
+
+    if (!totalBeds) return 0;
+    const occupancyRate = (totalOccupied / totalBeds) * 100;
+    return parseFloat(occupancyRate.toFixed(2));
+  }
+
+  const occupancyRate = getOverallOccupancyRate(bedStats);
+  const bedTotals = getBedTotals(bedStats);
+
+  // ─────────────────────────────────────────────────────────────
+  // Exports
+  // ─────────────────────────────────────────────────────────────
   const handleDownloadPDF = () => {
     const doc = new jsPDF({
       orientation: "landscape",
@@ -429,9 +506,8 @@ export default function HostelPayments() {
       0,
     );
 
-    // Fix: Use "Total" instead of "TOTAL" and add empty strings for alignment
     const totalRow = [
-      "Total", // Shorter word to fit in narrow column
+      "Total",
       "",
       "",
       "",
@@ -455,7 +531,7 @@ export default function HostelPayments() {
       },
       alternateRowStyles: { fillColor: [250, 250, 252] },
       columnStyles: {
-        0: { cellWidth: 35 }, // Increased from 28 to 35 to fit "Total"
+        0: { cellWidth: 35 },
         1: { cellWidth: 80 },
         2: { cellWidth: 65 },
         3: { cellWidth: 55 },
@@ -523,23 +599,19 @@ export default function HostelPayments() {
     }
 
     const summaryStartRow = totalRow + 2;
-    const occupiedBeds = payments?.length ?? 0;
     const seenSangiraNumbers = new Set();
 
     const totalPaid = payments?.reduce((sum, r) => {
       const sangiraNumber = r?.Sangira?.Sangira_Number;
 
-      // If this Sangira_Number has been seen before, skip adding its value
       if (sangiraNumber && seenSangiraNumbers.has(sangiraNumber)) {
         return sum;
       }
 
-      // Mark this Sangira_Number as seen
       if (sangiraNumber) {
         seenSangiraNumbers.add(sangiraNumber);
       }
 
-      // Add the price to sum
       return sum + (r?.Sangira?.Grand_Total_Price || r?.Price || 0);
     }, 0);
 
@@ -583,7 +655,9 @@ export default function HostelPayments() {
     XLSX.writeFile(workbook, `GSF-Hostels-Payments-${Date.now()}.xlsx`);
   };
 
-  // Actions column is excluded from useMemo — rendered inline to avoid stale closures
+  // ─────────────────────────────────────────────────────────────
+  // Table columns
+  // ─────────────────────────────────────────────────────────────
   const columns = useMemo(
     () => [
       { id: "key", label: "S/N" },
@@ -639,7 +713,7 @@ export default function HostelPayments() {
         ),
       },
       {
-        id: "total_amount",
+        id: "sangira_amount",
         label: "Sangira Amount",
         minWidth: 150,
         format: (row, value) => (
@@ -726,6 +800,9 @@ export default function HostelPayments() {
     [],
   );
 
+  // Disable all reconcile buttons while any reconciliation is in flight
+  const isAnyReconciling = sangiraLoadingId !== null;
+
   return (
     <>
       <Breadcrumb />
@@ -760,14 +837,14 @@ export default function HostelPayments() {
           label="Start Date"
           className="w-[25%]"
           value={startDate ? moment(startDate) : null}
-          onChange={(newDate) => setStartDate(newDate)}
+          onChange={handleStartDateChange}
         />
         <DatePick
           label="End Date"
           className="w-[25%]"
           maxDate={moment()}
           value={endDate ? moment(endDate) : null}
-          onChange={(newDate) => setEndDate(newDate)}
+          onChange={handleEndDateChange}
         />
         <Autocomplete
           id="hostel-filter"
@@ -877,7 +954,7 @@ export default function HostelPayments() {
                   }}
                 >
                   {columns?.map((column) => {
-                    // ── Actions cell: rendered inline — always reads latest state ──
+                    // ── Actions cell: rendered inline so it always reads latest state ──
                     if (column.id === "actions") {
                       const isLoading =
                         sangiraLoadingId === row?.Sangira?.Sangira_Number;
@@ -896,7 +973,7 @@ export default function HostelPayments() {
                             {!isPaid ? (
                               <button
                                 onClick={() => sangiraReconciliation(row)}
-                                disabled={isLoading}
+                                disabled={isLoading || isAnyReconciling}
                                 className="flex h-8 justify-center cursor-pointer rounded-md bg-oceanic px-3 py-1.5 text-white shadow-xs hover:bg-blue-zodiac-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 {isLoading ? "Loading..." : "Reconcile"}

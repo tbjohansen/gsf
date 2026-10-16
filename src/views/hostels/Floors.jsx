@@ -36,46 +36,102 @@ export default function Floors() {
 
   const navigate = useNavigate();
   const { hostelID, blockID } = useParams();
-  const hasFetchedData = React.useRef(false);
 
+  // ─────────────────────────────────────────────────────────────
+  // loadData — memoized on blockID so refetches use the current block
+  // ─────────────────────────────────────────────────────────────
+  const loadData = React.useCallback(
+    async (signal) => {
+      if (!blockID) return; // don't fire without a block ID
+
+      setLoading(true);
+      try {
+        const response = await apiClient.get(
+          `/settings/flow`,
+          { Block_ID: blockID },
+          { signal },
+        );
+
+        // Ignore cancellations (component unmounted or block changed)
+        if (response.problem === "CANCEL_ERROR") return;
+
+        if (!response.ok) {
+          setLoading(false);
+
+          if (response.problem === "NETWORK_ERROR") {
+            toast.error("Network error. Please check your connection");
+          } else if (response.problem === "TIMEOUT_ERROR") {
+            toast.error("Request timeout. Please try again");
+          } else {
+            const serverMessage =
+              response?.data?.error || response?.data?.message;
+            toast.error(
+              typeof serverMessage === "string"
+                ? serverMessage
+                : "Failed to fetch floors",
+            );
+          }
+          return;
+        }
+
+        if (response.data?.error || response.data?.code >= 400) {
+          setLoading(false);
+          const serverMessage =
+            typeof response.data?.error === "string"
+              ? response.data.error
+              : response.data?.message || "Failed to fetch floors";
+          toast.error(serverMessage);
+          return;
+        }
+
+        const floorsData = response?.data?.data;
+        const newData = floorsData?.map((floor, index) => ({
+          ...floor,
+          key: index + 1,
+        }));
+        setFloors(Array.isArray(newData) ? newData : []);
+        setLoading(false);
+      } catch (error) {
+        // Silent cancellation
+        if (
+          error.isAborted ||
+          error.code === "ERR_CANCELED" ||
+          error.name === "CanceledError"
+        ) {
+          return;
+        }
+
+        // Global 429 after retries exhausted
+        if (error.is429) {
+          setLoading(false);
+          toast.error(
+            error.userMessage || "Too many requests. Please slow down.",
+          );
+          return;
+        }
+
+        console.error("Fetch floors error:", error);
+        setLoading(false);
+        toast.error("Failed to load floors");
+      }
+    },
+    [blockID],
+  );
+
+  // ─────────────────────────────────────────────────────────────
+  // Fetch on mount and whenever blockID changes.
+  // Aborts the previous request when the block changes.
+  // ─────────────────────────────────────────────────────────────
   React.useEffect(() => {
-    loadData();
-  }, [blockID]);
+    setPage(0);
+    setFloors([]);
+    setSelectedRow(null);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const response = await apiClient.get(`/settings/flow`, {
-        Block_ID: blockID,
-      });
+    const controller = new AbortController();
+    loadData(controller.signal);
 
-      if (!response.ok) {
-        setLoading(false);
-        toast.error("Failed to fetch floors");
-        return;
-      }
-
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error("Failed to fetch floors");
-        return;
-      }
-
-      // Adjust based on your API response structure
-      const floorsData = response?.data?.data;
-      const newData = floorsData?.map((floor, index) => ({
-        ...floor,
-        key: index + 1,
-      }));
-      // console.log(newData);
-      setFloors(Array.isArray(newData) ? newData : []);
-      setLoading(false);
-    } catch (error) {
-      console.error("Fetch floors error:", error);
-      setLoading(false);
-      toast.error("Failed to load floors");
-    }
-  };
+    return () => controller.abort();
+  }, [loadData]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -93,7 +149,10 @@ export default function Floors() {
     );
   };
 
-  // Inside the Hostels component, replace the columns definition with:
+  // ─────────────────────────────────────────────────────────────
+  // Columns — memoized with loadData dep so EditFlow always
+  // receives the freshest loadData bound to the current blockID
+  // ─────────────────────────────────────────────────────────────
   const columns = React.useMemo(
     () => [
       { id: "key", label: "S/N" },
@@ -207,7 +266,7 @@ export default function Floors() {
                             }}
                           >
                             {column.format
-                              ? column.format(value, row, handleRowClick)
+                              ? column.format(value, row)
                               : value}
                           </TableCell>
                         );
@@ -221,7 +280,7 @@ export default function Floors() {
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={floors?.length}
+          count={floors.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

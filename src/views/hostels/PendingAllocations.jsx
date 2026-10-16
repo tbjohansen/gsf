@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { styled } from "@mui/material/styles";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
@@ -29,7 +29,110 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-export default function PendingAllocations({ status }) {
+const SEARCH_DEBOUNCE_MS = 500;
+const MAX_RETRIES = 3;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// GET with retry + exponential backoff on 429 (honours Retry-After header)
+const getWithRetry = async (url) => {
+  for (let attempt = 0; ; attempt++) {
+    const response = await apiClient.get(url);
+    if (response?.status === 429 && attempt < MAX_RETRIES) {
+      const retryAfter = Number(response.headers?.["retry-after"]);
+      await sleep(
+        retryAfter
+          ? retryAfter * 1000
+          : 800 * 2 ** attempt + Math.random() * 300,
+      );
+      continue;
+    }
+    return response;
+  }
+};
+
+// Returns `value` only after it has stopped changing for `delay` ms
+const useDebouncedValue = (value, delay) => {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+};
+
+// Columns don't depend on component state, so define them once
+const columns = [
+  { id: "key", label: "S/N" },
+  {
+    id: "name",
+    label: "Student Name",
+    minWidth: 170,
+    format: (_, row) => <div>{row?.customer?.Customer_Name}</div>,
+  },
+  {
+    id: "Gender",
+    label: "Gender",
+    format: (_, row) => <span>{capitalize(row?.customer?.Gender)}</span>,
+  },
+  {
+    id: "Phone_Number",
+    label: "Phone",
+    format: (_, row) => <span>{row?.customer?.Phone_Number}</span>,
+  },
+  {
+    id: "Email",
+    label: "Email",
+    format: (_, row) => <span>{row?.customer?.Email}</span>,
+  },
+  {
+    id: "Student_ID",
+    label: "Student ID",
+    minWidth: 170,
+    format: (_, row) => (
+      <span>{row?.customer?.Student_ID || row?.customer?.Admission_ID}</span>
+    ),
+  },
+  {
+    id: "Program_Study",
+    label: "Program",
+    format: (_, row) => <span>{row?.customer?.Program_Study}</span>,
+  },
+  {
+    id: "Year_Study",
+    label: "Year",
+    format: (_, row) => <span>{row?.customer?.Year_Study}</span>,
+  },
+  {
+    id: "Semester",
+    label: "Semester",
+    format: (_, row) => <span>{row?.customer?.Semester}</span>,
+  },
+  {
+    id: "Customer_Status",
+    label: "Status",
+    format: (value) => (
+      <Badge
+        name={capitalize(value)}
+        color={value === "paid" ? "green" : "error"}
+      />
+    ),
+  },
+  {
+    id: "hostel",
+    label: "Hostel",
+    minWidth: 170,
+    format: (_, row) => <span>{row?.room?.hostel?.Hostel_Name}</span>,
+  },
+  {
+    id: "created_at",
+    label: "Created At",
+    minWidth: 170,
+    format: (value) => <span>{formatDateTimeForDb(value)}</span>,
+  },
+].filter((column) => typeof column.show === "undefined" || !!column.show);
+
+export default function PendingAllocations() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [users, setUsers] = useState([]);
@@ -38,90 +141,85 @@ export default function PendingAllocations({ status }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [total, setTotal] = useState(0);
 
-  const [pagination, setPagination] = useState({
-    total: 0,
-    perPage: 25,
-    currentPage: 1,
-    lastPage: 1,
-    from: 0,
-    to: 0,
-  });
-
+  const latestRequestId = useRef(0);
   const navigate = useNavigate();
 
-  // Fetch hostels from API
-  useEffect(() => {
-    loadData();
-  }, [name, customerID, phoneNumber, rowsPerPage, page]);
+  // Only search once the user pauses typing
+  const debouncedName = useDebouncedValue(name.trim(), SEARCH_DEBOUNCE_MS);
+  const debouncedCustomerID = useDebouncedValue(
+    customerID.trim(),
+    SEARCH_DEBOUNCE_MS,
+  );
+  const debouncedPhone = useDebouncedValue(
+    phoneNumber.trim(),
+    SEARCH_DEBOUNCE_MS,
+  );
 
-  const loadData = async () => {
+  // New search -> back to first page (avoids an extra request for a page that may not exist)
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedName, debouncedCustomerID, debouncedPhone]);
+
+  const url = useMemo(() => {
+    const params = new URLSearchParams({
+      Customer_Status: "paid",
+      Room_Status: "paid",
+      Request_Type: "hostel",
+      item_type: "student_accomodatio",
+      limit: String(rowsPerPage),
+      page: String(page),
+    });
+    if (debouncedName) params.set("Customer_Name", debouncedName);
+    if (debouncedCustomerID) params.set("Student_ID", debouncedCustomerID);
+    if (debouncedPhone) params.set("Phone_Number", debouncedPhone);
+    return `/customer/customer-request?${params.toString()}`;
+  }, [debouncedName, debouncedCustomerID, debouncedPhone, rowsPerPage, page]);
+
+  const loadData = useCallback(async (requestUrl) => {
+    const requestId = ++latestRequestId.current;
     setLoading(true);
     try {
-      let url = `/customer/customer-request?&Customer_Status=paid&Room_Status=paid&Request_Type=hostel&limit=${rowsPerPage}&page=${page}`;
+      const response = await getWithRetry(requestUrl);
 
-      if (name) {
-        url += `&Customer_Name=${name}`;
-      }
+      // A newer request has started; ignore this stale response
+      if (requestId !== latestRequestId.current) return;
 
-      if (customerID) {
-        url += `&Student_ID=${customerID}`;
-      }
-
-      if (phoneNumber) {
-        url += `&Phone_Number=${phoneNumber}`;
-      }
-
-      const response = await apiClient.get(url);
-
-      if (!response.ok) {
-        setLoading(false);
+      if (!response.ok || response.data?.error || response.data?.code >= 400) {
         toast.error(response.data?.error || "Failed to fetch students");
         return;
       }
 
-      if (response.data?.error || response.data?.code >= 400) {
-        setLoading(false);
-        toast.error(response.data.error || "Failed to fetch students");
-        return;
-      }
-
       const responseData = response?.data?.data;
-      const unitsData = responseData?.data || [];
+      const rows = Array.isArray(responseData?.data) ? responseData.data : [];
+      const offset =
+        ((responseData?.current_page || 1) - 1) *
+        (responseData?.per_page || rows.length);
 
-      const newData = unitsData?.map((user, index) => ({
-        ...user,
-        key:
-          (responseData?.current_page - 1) * responseData?.per_page + index + 1,
-      }));
-
-      setUsers(Array.isArray(newData) ? newData : []);
-
-      // Update pagination state
-      setPagination({
-        total: responseData?.total || 0,
-        perPage: responseData?.per_page || 25,
-        currentPage: responseData?.current_page || 1,
-        lastPage: responseData?.last_page || 1,
-        from: responseData?.from || 0,
-        to: responseData?.to || 0,
-      });
-
-      setLoading(false);
+      setUsers(
+        rows.map((user, index) => ({ ...user, key: offset + index + 1 })),
+      );
+      setTotal(responseData?.total || 0);
     } catch (error) {
+      if (requestId !== latestRequestId.current) return;
       console.error("Fetch customers error:", error);
-      setLoading(false);
       toast.error("Failed to fetch students");
+    } finally {
+      if (requestId === latestRequestId.current) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData(url);
+  }, [url, loadData]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    const newRowsPerPage = parseInt(event.target.value, 25);
-    setRowsPerPage(newRowsPerPage);
+    setRowsPerPage(parseInt(event.target.value, 10));
     setPage(1);
   };
 
@@ -131,100 +229,6 @@ export default function PendingAllocations({ status }) {
       `/projects/hostels/pending-room-assignments/${row?.Request_ID}/assign-room`,
     );
   };
-
-  // Inside the users component, replace the columns definition with:
-  const columns = useMemo(
-    () => [
-      { id: "key", label: "S/N" },
-      {
-        id: "name",
-        label: "Student Name",
-        minWidth: 170,
-        format: (row, value) => (
-          <div>{value?.customer?.Customer_Name}</div>
-        ),
-      },
-      {
-        id: "Gender",
-        label: "Gender",
-        format: (row, value) => (
-          <span>{capitalize(value?.customer?.Gender)}</span>
-        ),
-      },
-      // {
-      //   id: "Nationality",
-      //   label: "Nationality",
-      //   format: (row, value) => (
-      //     <span>{capitalize(value?.customer?.Nationality)}</span>
-      //   ),
-      // },
-      {
-        id: "Phone_Number",
-        label: "Phone",
-        format: (row, value) => (
-          <span>{capitalize(value?.customer?.Phone_Number)}</span>
-        ),
-      },
-      {
-        id: "Email",
-        label: "Email",
-        format: (row, value) => (
-          <span>{value?.customer?.Email}</span>
-        ),
-      },
-      {
-        id: "Student_ID",
-        label: "Student ID",
-        minWidth: 170,
-        format: (row, value) => (
-          <span>
-            {value?.customer?.Student_ID || value?.customer?.Admission_ID}
-          </span>
-        ),
-      },
-      {
-        id: "Program_Study",
-        label: "Program",
-        format: (row, value) => <span>{value?.customer?.Program_Study}</span>,
-      },
-      {
-        id: "Year_Study",
-        label: "Year",
-        format: (row, value) => <span>{value?.customer?.Year_Study}</span>,
-      },
-      {
-        id: "Semester",
-        label: "Semester",
-        format: (row, value) => <span>{value?.customer?.Semester}</span>,
-      },
-      {
-        id: "Customer_Status",
-        label: "Status",
-        format: (value) => (
-          <Badge
-            name={capitalize(value)}
-            color={value === "paid" ? "green" : "error"}
-          />
-        ),
-      },
-      {
-        id: "hostel",
-        label: "Hostel",
-        minWidth: 170,
-        format: (row, value) => (
-          <span>{value?.room?.hostel?.Hostel_Name}</span>
-        ),
-      },
-
-      {
-        id: "created_at",
-        label: "Created At",
-        minWidth: 170,
-        format: (value) => <span>{formatDateTimeForDb(value)}</span>,
-      },
-    ],
-    [loadData, status],
-  );
 
   return (
     <>
@@ -244,8 +248,8 @@ export default function PendingAllocations({ status }) {
       <div className="w-full py-2 flex gap-2 mb-1">
         <TextField
           size="small"
-          id="outlined-basic"
-          label={"Name"}
+          id="search-name"
+          label="Name"
           variant="outlined"
           className="w-[33%]"
           value={name}
@@ -254,23 +258,21 @@ export default function PendingAllocations({ status }) {
         />
         <TextField
           size="small"
-          id="outlined-basic"
-          label={"Student ID"}
+          id="search-student-id"
+          label="Student ID"
           variant="outlined"
           className="w-[33%]"
           value={customerID}
           onChange={(e) => setCustomerID(e.target.value)}
-          autoFocus
         />
         <TextField
           size="small"
-          id="outlined-basic"
+          id="search-phone"
           label="Phone Number"
           variant="outlined"
           className="w-[33%]"
           value={phoneNumber}
           onChange={(e) => setPhoneNumber(e.target.value)}
-          autoFocus
         />
       </div>
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -278,20 +280,15 @@ export default function PendingAllocations({ status }) {
           <Table stickyHeader aria-label="sticky table">
             <TableHead>
               <TableRow>
-                {columns
-                  .filter(
-                    (column) =>
-                      typeof column.show === "undefined" || !!column.show,
-                  )
-                  .map((column) => (
-                    <StyledTableCell
-                      key={column.id}
-                      align={column.align}
-                      style={{ minWidth: column.minWidth }}
-                    >
-                      {column.label}
-                    </StyledTableCell>
-                  ))}
+                {columns.map((column) => (
+                  <StyledTableCell
+                    key={column.id}
+                    align={column.align}
+                    style={{ minWidth: column.minWidth }}
+                  >
+                    {column.label}
+                  </StyledTableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -302,60 +299,50 @@ export default function PendingAllocations({ status }) {
                   </TableCell>
                 </TableRow>
               )}
-              {users?.map((row) => {
-                return (
-                  <TableRow
-                    hover
-                    role="checkbox"
-                    tabIndex={-1}
-                    key={row.key || row.id}
-                    onClick={() => handleRowClick(row)}
-                    sx={{
-                      cursor: "pointer",
-                      backgroundColor:
-                        selectedRow?.key === row.key
-                          ? "rgba(0, 0, 0, 0.04)"
-                          : "inherit",
-                      "&:hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.08)",
-                      },
-                    }}
-                  >
-                    {columns
-                      .filter(
-                        (column) =>
-                          typeof column.show === "undefined" || !!column.show,
-                      )
-                      .map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            onClick={(e) => {
-                              // Prevent click event from bubbling up to the row
-                              // when clicking on action buttons
-                              if (column.id === "actions") {
-                                e.stopPropagation();
-                              }
-                            }}
-                          >
-                            {column.format
-                              ? column.format(value, row, handleRowClick)
-                              : value}
-                          </TableCell>
-                        );
-                      })}
-                  </TableRow>
-                );
-              })}
+              {users.map((row) => (
+                <TableRow
+                  hover
+                  role="checkbox"
+                  tabIndex={-1}
+                  key={row.Request_ID ?? row.key}
+                  onClick={() => handleRowClick(row)}
+                  sx={{
+                    cursor: "pointer",
+                    backgroundColor:
+                      selectedRow?.key === row.key
+                        ? "rgba(0, 0, 0, 0.04)"
+                        : "inherit",
+                    "&:hover": {
+                      backgroundColor: "rgba(0, 0, 0, 0.08)",
+                    },
+                  }}
+                >
+                  {columns.map((column) => {
+                    const value = row[column.id];
+                    return (
+                      <TableCell
+                        key={column.id}
+                        align={column.align}
+                        onClick={(e) => {
+                          // Don't trigger row navigation from action buttons
+                          if (column.id === "actions") e.stopPropagation();
+                        }}
+                      >
+                        {column.format
+                          ? column.format(value, row, handleRowClick)
+                          : value}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
           rowsPerPageOptions={[25, 50, 100, 1000]}
           component="div"
-          count={pagination.total}
+          count={total}
           rowsPerPage={rowsPerPage}
           page={page - 1}
           onPageChange={handleChangePage}

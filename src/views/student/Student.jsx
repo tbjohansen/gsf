@@ -709,7 +709,7 @@ const Student = () => {
     setLoadingRooms(true);
     try {
       const response = await apiClient.get(
-        `/student-room?Nationality=${studentData?.Customer_Type}&room_type=${selectedRoomType.id}&flow_id=${floorId}`,
+        `/student-room?Nationality=${studentData?.Customer_Type}&room_status=active&room_type=${selectedRoomType.id}&flow_id=${floorId}`,
       );
 
       if (!response.ok) {
@@ -804,7 +804,7 @@ const Student = () => {
                   Request_Type: "hostel",
                   Quantity: 1,
                   Item_ID: validatedData.cautionMoney.Item_ID,
-                  Price: validatedData.cautionMoney.Item_Price,
+                  Price: validatedData.cautionMoney.Item_Price || 0,
                 },
               ]
             : []),
@@ -1725,7 +1725,7 @@ const Student = () => {
                                           TZS{" "}
                                           {
                                             validatedData?.cautionMoney
-                                              ?.Item_Price
+                                              ?.Item_Price || 0
                                           }
                                         </p>
                                       </div>
@@ -1742,7 +1742,7 @@ const Student = () => {
                                                   quantity +
                                                   parseInt(
                                                     validatedData?.cautionMoney
-                                                      ?.Item_Price,
+                                                      ?.Item_Price || 0,
                                                   ),
                                               )
                                             : 0}
@@ -1760,7 +1760,7 @@ const Student = () => {
                                     You are required to pay caution money of{" "}
                                     <strong>
                                       TZS{" "}
-                                      {validatedData?.cautionMoney?.Item_Price}
+                                      {validatedData?.cautionMoney?.Item_Price || 0}
                                     </strong>{" "}
                                     for the academic year{" "}
                                     {appWindow?.semester?.Academic_Year?.replace(
